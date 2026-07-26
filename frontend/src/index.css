@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #E5E2D2;
+  --card: #FFFFFF;
+  --primary: #D4AF37;
+  --primary-foreground: #FFFFFF;
+  --secondary: #CAD5B5;
+  --secondary-foreground: #294825;
+  --border: #7F8F74;
+  --text-primary: #294825;
+  --text-secondary: #6B7280;
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --danger: #DC2626;
+}
+
+.dark {
+  --background: #111827;
+  --card: #1F2937;
+  --primary: #D4AF37;
+  --primary-foreground: #FFFFFF;
+  --secondary: #374151;
+  --secondary-foreground: #CAD5B5;
+  --border: #4B5563;
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-textPrimary font-sans antialiased;
+  }
+}

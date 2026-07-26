@@ -1,0 +1,50 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project Trash (Local Only)
+sampah/
+/Start_Ansa_Finance.bat
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+.venv
+backend/uploads/
+.pytest_cache/
+.coverage
+htmlcov/
+backend/test.db
+
+# Node / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+dist-ssr/
+build/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -1,0 +1,238 @@
+import { useState, useEffect } from 'react';
+import { DataTable } from '../../../components/ui/DataTable';
+import { Modal } from '../../../components/ui/Modal';
+import { ArrowLeft, Save, AlertTriangle, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { projectsApi } from '../../../services/api';
+import { useToastStore } from '../../../store/toastStore';
+
+interface Activity {
+  id: string;
+  work_package_id: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+  created_at?: string;
+  workPackageName?: string;
+}
+
+export function ActivityPage() {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [workPackages, setWorkPackages] = useState<any[]>([]);
+  const [_isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const addToast = useToastStore((state) => state.addToast);
+  
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Activity | null>(null);
+  
+  const [formData, setFormData] = useState<Omit<Activity, 'id' | 'created_at' | 'workPackageName'>>({
+    work_package_id: '', code: '', name: '', is_active: true
+  });
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [actRes, wpRes] = await Promise.all([
+        projectsApi.getActivities(),
+        projectsApi.getWorkPackages()
+      ]);
+      setWorkPackages(wpRes.data);
+      
+      const mapped = actRes.data.map((a: any) => ({
+        ...a,
+        workPackageName: wpRes.data.find((w: any) => w.id === a.work_package_id)?.name || 'Unknown'
+      }));
+      setActivities(mapped);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      addToast('error', 'Connection Error', 'Failed to fetch activity data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const isNewAccount = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const createdDate = new Date(dateStr);
+    const now = new Date();
+    const diffHours = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+    return diffHours <= 24;
+  };
+
+  const columns = [
+    { header: 'Activity Code', accessor: 'code' as keyof Activity, className: 'font-mono text-primary w-32' },
+    { 
+      header: 'Activity Name', 
+      accessor: (row: Activity) => (
+        <div className="flex items-center gap-2">
+          <span className="font-bold">{row.name}</span>
+          {isNewAccount(row.created_at) && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-bold border border-success/20 animate-pulse whitespace-nowrap">
+              <Sparkles className="w-3 h-3" /> New
+            </span>
+          )}
+        </div>
+      )
+    },
+    { header: 'Work Package', accessor: 'workPackageName' as keyof Activity, className: 'text-textSecondary' },
+    { 
+      header: 'Status', 
+      accessor: (row: Activity) => (
+        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+          row.is_active ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
+        }`}>
+          {row.is_active ? 'Active' : 'Inactive'}
+        </span>
+      ),
+      className: 'w-24'
+    },
+  ];
+
+  const handleAdd = () => {
+    setEditingItem(null);
+    setFormData({ work_package_id: '', code: '', name: '', is_active: true });
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (row: Activity) => {
+    setEditingItem(row);
+    setFormData({ 
+      work_package_id: row.work_package_id,
+      code: row.code, 
+      name: row.name, 
+      is_active: row.is_active 
+    });
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteClick = (row: Activity) => {
+    setEditingItem(row);
+    setIsDeleteOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      if (editingItem) {
+        await projectsApi.updateActivity(editingItem.id, formData);
+        addToast('success', 'Activity Updated', `Activity ${formData.code} has been updated.`);
+      } else {
+        await projectsApi.createActivity(formData);
+        addToast('success', 'Activity Created', `Activity ${formData.code} has been created.`);
+      }
+      await fetchData();
+      setIsFormOpen(false);
+    } catch (error: any) {
+      console.error(error);
+      const errMsg = error.response?.data?.detail || 'Failed to save. Ensure data is valid.';
+      addToast('error', 'Save Failed', typeof errMsg === 'string' ? errMsg : 'Validation error occurred.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (editingItem) {
+      setIsSaving(true);
+      try {
+        await projectsApi.deleteActivity(editingItem.id).catch(() => projectsApi.updateActivity(editingItem.id, { is_active: false }));
+        addToast('success', 'Activity Deleted', `Activity ${editingItem.code} has been removed.`);
+        await fetchData();
+        setIsDeleteOpen(false);
+      } catch (error) {
+        addToast('error', 'Delete Failed', 'Could not delete the activity.');
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col">
+      <div className="flex items-center gap-4">
+        <Link to="/master-data" className="p-2 border border-border rounded-lg text-textSecondary hover:bg-background hover:text-textPrimary transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-textPrimary">Activity</h1>
+          <div className="flex items-center gap-2 mt-1 text-sm text-textSecondary">
+            <Link to="/master-data" className="hover:text-primary transition-colors">Master Data</Link>
+            <span>/</span>
+            <span className="text-textPrimary font-medium">Project Structure</span>
+            <span>/</span>
+            <span className="text-primary font-medium">Activity</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden min-h-0">
+        <DataTable
+          title="Project Activities"
+          description="Manage detailed task activities under work packages."
+          columns={columns}
+          data={activities}
+          searchPlaceholder="Search activities..."
+          onAdd={handleAdd}
+          onEdit={handleEdit}
+          onDelete={handleDeleteClick}
+        />
+      </div>
+
+      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={editingItem ? "Edit Activity" : "Add New Activity"}>
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-textPrimary">Work Package <span className="text-danger">*</span></label>
+            <select required value={formData.work_package_id} onChange={e => setFormData({...formData, work_package_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-textPrimary">
+              <option value="">Select Work Package</option>
+              {workPackages.map(w => <option key={w.id} value={w.id}>{w.code} - {w.name}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-textPrimary">Activity Code <span className="text-danger">*</span></label>
+              <input required type="text" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-textPrimary" placeholder="e.g. ACT-01"/>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-textPrimary">Status <span className="text-danger">*</span></label>
+              <select value={formData.is_active ? 'Active' : 'Inactive'} onChange={e => setFormData({...formData, is_active: e.target.value === 'Active'})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-textPrimary">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-textPrimary">Activity Name <span className="text-danger">*</span></label>
+            <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-textPrimary" placeholder="e.g. Site Preparation"/>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
+            <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Cancel</button>
+            <button type="submit" disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
+              <Save className="w-4 h-4" /> {isSaving ? 'Saving...' : 'Save Activity'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="Delete Confirmation" maxWidth="max-w-sm">
+        <div className="flex flex-col items-center text-center space-y-4 py-4">
+          <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center text-danger"><AlertTriangle className="w-6 h-6" /></div>
+          <div><h3 className="text-lg font-bold text-textPrimary">Are you sure?</h3><p className="text-sm text-textSecondary mt-1">You are about to delete <span className="font-bold text-textPrimary">{editingItem?.name}</span>. This action cannot be undone.</p></div>
+          <div className="flex gap-3 w-full pt-2">
+            <button onClick={() => setIsDeleteOpen(false)} className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Cancel</button>
+            <button onClick={confirmDelete} disabled={isSaving} className="flex-1 px-4 py-2 bg-danger text-white rounded-lg text-sm font-medium hover:bg-danger/90 transition-colors disabled:opacity-50">Yes, Delete</button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}

@@ -1,0 +1,414 @@
+import { useState, useEffect } from 'react';
+import { DataTable } from '../../../components/ui/DataTable';
+import { Modal } from '../../../components/ui/Modal';
+import { ArrowLeft, Save, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { financeApi, financialsApi, projectsApi, rabApi } from '../../../services/api';
+import { useToastStore } from '../../../store/toastStore';
+
+interface Project {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface COA {
+  id: string;
+  account_code: string;
+  account_name: string;
+  account_type: string;
+}
+
+interface Expense {
+  id: string;
+  expense_number: string;
+  date: string;
+  project_id?: string;
+  project_rab_id?: string;
+  description: string;
+  amount: number;
+  expense_account_id: string;
+  payment_account_id: string;
+  status: string;
+  admin_fee_amount?: number;
+  admin_fee_account_id?: string;
+}
+
+export function ExpensePage() {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [coas, setCoas] = useState<COA[]>([]);
+  const [rabItems, setRabItems] = useState<any[]>([]);
+  
+  const [_isLoading, setIsLoading] = useState(true);
+  const [_isSaving, setIsSaving] = useState(false);
+  const addToast = useToastStore((state) => state.addToast);
+  
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Expense | null>(null);
+  const [hasAdminFee, setHasAdminFee] = useState(false);
+  
+  const [formData, setFormData] = useState<Omit<Expense, 'id' | 'created_at'>>({
+    expense_number: '', date: '', project_id: '', project_rab_id: '', description: '', amount: 0, expense_account_id: '', payment_account_id: '', status: 'Paid', admin_fee_amount: 0, admin_fee_account_id: ''
+  });
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [expRes, projRes, coasRes] = await Promise.all([
+        financeApi.getExpenses(),
+        projectsApi.getProjects(),
+        financialsApi.getCoas()
+      ]);
+      setExpenses(expRes.data);
+      setProjects(projRes.data);
+      const sortedCoas = coasRes.data.sort((a: COA, b: COA) => a.account_code.localeCompare(b.account_code));
+      setCoas(sortedCoas);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      addToast('error', 'Connection Error', 'Failed to fetch expense data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val);
+  };
+
+  const columns = [
+    { header: 'Expense No', accessor: 'expense_number' as keyof Expense, className: 'font-mono text-primary font-bold' },
+    { header: 'Date', accessor: 'date' as keyof Expense },
+    { 
+      header: 'Project', 
+      accessor: (row: Expense) => {
+        if (!row.project_id) return '-';
+        const project = projects.find(p => p.id === row.project_id);
+        return project ? project.name : 'Unknown';
+      },
+      className: 'text-textSecondary'
+    },
+    { header: 'Description', accessor: 'description' as keyof Expense },
+    { 
+      header: 'Total Deducted', 
+      accessor: (row: Expense) => formatCurrency(row.amount + (row.admin_fee_amount || 0)),
+      className: 'text-right font-semibold'
+    }
+  ];
+
+  const handleAdd = () => {
+    setEditingItem(null);
+    setFormData({ 
+      expense_number: `EXP-${Date.now().toString().slice(-5)}`, 
+      date: new Date().toISOString().split('T')[0], 
+      project_id: '',
+      description: '', 
+      amount: 0, 
+      expense_account_id: '', 
+      payment_account_id: '', 
+      status: 'Paid',
+      admin_fee_amount: 0,
+      admin_fee_account_id: ''
+    });
+    setHasAdminFee(false);
+    setIsFormOpen(true);
+  };
+
+  const handleViewClick = (row: Expense) => {
+    setEditingItem(row);
+    setIsViewOpen(true);
+  };
+
+  const handleDeleteClick = (row: Expense) => {
+    setEditingItem(row);
+    setIsDeleteOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.expense_account_id || !formData.payment_account_id) {
+      addToast('error', 'Validation Error', 'Please select both Expense and Payment accounts.');
+      return;
+    }
+    
+    // Optional project ID
+    const payload = { ...formData };
+    if (!payload.project_id) {
+      delete (payload as any).project_id;
+    }
+    
+    // Optional admin fee
+    if (!hasAdminFee || !payload.admin_fee_account_id) {
+      payload.admin_fee_amount = 0;
+      delete (payload as any).admin_fee_account_id;
+    }
+
+    setIsSaving(true);
+    try {
+      if (editingItem) {
+        addToast('warning', 'Update Disabled', 'Editing a posted expense is not permitted. Please delete and recreate.');
+      } else {
+        await financeApi.createExpense(payload);
+        addToast('success', 'Expense Recorded', `Expense ${formData.expense_number} recorded. Auto-journal generated successfully.`);
+      }
+      await fetchData();
+      setIsFormOpen(false);
+    } catch (error: any) {
+      console.error(error);
+      const errMsg = error.response?.data?.detail || 'Failed to save.';
+      addToast('error', 'Save Failed', typeof errMsg === 'string' ? errMsg : 'Validation error occurred.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (editingItem) {
+      setIsSaving(true);
+      try {
+        await financeApi.deleteExpense(editingItem.id);
+        addToast('success', 'Expense Deleted', `Expense ${editingItem.expense_number} and its Auto-journal have been removed.`);
+        await fetchData();
+        setIsDeleteOpen(false);
+      } catch (error) {
+        addToast('error', 'Delete Failed', 'Could not delete the expense.');
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  // Filter COAs for dropdowns
+  const expenseAccounts = coas.filter(c => c.account_type.toLowerCase() === 'expense');
+  const paymentAccounts = coas.filter(c => c.account_type.toLowerCase() === 'asset'); // Cash/Bank are assets
+
+  return (
+    <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col">
+      <div className="flex items-center gap-4">
+        <Link to="/finance" className="p-2 border border-border rounded-lg text-textSecondary hover:bg-background hover:text-textPrimary transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-textPrimary">Direct Expenses (Kas Kecil)</h1>
+          <div className="flex items-center gap-2 mt-1 text-sm text-textSecondary">
+            <Link to="/finance" className="hover:text-primary transition-colors">Finance</Link>
+            <span>/</span>
+            <span className="text-primary font-medium">Expenses</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden min-h-0">
+        <DataTable
+          title="Direct Expenses"
+          description="Manage operational claims and expenses. System auto-generates journals for these entries."
+          columns={columns}
+          data={expenses}
+          searchPlaceholder="Search description or expense no..."
+          onAdd={handleAdd}
+          onView={handleViewClick}
+          onDelete={handleDeleteClick}
+          // Intentionally omitting onEdit to prevent editing posted journals for simplicity
+        />
+      </div>
+
+      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="Record New Expense" maxWidth="max-w-2xl">
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="p-3 mb-2 bg-primary/10 border border-primary/20 text-primary text-sm rounded-lg flex gap-2">
+            <strong>Info:</strong> Saving this expense will automatically create a balanced Journal Entry (Debit: Expense, Credit: Payment Account).
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-textPrimary">Expense No. <span className="text-danger">*</span></label>
+              <input required type="text" value={formData.expense_number} onChange={e => setFormData({...formData, expense_number: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary"/>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-textPrimary">Date <span className="text-danger">*</span></label>
+              <input required type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary"/>
+            </div>
+          </div>
+          
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-textPrimary">Related Project (Optional)</label>
+            <select value={formData.project_id} onChange={async e => {
+              const pid = e.target.value;
+              setFormData({...formData, project_id: pid, project_rab_id: ''});
+              if (pid) {
+                try { const r = await rabApi.getByProject(pid); setRabItems(r.data); } catch { setRabItems([]); }
+              } else { setRabItems([]); }
+            }} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
+              <option value="">-- Tidak Ada Proyek (Overhead Kantor) --</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.code} - {p.name}</option>)}
+            </select>
+          </div>
+
+          {/* RAB Allocation - shows when project is selected and has RAB items */}
+          {formData.project_id && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-textPrimary">Alokasi RAB / Pos Anggaran <span className="text-xs text-textSecondary">(Opsional)</span></label>
+              <select value={formData.project_rab_id} onChange={e => setFormData({...formData, project_rab_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
+                <option value="">-- Biaya Proyek Umum (tanpa alokasi RAB) --</option>
+                {rabItems.map(r => <option key={r.id} value={r.id}>{r.category} → {r.description}</option>)}
+              </select>
+              <p className="text-[11px] text-textSecondary">Pilih pos RAB agar biaya ini tercatat pada anggaran spesifik proyek.</p>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-textPrimary">Description <span className="text-danger">*</span></label>
+            <input required type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="e.g. Client meeting for planning phase"/>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border mt-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-textPrimary">Expense Category (Debit) <span className="text-danger">*</span></label>
+              <select required value={formData.expense_account_id} onChange={e => setFormData({...formData, expense_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
+                <option value="">-- Select Expense Account --</option>
+                {expenseAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-textPrimary">Paid Via (Credit) <span className="text-danger">*</span></label>
+              <select required value={formData.payment_account_id} onChange={e => setFormData({...formData, payment_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
+                <option value="">-- Select Payment Account --</option>
+                {paymentAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 mt-4">
+            <label className="text-sm font-medium text-textPrimary">Expense Amount (Rp) <span className="text-danger">*</span></label>
+            <input required type="text" value={formData.amount === 0 ? '' : new Intl.NumberFormat('id-ID').format(formData.amount)} onChange={e => {
+              const val = e.target.value.replace(/\D/g, '');
+              setFormData({...formData, amount: Number(val)});
+            }} className="w-full px-4 py-3 bg-card border-2 border-primary/20 rounded-lg text-lg text-primary font-bold text-right focus:border-primary focus:ring-0" placeholder="0"/>
+          </div>
+
+          <div className="space-y-1.5 pt-2 border-t border-border mt-4">
+            <label className="flex items-center gap-2 text-sm font-medium text-textPrimary cursor-pointer">
+              <input type="checkbox" checked={hasAdminFee} onChange={e => setHasAdminFee(e.target.checked)} className="rounded border-border text-primary focus:ring-primary"/>
+              Include Bank Administration Fee?
+            </label>
+          </div>
+
+          {hasAdminFee && (
+            <div className="grid grid-cols-2 gap-4 bg-background p-3 rounded-lg border border-border mt-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-textPrimary">Admin Fee Account <span className="text-danger">*</span></label>
+                <select required={hasAdminFee} value={formData.admin_fee_account_id || ''} onChange={e => setFormData({...formData, admin_fee_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
+                  <option value="">-- Select Admin Fee Account --</option>
+                  {expenseAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-textPrimary">Admin Fee Amount (Rp) <span className="text-danger">*</span></label>
+                <input required={hasAdminFee} type="text" value={formData.admin_fee_amount === 0 ? '' : new Intl.NumberFormat('id-ID').format(formData.admin_fee_amount || 0)} onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  setFormData({...formData, admin_fee_amount: Number(val)});
+                }} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="0"/>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center bg-primary/5 p-4 rounded-lg border border-primary/20 mt-4">
+            <span className="font-bold text-textPrimary text-sm">Total Deducted from Bank</span>
+            <span className="font-bold text-primary text-xl">{formatCurrency(formData.amount + (hasAdminFee ? formData.admin_fee_amount || 0 : 0))}</span>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
+            <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Cancel</button>
+            <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"><Save className="w-4 h-4" /> Save & Generate Journal</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* View Modal */}
+      <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Expense Details" maxWidth="max-w-xl">
+        {editingItem && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-6 pb-4 border-b border-border">
+              <div>
+                <p className="text-sm text-textSecondary">Expense No.</p>
+                <p className="font-bold font-mono text-primary text-lg">{editingItem.expense_number}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-textSecondary">Status</p>
+                <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold mt-1 ${
+                  editingItem.status === 'Paid' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                }`}>
+                  {editingItem.status}
+                </span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-textSecondary">Date</p>
+                <p className="font-medium text-textPrimary">{editingItem.date}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-textSecondary">Project</p>
+                <p className="font-medium text-textPrimary">{projects.find(p => p.id === editingItem.project_id)?.name || '-'}</p>
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-sm text-textSecondary mb-1">Description</p>
+              <p className="text-sm text-textPrimary p-3 bg-background border border-border rounded-lg">{editingItem.description}</p>
+            </div>
+            
+            <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+              <h4 className="font-bold text-primary mb-3">Financial Details</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-textSecondary">Expense Category</span>
+                  <span className="font-medium text-textPrimary">{coas.find(c => c.id === editingItem.expense_account_id)?.account_name || '-'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-textSecondary">Paid Via</span>
+                  <span className="font-medium text-textPrimary">{coas.find(c => c.id === editingItem.payment_account_id)?.account_name || '-'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-textSecondary">Expense Amount</span>
+                  <span className="font-medium text-textPrimary">{formatCurrency(editingItem.amount)}</span>
+                </div>
+                {editingItem.admin_fee_amount && editingItem.admin_fee_amount > 0 ? (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-textSecondary">Bank Admin Fee</span>
+                    <span className="font-medium text-textPrimary">{coas.find(c => c.id === editingItem.admin_fee_account_id)?.account_name || '-'} ({formatCurrency(editingItem.admin_fee_amount)})</span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between pt-2 border-t border-primary/20 mt-2">
+                  <span className="font-bold text-textPrimary">Total Deducted</span>
+                  <span className="font-bold text-primary">{formatCurrency(editingItem.amount + (editingItem.admin_fee_amount || 0))}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-border mt-6">
+              <button type="button" onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Close</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal isOpen={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="Delete Confirmation" maxWidth="max-w-sm">
+        <div className="flex flex-col items-center text-center space-y-4 py-4">
+          <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center text-danger"><AlertTriangle className="w-6 h-6" /></div>
+          <div><h3 className="text-lg font-bold text-textPrimary">Are you sure?</h3><p className="text-sm text-textSecondary mt-1">You are about to delete expense <span className="font-bold text-textPrimary">{editingItem?.expense_number}</span>. The associated journal will also be deleted.</p></div>
+          <div className="flex gap-3 w-full pt-2">
+            <button onClick={() => setIsDeleteOpen(false)} className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Cancel</button>
+            <button onClick={confirmDelete} className="flex-1 px-4 py-2 bg-danger text-white rounded-lg text-sm font-medium hover:bg-danger/90 transition-colors">Yes, Delete</button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
