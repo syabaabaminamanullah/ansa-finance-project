@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useThemeStore } from './store/themeStore';
+import { Screensaver } from './components/ui/Screensaver';
 import { MainLayout } from './layouts/MainLayout';
 import { DashboardPage } from './modules/dashboard/pages/DashboardPage';
 import { MasterDataPage } from './modules/master-data/pages/MasterDataPage';
@@ -68,6 +69,7 @@ import { JournalPage } from './modules/finance/pages/JournalPage';
 import { GeneralLedgerPage } from './modules/finance/pages/GeneralLedgerPage';
 import { ApInvoicePage } from './modules/finance/pages/ApInvoicePage';
 import { ArInvoicePage } from './modules/finance/pages/ArInvoicePage';
+import { BillingSchedulePage } from './modules/finance/pages/BillingSchedulePage';
 import { FinancialReportsPage } from './modules/finance/pages/FinancialReportsPage';
 import { AssetDepreciationReport } from './modules/finance/pages/AssetDepreciationReport';
 import { ArAgingReport } from './modules/finance/pages/ArAgingReport';
@@ -98,6 +100,7 @@ function App() {
 
   return (
     <Router>
+      <Screensaver />
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
@@ -147,6 +150,7 @@ function App() {
           <Route path="finance/gl" element={<GeneralLedgerPage />} />
           <Route path="finance/ap-invoices" element={<ApInvoicePage />} />
           <Route path="finance/ar-invoices" element={<ArInvoicePage />} />
+          <Route path="finance/billing" element={<BillingSchedulePage />} />
           <Route path="finance/reports" element={<FinancialReportsPage />} />
           <Route path="finance/project-reports" element={<ProjectFinancialReportsPage />} />
           <Route path="finance/asset-depreciation" element={<AssetDepreciationReport />} />

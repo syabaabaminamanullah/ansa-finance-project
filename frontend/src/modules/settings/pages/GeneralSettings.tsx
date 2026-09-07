@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Building2, Save, MapPin, Mail, Phone, Hash } from 'lucide-react';
 import { useToastStore } from '../../../store/toastStore';
 import { useSettingsStore } from '../../../store/settingsStore';
@@ -17,8 +17,22 @@ export function GeneralSettings() {
     address: globalSettings.address,
     baseCurrency: globalSettings.baseCurrency,
     timezone: globalSettings.timezone,
-    dateFormat: globalSettings.dateFormat
+    dateFormat: globalSettings.dateFormat,
+    logoBase64: globalSettings.logoBase64
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfile({ ...profile, logoBase64: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,11 +61,19 @@ export function GeneralSettings() {
           </div>
           <div className="p-6 space-y-6">
             <div className="flex items-start gap-6">
-              <div className="w-24 h-24 bg-secondary/20 rounded-xl flex items-center justify-center border border-border border-dashed relative group cursor-pointer hover:bg-secondary/30 transition-colors">
-                <span className="text-4xl font-bold text-primary">A</span>
-                <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div 
+                className="w-24 h-24 bg-secondary/20 rounded-xl flex items-center justify-center border border-border border-dashed relative group cursor-pointer hover:bg-secondary/30 transition-colors overflow-hidden"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {profile.logoBase64 ? (
+                  <img src={profile.logoBase64} alt="Company Logo" className="w-full h-full object-contain p-2" />
+                ) : (
+                  <span className="text-4xl font-bold text-primary">{profile.companyName ? profile.companyName.charAt(0) : 'A'}</span>
+                )}
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="text-xs text-white font-medium">Upload Logo</span>
                 </div>
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
               </div>
               <div className="flex-1 space-y-4">
                 <div>

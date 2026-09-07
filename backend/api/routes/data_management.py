@@ -12,19 +12,64 @@ from db.models import ChartOfAccount, Material, Employee
 
 router = APIRouter()
 
+import datetime
+import json
+
 DB_FILE_PATH = "./ansa_erp.db"
 UPLOAD_DIR = "./uploads"
+BACKUP_METADATA_FILE = "./uploads/backup_metadata.json"
 
 # Create upload directory if not exists
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@router.get("/status")
+def get_data_management_status(db: Session = Depends(get_db)):
+    db_size = 0
+    db_mtime = None
+    if os.path.exists(DB_FILE_PATH):
+        stat = os.stat(DB_FILE_PATH)
+        db_size = stat.st_size
+        # Local time formatting
+        db_mtime = datetime.datetime.fromtimestamp(stat.st_mtime).strftime("%d %B %Y, %H:%M WIB")
+    
+    last_backup_time = None
+    if os.path.exists(BACKUP_METADATA_FILE):
+        try:
+            with open(BACKUP_METADATA_FILE, "r") as f:
+                data = json.load(f)
+                last_backup_time = data.get("last_backup")
+        except Exception:
+            pass
+
+    return {
+        "db_size": db_size,
+        "db_size_formatted": f"{db_size / (1024 * 1024):.2f} MB" if db_size > 1024*1024 else f"{db_size / 1024:.1f} KB",
+        "db_last_modified": db_mtime,
+        "last_backup": last_backup_time,
+        "total_coas": db.query(ChartOfAccount).count(),
+        "total_materials": db.query(Material).count(),
+        "total_employees": db.query(Employee).count(),
+    }
 
 @router.get("/backup")
 def download_backup():
     if not os.path.exists(DB_FILE_PATH):
         raise HTTPException(status_code=404, detail="Database file not found")
+    
+    now = datetime.datetime.now()
+    now_str = now.strftime("%d %B %Y, %H:%M WIB")
+    try:
+        with open(BACKUP_METADATA_FILE, "w") as f:
+            json.dump({
+                "last_backup": now_str,
+                "timestamp": now.isoformat()
+            }, f)
+    except Exception:
+        pass
+
     return FileResponse(
         DB_FILE_PATH, 
-        filename="ansa_erp_backup.db", 
+        filename=f"ansa_erp_backup_{now.strftime('%Y%m%d_%H%M%S')}.db", 
         media_type="application/octet-stream"
     )
 

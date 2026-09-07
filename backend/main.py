@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import organization, financials, finance, projects, stakeholders, hr, inventory, project_ops, reports, project_rabs, assets, financial_statements, procurement, data_management
+from api.routes import organization, financials, finance, projects, stakeholders, hr, inventory, project_ops, reports, project_rabs, assets, financial_statements, procurement, data_management, billing_schedule
 from db.database import engine, Base
 
 # Create tables (for dev only, in prod use Alembic)
@@ -36,11 +36,13 @@ app.include_router(assets.router, prefix="/api/v1/assets", tags=["Fixed Assets"]
 app.include_router(financial_statements.router, prefix="/api/v1", tags=["Standard Financial Statements"])
 app.include_router(procurement.router, prefix="/api/v1/procurement", tags=["Procurement"])
 app.include_router(data_management.router, prefix="/api/v1/data-management", tags=["Data Management"])
+app.include_router(billing_schedule.router, prefix="/api/v1/finance", tags=["Billing Schedule"])
 
-from api.routes import dashboard, equipment
+from api.routes import dashboard, equipment, profile
 
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 app.include_router(equipment.router, prefix="/api/v1/equipment", tags=["Equipment"])
+app.include_router(profile.router, prefix="/api/v1/profile", tags=["User Profile"])
 
 @app.get("/")
 def read_root():

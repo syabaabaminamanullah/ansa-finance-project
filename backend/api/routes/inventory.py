@@ -1,16 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
+from sqlalchemy import func
 
 from db.database import get_db
-from db.models import Rig, Equipment, Warehouse, Material, InventoryItem
+from db.models import Rig, Equipment, Warehouse, Material, InventoryItem, InventoryTransaction, InventoryTransactionLine, Journal, JournalLine, ChartOfAccount, Project
 from schemas.inventory import (
     RigCreate, RigUpdate, RigResponse,
     EquipmentCreate, EquipmentUpdate, EquipmentResponse,
     WarehouseCreate, WarehouseUpdate, WarehouseResponse,
     MaterialCreate, MaterialUpdate, MaterialResponse,
-    InventoryItemCreate, InventoryItemUpdate, InventoryItemResponse
+    InventoryItemCreate, InventoryItemUpdate, InventoryItemResponse,
+    InventoryTransactionCreate, InventoryTransactionResponse
 )
+from api.routes.finance import generate_transaction_number
 
 router = APIRouter()
 
@@ -106,12 +110,6 @@ create_crud_routes(router, Rig, RigCreate, RigUpdate, RigResponse, "/rigs")
 create_crud_routes(router, Equipment, EquipmentCreate, EquipmentUpdate, EquipmentResponse, "/equipments")
 create_crud_routes(router, Material, MaterialCreate, MaterialUpdate, MaterialResponse, "/materials")
 create_crud_routes(router, InventoryItem, InventoryItemCreate, InventoryItemUpdate, InventoryItemResponse, "/inventory-items")
-
-from datetime import datetime
-from sqlalchemy import func
-from db.models import InventoryTransaction, InventoryTransactionLine, Journal, JournalLine, ChartOfAccount, Project
-from schemas.inventory import InventoryTransactionCreate, InventoryTransactionResponse
-from api.routes.finance import generate_transaction_number
 
 @router.get("/transactions", response_model=List[InventoryTransactionResponse])
 def list_transactions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -237,8 +235,8 @@ def post_transaction(transaction_id: str, db: Session = Depends(get_db)):
                 dst.quantity = new_qty
 
     if tx.type == "ISSUE" and tx.project_id:
-        inventory_acct = db.query(ChartOfAccount).filter(ChartOfAccount.account_code == "1150").first()
-        expense_acct = db.query(ChartOfAccount).filter(ChartOfAccount.account_code == "5110").first()
+        inventory_acct = db.query(ChartOfAccount).filter(ChartOfAccount.account_code.in_(["11500", "1150"])).first()
+        expense_acct = db.query(ChartOfAccount).filter(ChartOfAccount.account_code.in_(["51100", "5110", "51200"])).first()
         
         if inventory_acct and expense_acct:
             j_num = generate_transaction_number(db, tx.date, tx.project_id, "JV", Journal, "journal_number")

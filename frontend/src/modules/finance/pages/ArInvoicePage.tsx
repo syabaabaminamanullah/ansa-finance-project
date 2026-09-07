@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
+import { CoaSelect } from '../../../components/ui/CoaSelect';
+import { DatePicker } from '../../../components/ui/DatePicker';
 import { ArrowLeft, Save, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { financeApi, stakeholdersApi, projectsApi, financialsApi } from '../../../services/api';
 import { useToastStore } from '../../../store/toastStore';
+import { generatePaymentReceiptPDF } from '../utils/paymentReceiptPDF';
 
 interface Customer {
   id: string;
@@ -69,7 +72,12 @@ export function ArInvoicePage() {
       setInvoices(invRes.data);
       setCustomers(custRes.data);
       setProjects(projRes.data);
-      setCoas(coasRes.data);
+      const sortedCoas = [...coasRes.data].sort((a: any, b: any) => {
+        const codeA = String(a.account_code || a.code || '');
+        const codeB = String(b.account_code || b.code || '');
+        return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+      setCoas(sortedCoas);
     } catch (error) {
       console.error('Failed to fetch data:', error);
       addToast('error', 'Connection Error', 'Failed to fetch AR data.');
@@ -111,7 +119,7 @@ export function ArInvoicePage() {
       className: 'text-right font-medium text-primary'
     },
     { 
-      header: 'Status', 
+      header: 'Status & Action', 
       accessor: (row: ArInvoice) => (
         <div className="flex items-center gap-2">
           <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -129,9 +137,92 @@ export function ArInvoicePage() {
               Pay
             </button>
           )}
+          <button
+            onClick={() => {
+              const selectedProj = projects.find(p => p.id === row.project_id);
+              const selectedCust = customers.find(c => c.id === row.customer_id);
+              import('../utils/billingInvoicePDF').then(m => {
+                m.generateExactCoreterraInvoicePDF({
+                  invoiceNumber: row.invoice_number,
+                  invoiceDate: new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+                  customerName: selectedCust?.name || 'PT Solusi Monitoring Indonesia',
+                  projectName: selectedProj?.name || 'Washbore Borpile & Foundation Project, Muara Laboh, West Sumatera',
+                  poNumber: `KONTRAK/${selectedProj?.code || row.invoice_number}`,
+                  itemDescription: row.description || 'Progres Pekerjaan Lapangan',
+                  amount: row.total_amount || 21090000,
+                  totalContract: (selectedProj as any)?.contract_value_idr || 42180000
+                });
+              });
+            }}
+            className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors shadow-sm font-semibold flex items-center gap-1"
+            title="Download PDF Format 1 (Corporate Progress)"
+          >
+            PDF 1
+          </button>
+          <button
+            onClick={() => {
+              const selectedProj = projects.find(p => p.id === row.project_id);
+              const selectedCust = customers.find(c => c.id === row.customer_id);
+              import('../utils/invoiceFormat2PDF').then(m => {
+                m.generateFormat2InvoicePDF({
+                  invoiceNumber: row.invoice_number,
+                  invoiceDate: new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+                  customerName: selectedCust?.name || 'PT Solusi Monitoring Indonesia',
+                  customerCode: (selectedCust as any)?.code || 'SMI-2026',
+                  customerAddress: (selectedCust as any)?.address || 'Gedung Menara Mulia Lt. 12, Jl. Gatot Subroto Kav. 9-11, Jakarta Selatan 12930',
+                  customerNpwp: (selectedCust as any)?.tax_id || '01.234.567.8-012.000',
+                  companyName: 'PT CORETERRA GEO ENGINEERING',
+                  companyNpwp: '1000 0000 1002 1192',
+                  companyAddress: 'Gardenia Estate, Blok A5 No 12 RT 007 RW 014, Ciputat, Kota Tangerang Selatan, Banten 15411',
+                  companyBranch: 'Head Office Tangerang Selatan & Jakarta',
+                  orderNumber: `ORD-${row.invoice_number.replace(/[^0-9]/g, '').slice(-8) || '004-IKPT-001'}`,
+                  contractNumber: selectedProj?.code || 'KONTRAK/004_IKPT-SOLOK-001/2026',
+                  poNumber: `PO-${selectedProj?.code || 'IKPT-SOLOK-2026-08'}`,
+                  activityTitle: row.description || selectedProj?.name || 'Washbore Borpile & Foundation Project, Muara Laboh, West Sumatera',
+                  feeAmount: row.amount || (row.total_amount ? Math.round(row.total_amount / 1.11) : 19000000),
+                  taxAmount: row.tax_amount || (row.total_amount ? row.total_amount - Math.round(row.total_amount / 1.11) : 2090000),
+                  totalAmount: row.total_amount || 21090000,
+                  totalContractAmount: (selectedProj as any)?.contract_value_idr || (row.total_amount * 2),
+                  signatoryName: 'Setyo Mardani'
+                });
+              });
+            }}
+            className="px-2 py-1 bg-[#294825] text-white text-xs rounded hover:bg-[#1f371c] transition-colors shadow-sm font-semibold flex items-center gap-1"
+            title="Download PDF Format 2 (BUMN / Kuitansi Standard)"
+          >
+            PDF 2
+          </button>
+          {row.status === 'Paid' && (
+            <button
+              onClick={() => {
+                try {
+                  const selectedProj = projects.find(p => p.id === row.project_id);
+                  const selectedCust = customers.find(c => c.id === row.customer_id);
+                  generatePaymentReceiptPDF({
+                    invoiceNumber: row.invoice_number,
+                    paymentDate: new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+                    receiptDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+                    customerName: selectedCust?.name || 'PT Solusi Monitoring Indonesia',
+                    projectName: selectedProj?.name || 'Washbore Borpile & Foundation Project, Muara Laboh, West Sumatera',
+                    poNumber: (selectedProj as any)?.code ? `PO-${(selectedProj as any).code}` : 'PO-004_IKPT-SOLOK-001',
+                    contractNumber: (selectedProj as any)?.code ? `KONTRAK/${(selectedProj as any).code}/2026` : 'KONTRAK/004_IKPT-SOLOK-001/2026',
+                    milestone: row.description || 'Uang Muka (DP) - Tahap 2',
+                    amount: row.total_amount || 0,
+                    signatoryName: 'Setyo Mardani'
+                  });
+                } catch (err) {
+                  console.error('Failed to generate Kwitansi PDF:', err);
+                }
+              }}
+              className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded transition-colors shadow-sm font-semibold flex items-center gap-1 cursor-pointer"
+              title="Download Kwitansi / Official Payment Receipt"
+            >
+              Kwitansi
+            </button>
+          )}
         </div>
       ),
-      className: 'w-48'
+      className: 'w-64'
     },
   ];
 
@@ -388,11 +479,19 @@ export function ArInvoicePage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Invoice Date <span className="text-danger">*</span></label>
-              <input required type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary"/>
+              <DatePicker
+                required
+                value={formData.date}
+                onChange={(val) => setFormData({ ...formData, date: val })}
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Due Date <span className="text-danger">*</span></label>
-              <input required type="date" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary"/>
+              <DatePicker
+                required
+                value={formData.due_date}
+                onChange={(val) => setFormData({ ...formData, due_date: val })}
+              />
             </div>
           </div>
 
@@ -543,27 +642,36 @@ export function ArInvoicePage() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-textPrimary">Deposit To (Debit Kas/Bank) <span className="text-danger">*</span></label>
-            <select required value={paymentData.bank_account_id} onChange={e => setPaymentData({...paymentData, bank_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-              <option value="">-- Select Bank/Cash Account --</option>
-              {bankAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
-            </select>
+            <CoaSelect
+              required
+              accounts={bankAccounts}
+              value={paymentData.bank_account_id}
+              onChange={(val) => setPaymentData({ ...paymentData, bank_account_id: val })}
+              placeholder="-- Pilih Akun Bank/Kas Penerima --"
+            />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-textPrimary">Revenue Account (Kredit Pendapatan) <span className="text-danger">*</span></label>
-            <select required value={paymentData.revenue_account_id} onChange={e => setPaymentData({...paymentData, revenue_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-              <option value="">-- Select Revenue Account --</option>
-              {revAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
-            </select>
+            <CoaSelect
+              required
+              accounts={revAccounts}
+              value={paymentData.revenue_account_id}
+              onChange={(val) => setPaymentData({ ...paymentData, revenue_account_id: val })}
+              placeholder="-- Pilih Akun Pendapatan --"
+            />
           </div>
 
           {(editingItem?.tax_amount || 0) > 0 && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Tax Account (Kredit Hutang PPN) <span className="text-danger">*</span></label>
-              <select required value={paymentData.tax_account_id} onChange={e => setPaymentData({...paymentData, tax_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-                <option value="">-- Select Tax Payable Account --</option>
-                {taxAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
-              </select>
+              <CoaSelect
+                required
+                accounts={taxAccounts}
+                value={paymentData.tax_account_id}
+                onChange={(val) => setPaymentData({ ...paymentData, tax_account_id: val })}
+                placeholder="-- Pilih Akun Hutang Pajak --"
+              />
             </div>
           )}
 

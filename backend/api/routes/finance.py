@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from db.database import get_db
-from db.models import Journal, JournalLine, ApInvoice, ArInvoice, Vendor, Customer, Project
+from db.models import Journal, JournalLine, ApInvoice, ArInvoice, Vendor, Customer, Project, BillingTerm
 from schemas.finance import (
     JournalCreate, JournalUpdate, JournalResponse,
     ApInvoiceCreate, ApInvoiceUpdate, ApInvoiceResponse,
@@ -69,6 +69,15 @@ def create_journal(journal: JournalCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_journal)
 
+    # Validate no header account is selected in journal lines
+    for line in journal.lines:
+        acc = db.query(ChartOfAccount).filter(ChartOfAccount.id == line.account_id).first()
+        if acc and getattr(acc, 'is_header', False):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Akun [{acc.account_code} - {acc.account_name}] adalah Akun Header (Induk). Transaksi harus dicatat pada sub-akun detail, bukan pada akun Header."
+            )
+
     # Add lines
     for line in journal.lines:
         new_line = JournalLine(**line.model_dump(), journal_id=new_journal.id)
@@ -111,9 +120,38 @@ def update_journal(journal_id: str, journal_update: JournalCreate, db: Session =
 
     # Recreate lines
     db.query(JournalLine).filter(JournalLine.journal_id == journal_id).delete()
+    first_proj_id = None
     for line in journal_update.lines:
         new_line = JournalLine(**line.model_dump(), journal_id=journal_id)
         db.add(new_line)
+        if new_line.project_id and not first_proj_id:
+            first_proj_id = new_line.project_id
+
+    # Bidirectional sync for linked Expense, AP Invoice, or AR Invoice (Project & Amount)
+    if db_journal.ref_type in ["Expense"] and db_journal.ref_id:
+        linked_exp = db.query(Expense).filter(Expense.id == db_journal.ref_id).first()
+        if linked_exp:
+            if first_proj_id:
+                linked_exp.project_id = first_proj_id
+            main_debit = sum(l.debit for l in journal_update.lines if l.account_id == linked_exp.expense_account_id)
+            if main_debit > 0:
+                linked_exp.amount = main_debit
+            elif total_debit > 0:
+                linked_exp.amount = max(0.0, total_debit - (linked_exp.admin_fee_amount or 0.0))
+    elif db_journal.ref_type in ["AP_Invoice", "AP_Invoice_Approve", "AP_Invoice_Pay"] and db_journal.ref_id:
+        linked_ap = db.query(ApInvoice).filter(ApInvoice.id == db_journal.ref_id).first()
+        if linked_ap:
+            if first_proj_id:
+                linked_ap.project_id = first_proj_id
+            if total_debit > 0:
+                linked_ap.total_amount = total_debit
+    elif db_journal.ref_type in ["AR_Invoice", "AR_Invoice_Pay", "AR_Invoice_Approve", "AR_Invoice_Receipt"] and db_journal.ref_id:
+        linked_ar = db.query(ArInvoice).filter(ArInvoice.id == db_journal.ref_id).first()
+        if linked_ar:
+            if first_proj_id:
+                linked_ar.project_id = first_proj_id
+            if total_credit > 0:
+                linked_ar.total_amount = total_credit
 
     db.commit()
     db.refresh(db_journal)
@@ -141,9 +179,72 @@ def delete_journal(journal_id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"ok": True}
 
-# ====================
-# AP Invoices
-# ====================
+@router.post("/journals/{journal_id}/attachment")
+async def upload_journal_attachment(
+    journal_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    import os, shutil
+
+    db_journal = db.query(Journal).filter(Journal.id == journal_id).first()
+    if not db_journal:
+        raise HTTPException(status_code=404, detail="Journal not found")
+    
+    # Validate by extension (more reliable than content_type)
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else ""
+    if ext not in ["pdf", "jpg", "jpeg", "png"]:
+        raise HTTPException(status_code=400, detail="File type not allowed. Use PDF, JPG, or PNG.")
+    
+    # Save file
+    upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "journal_attachments")
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    filename = f"{journal_id}.{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Save path to DB
+    db_journal.attachment_path = f"journal_attachments/{filename}"
+    db.commit()
+    db.refresh(db_journal)
+    
+    return {"attachment_path": db_journal.attachment_path, "message": "Attachment uploaded successfully"}
+
+@router.get("/journals/{journal_id}/attachment")
+def get_journal_attachment(journal_id: str, db: Session = Depends(get_db)):
+    from fastapi.responses import FileResponse
+    import os
+
+    db_journal = db.query(Journal).filter(Journal.id == journal_id).first()
+    if not db_journal or not db_journal.attachment_path:
+        raise HTTPException(status_code=404, detail="No attachment found for this journal")
+    
+    upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads")
+    filepath = os.path.join(upload_dir, db_journal.attachment_path)
+    
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Attachment file not found on disk")
+    
+    return FileResponse(filepath)
+
+@router.put("/journals/{journal_id}/memo")
+def save_journal_memo(
+    journal_id: str,
+    payload: dict,
+    db: Session = Depends(get_db)
+):
+    from pydantic import BaseModel as PM
+    db_journal = db.query(Journal).filter(Journal.id == journal_id).first()
+    if not db_journal:
+        raise HTTPException(status_code=404, detail="Journal not found")
+    db_journal.attachment_memo = payload.get("memo", "")
+    db.commit()
+    db.refresh(db_journal)
+    return {"memo": db_journal.attachment_memo, "message": "Memo saved"}
+
 # ====================
 # AP Invoices
 # ====================
@@ -177,6 +278,13 @@ def update_ap_invoice(invoice_id: str, invoice_update: ApInvoiceUpdate, db: Sess
         raise HTTPException(status_code=404, detail="Invoice not found")
     for key, value in invoice_update.model_dump(exclude_unset=True).items():
         setattr(db_invoice, key, value)
+
+    # Sync linked journal lines project_id
+    linked_journals = db.query(Journal).filter(Journal.ref_id == invoice_id).all()
+    for j in linked_journals:
+        for line in j.lines:
+            line.project_id = db_invoice.project_id
+
     db.commit()
     db.refresh(db_invoice)
     return db_invoice
@@ -233,6 +341,13 @@ def update_ar_invoice(invoice_id: str, invoice_update: ArInvoiceUpdate, db: Sess
         raise HTTPException(status_code=404, detail="Invoice not found")
     for key, value in invoice_update.model_dump(exclude_unset=True).items():
         setattr(db_invoice, key, value)
+
+    # Sync linked journal lines project_id
+    linked_journals = db.query(Journal).filter(Journal.ref_id == invoice_id).all()
+    for j in linked_journals:
+        for line in j.lines:
+            line.project_id = db_invoice.project_id
+
     db.commit()
     db.refresh(db_invoice)
     return db_invoice
@@ -242,6 +357,14 @@ def delete_ar_invoice(invoice_id: str, db: Session = Depends(get_db)):
     db_invoice = db.query(ArInvoice).filter(ArInvoice.id == invoice_id).first()
     if not db_invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
+
+    # If linked to a BillingTerm in BillingSchedule, reset term status back to Pending
+    linked_term = db.query(BillingTerm).filter(BillingTerm.ar_invoice_id == invoice_id).first()
+    if linked_term:
+        linked_term.status = "Pending"
+        linked_term.invoice_number = None
+        linked_term.invoice_date = None
+        linked_term.ar_invoice_id = None
 
     db.delete(db_invoice)
     db.commit()
@@ -484,9 +607,8 @@ def create_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
         # Standard COA convention: 12x0 is Asset, 12x1 is Accumulated Depreciation
         # Determine accumulated depreciation account and depreciation expense account
         # Try to find corresponding accounts
-        accum_code = coa.account_code[:-1] + '1'
-        accum_coa = db.query(ChartOfAccount).filter(ChartOfAccount.account_code == accum_code).first()
-        dep_exp_coa = db.query(ChartOfAccount).filter(ChartOfAccount.account_code == '6140').first()
+        accum_coa = db.query(ChartOfAccount).filter(ChartOfAccount.account_code.in_([accum_code, accum_code + '0'])).first()
+        dep_exp_coa = db.query(ChartOfAccount).filter(ChartOfAccount.account_code.in_(["61400", "6140"])).first()
         
         new_asset = FixedAsset(
             id=str(uuid.uuid4()),
@@ -579,6 +701,7 @@ def update_expense(expense_id: str, expense_update: ExpenseUpdate, db: Session =
     if auto_journal:
         auto_journal.date = db_expense.date
         auto_journal.description = f"Auto-journal for Expense {db_expense.expense_number}: {db_expense.description}"
+        auto_journal.journal_number = generate_transaction_number(db, db_expense.date, db_expense.project_id, 'EXP', Journal, 'journal_number')
         
         # Delete old lines and recreate
         db.query(JournalLine).filter(JournalLine.journal_id == auto_journal.id).delete()
@@ -622,8 +745,11 @@ def update_expense(expense_id: str, expense_update: ExpenseUpdate, db: Session =
     return db_expense
 
 @router.get("/expenses", response_model=List[ExpenseResponse])
-def get_expenses(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(Expense).offset(skip).limit(limit).all()
+def get_expenses(month: Optional[str] = None, skip: int = 0, limit: int = 1000, db: Session = Depends(get_db)):
+    query = db.query(Expense)
+    if month:
+        query = query.filter(Expense.date.like(f"{month}%"))
+    return query.order_by(Expense.date.desc()).offset(skip).limit(limit).all()
 
 @router.delete("/expenses/{expense_id}")
 def delete_expense(expense_id: str, db: Session = Depends(get_db)):

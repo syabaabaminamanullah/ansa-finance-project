@@ -15,6 +15,9 @@ sampah/
 *.db
 *.sqlite
 *.sqlite3
+*.pdf
+*.log
+backend/*.log
 
 # Python / Backend
 __pycache__/

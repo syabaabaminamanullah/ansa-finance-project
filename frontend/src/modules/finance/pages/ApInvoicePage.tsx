@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
+import { CoaSelect } from '../../../components/ui/CoaSelect';
+import { DatePicker } from '../../../components/ui/DatePicker';
 import { ArrowLeft, Save, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { financeApi, stakeholdersApi, financialsApi, projectsApi, rabApi } from '../../../services/api';
@@ -76,7 +78,12 @@ export function ApInvoicePage() {
       ]);
       setInvoices(invRes.data);
       setVendors(vendRes.data);
-      setCoas(coasRes.data);
+      const sortedCoas = [...coasRes.data].sort((a: any, b: any) => {
+        const codeA = String(a.account_code || a.code || '');
+        const codeB = String(b.account_code || b.code || '');
+        return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+      setCoas(sortedCoas);
       setProjects(projectsRes.data);
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -283,7 +290,7 @@ export function ApInvoicePage() {
         
         // Auto-Journal: Pengakuan Hutang & Biaya
         // Only if expense_account_id and payable account exists
-        const payableAccount = coas.find(c => c.account_code === '2110');
+        const payableAccount = coas.find(c => c.account_code === '21100' || c.account_code === '2110' || c.account_code.startsWith('211'));
         if (formData.expense_account_id && payableAccount) {
           const journalLines: any[] = [
             {
@@ -366,11 +373,11 @@ export function ApInvoicePage() {
       const newAmountPaid = (editingItem.amount_paid || 0) + paymentData.amount_paid;
       const isPartial = newAmountPaid < editingItem.total_amount;
       
-      // Find AP Payable account (2110)
-      const payableAccount = coas.find(c => c.account_code === '2110');
+      // Find AP Payable account (21100 / 2110)
+      const payableAccount = coas.find(c => c.account_code === '21100' || c.account_code === '2110' || c.account_code.startsWith('211'));
 
       // Build journal lines:
-      // If payable account exists → Debit Hutang Usaha (2110), Credit Bank (proper AP settlement)
+      // If payable account exists → Debit Hutang Usaha (21100), Credit Bank (proper AP settlement)
       // Else fallback → Debit Expense, Credit Bank (simple cash payment)
       const journalLines: any[] = [];
 
@@ -429,7 +436,7 @@ export function ApInvoicePage() {
     }
   };
 
-  const bankAccounts = coas.filter(c => ['1110','1120','1121'].some(code => c.account_code?.startsWith(code)));
+  const bankAccounts = coas.filter(c => c.account_code?.startsWith('111') || c.account_code?.startsWith('112'));
   const expAccounts = coas.filter(c => c.account_type?.toLowerCase() === 'expense' || c.account_type?.toLowerCase() === 'asset');
   const payableAccounts = coas.filter(c => c.account_type?.toLowerCase() === 'liability');
   const taxAccounts = coas.filter(c => c.account_type?.toLowerCase() === 'asset');
@@ -509,11 +516,19 @@ export function ApInvoicePage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Invoice Date <span className="text-danger">*</span></label>
-              <input required type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary"/>
+              <DatePicker
+                required
+                value={formData.date}
+                onChange={(val) => setFormData({ ...formData, date: val })}
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Due Date <span className="text-danger">*</span></label>
-              <input required type="date" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary"/>
+              <DatePicker
+                required
+                value={formData.due_date}
+                onChange={(val) => setFormData({ ...formData, due_date: val })}
+              />
             </div>
           </div>
 
@@ -566,10 +581,12 @@ export function ApInvoicePage() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-textPrimary">Expense/Asset Account <span className="text-xs text-textSecondary">(untuk auto-jurnal pengakuan biaya)</span></label>
-            <select value={(formData as any).expense_account_id || ''} onChange={e => setFormData({...formData, expense_account_id: e.target.value} as any)} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-              <option value="">-- Pilih Akun Biaya/Aset --</option>
-              {expAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
-            </select>
+            <CoaSelect
+              accounts={expAccounts}
+              value={(formData as any).expense_account_id || ''}
+              onChange={(val) => setFormData({ ...formData, expense_account_id: val } as any)}
+              placeholder="-- Pilih Akun Biaya/Aset --"
+            />
             <p className="text-xs text-textSecondary italic">Jika dipilih, saat Save Invoice jurnal <strong>Debit Biaya → Kredit Hutang Usaha (2110)</strong> akan otomatis ter-posting.</p>
           </div>
 
@@ -619,28 +636,56 @@ export function ApInvoicePage() {
                 <p className="font-medium text-textPrimary">{editingItem.due_date}</p>
               </div>
             </div>
-            
-            {editingItem.description && (
-              <div>
-                <p className="text-sm text-textSecondary mb-1">Description</p>
-                <p className="text-sm text-textPrimary p-3 bg-background border border-border rounded-lg">{editingItem.description}</p>
+
+            {editingItem.project_rab_id && (
+              <div className="p-3 bg-secondary/10 border border-border rounded-lg text-xs">
+                <span className="font-semibold text-textSecondary">Pos RAB Terkait: </span>
+                <span className="text-primary font-bold">{rabItems.find(r => r.id === editingItem.project_rab_id)?.category} → {rabItems.find(r => r.id === editingItem.project_rab_id)?.description}</span>
               </div>
             )}
-            
-            <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-              <h4 className="font-bold text-primary mb-3">Financial Details</h4>
-              <div className="space-y-2">
+
+            <div className="border border-border rounded-lg overflow-hidden">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-textSecondary uppercase bg-background border-b border-border">
+                  <tr>
+                    <th className="px-4 py-2">Item / Description</th>
+                    <th className="px-4 py-2 text-right">Qty</th>
+                    <th className="px-4 py-2 text-right">Unit Price</th>
+                    <th className="px-4 py-2 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {editingItem.lines && editingItem.lines.length > 0 ? (
+                    editingItem.lines.map((l: any, i: number) => (
+                      <tr key={i} className="border-b border-border">
+                        <td className="px-4 py-2 text-textPrimary">{l.description}</td>
+                        <td className="px-4 py-2 text-right text-textPrimary">{l.quantity}</td>
+                        <td className="px-4 py-2 text-right text-textPrimary">{formatCurrency(l.unit_price)}</td>
+                        <td className="px-4 py-2 text-right font-medium text-textPrimary">{formatCurrency(l.total_price)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-3 text-center text-textSecondary">No line item breakdown. Total based on header.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <div className="w-64 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-textSecondary">Base Amount (DPP)</span>
+                  <span className="text-textSecondary">Subtotal</span>
                   <span className="font-medium text-textPrimary">{formatCurrency(editingItem.amount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-textSecondary">Tax Amount (PPN)</span>
-                  <span className="font-medium text-textPrimary">{formatCurrency(editingItem.tax_amount)}</span>
+                  <span className="text-textSecondary">Tax</span>
+                  <span className="font-medium text-textPrimary">{formatCurrency(editingItem.tax_amount || 0)}</span>
                 </div>
-                <div className="flex justify-between pt-2 border-t border-primary/20 mt-2">
-                  <span className="font-bold text-textPrimary">Total Invoice</span>
-                  <span className="font-bold text-primary">{formatCurrency(editingItem.total_amount)}</span>
+                <div className="flex justify-between text-base font-bold pt-2 border-t border-border">
+                  <span className="text-textPrimary">Total Invoice</span>
+                  <span className="text-primary">{formatCurrency(editingItem.total_amount)}</span>
                 </div>
                 
                 <div className="flex justify-between text-sm pt-4">
@@ -673,10 +718,13 @@ export function ApInvoicePage() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-textPrimary">Pay From (Kredit Kas/Bank) <span className="text-danger">*</span></label>
-            <select required value={paymentData.bank_account_id} onChange={e => setPaymentData({...paymentData, bank_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-              <option value="">-- Select Bank/Cash Account --</option>
-              {bankAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
-            </select>
+            <CoaSelect
+              required
+              accounts={bankAccounts}
+              value={paymentData.bank_account_id}
+              onChange={(val) => setPaymentData({ ...paymentData, bank_account_id: val })}
+              placeholder="-- Pilih Akun Bank/Kas Pembayar --"
+            />
           </div>
 
           {/* Info: Payment will auto-debit Hutang Usaha (2110) */}
@@ -700,10 +748,13 @@ export function ApInvoicePage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Admin Fee Account</label>
-              <select required={paymentData.admin_fee > 0} value={paymentData.admin_fee_account_id} onChange={e => setPaymentData({...paymentData, admin_fee_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-                <option value="">-- Select Admin Fee COA --</option>
-                {expAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
-              </select>
+              <CoaSelect
+                required={paymentData.admin_fee > 0}
+                accounts={expAccounts}
+                value={paymentData.admin_fee_account_id}
+                onChange={(val) => setPaymentData({ ...paymentData, admin_fee_account_id: val })}
+                placeholder="-- Pilih Akun Biaya Admin --"
+              />
             </div>
           </div>
 

@@ -97,7 +97,10 @@ export function MasterDataPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10">
         {masterDataCategories.map((category, idx) => (
-          <div key={idx} className="space-y-4">
+          <div 
+            key={idx} 
+            className="space-y-4 animate-in fade-in zoom-in-95 duration-200 fill-mode-both"
+          >
             <h3 className="text-sm font-semibold text-textSecondary uppercase tracking-wider border-b border-border pb-2">
               {category.title}
             </h3>
@@ -106,13 +109,13 @@ export function MasterDataPage() {
                 <Link 
                   key={itemIdx} 
                   to={item.path}
-                  className="flex items-center gap-4 p-3 bg-card border border-border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all group"
+                  className="flex items-center gap-4 p-3.5 bg-card border border-border rounded-xl hover:border-primary/60 hover:shadow-md hover:-translate-y-1 transition-all duration-200 group active:scale-[0.98] animate-in fade-in zoom-in-95 fill-mode-both"
                 >
-                  <div className="p-2 bg-background rounded-md text-textSecondary group-hover:bg-secondary/30 group-hover:text-primary transition-colors">
-                    <item.icon className="w-5 h-5" />
+                  <div className="p-2.5 bg-background rounded-lg text-textSecondary group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <item.icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-textPrimary group-hover:text-primary transition-colors">{item.name}</h4>
+                    <h4 className="text-sm font-semibold text-textPrimary group-hover:text-primary transition-colors">{item.name}</h4>
                     <p className="text-xs text-textSecondary mt-0.5">{item.desc}</p>
                   </div>
                 </Link>

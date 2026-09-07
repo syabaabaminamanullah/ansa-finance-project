@@ -44,6 +44,8 @@ class JournalUpdate(BaseModel):
 class JournalResponse(JournalBase):
     id: str
     created_at: datetime
+    attachment_path: Optional[str] = None
+    attachment_memo: Optional[str] = None
     lines: List[JournalLineResponse] = []
     model_config = ConfigDict(from_attributes=True)
 

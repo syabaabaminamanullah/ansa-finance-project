@@ -38,6 +38,9 @@ export const financialsApi = {
   createCoa: (data: any) => api.post('/master-data/financials/coas', data),
   updateCoa: (id: string, data: any) => api.put(`/master-data/financials/coas/${id}`, data),
   deleteCoa: (id: string) => api.delete(`/master-data/financials/coas/${id}`),
+  getCoaUsage: (id: string) => api.get(`/master-data/financials/coas/${id}/usage`),
+  relinkCoa: (id: string, data: { target_account_id: string; delete_source?: boolean }) => 
+    api.post(`/master-data/financials/coas/${id}/relink`, data),
 
   // Tax Code
   getTaxes: () => api.get('/master-data/financials/taxes'),
@@ -172,6 +175,17 @@ export const inventoryApi = {
 
 // Finance APIs
 export const financeApi = {
+  // Billing Schedules
+  getBillingSchedules: () => api.get('/finance/billing-schedules'),
+  getBillingSchedule: (id: string) => api.get(`/finance/billing-schedules/${id}`),
+  createBillingSchedule: (data: any) => api.post('/finance/billing-schedules', data),
+  updateBillingSchedule: (id: string, data: any) => api.put(`/finance/billing-schedules/${id}`, data),
+  updateBillingTerm: (scheduleId: string, termId: string, data: any) => api.put(`/finance/billing-schedules/${scheduleId}/terms/${termId}`, data),
+  addBillingTerm: (scheduleId: string, data: any) => api.post(`/finance/billing-schedules/${scheduleId}/terms`, data),
+  deleteBillingTerm: (scheduleId: string, termId: string) => api.delete(`/finance/billing-schedules/${scheduleId}/terms/${termId}`),
+  deleteBillingSchedule: (id: string) => api.delete(`/finance/billing-schedules/${id}`),
+  generateInvoiceForTerm: (scheduleId: string, termId: string, data: any) => api.post(`/finance/billing-schedules/${scheduleId}/terms/${termId}/generate-invoice`, data),
+  markTermPaid: (scheduleId: string, termId: string) => api.put(`/finance/billing-schedules/${scheduleId}/terms/${termId}/mark-paid`),
   // Journals
   getJournals: () => api.get('/finance/journals'),
   getJournal: (id: string) => api.get(`/finance/journals/${id}`),
@@ -195,7 +209,7 @@ export const financeApi = {
   deleteArInvoice: (id: string) => api.delete(`/finance/ar-invoices/${id}`),
 
   // Expenses (Direct Expense / Kas Kecil)
-  getExpenses: () => api.get('/finance/expenses'),
+  getExpenses: (month?: string) => api.get('/finance/expenses', { params: { month } }),
   createExpense: (data: any) => api.post('/finance/expenses', data),
   deleteExpense: (id: string) => api.delete(`/finance/expenses/${id}`),
 };
@@ -209,6 +223,7 @@ export const procurementApi = {
 
 export const dashboardApi = {
   getSummary: () => api.get('/dashboard/summary'),
+  getCashFlow: (params?: { project_id?: string; interval?: string }) => api.get('/dashboard/cashflow-monthly', { params }),
 };
 
 export const assetsApi = {
@@ -235,6 +250,7 @@ export const inventoryTransactionApi = {
 };
 
 export const dataManagementApi = {
+  getStatus: () => api.get('/data-management/status'),
   backup: () => api.get('/data-management/backup', { responseType: 'blob' }),
   restore: (file: File) => {
     const formData = new FormData();
@@ -267,3 +283,10 @@ export const dataManagementApi = {
     });
   }
 };
+
+export const profileApi = {
+  getProfile: () => api.get('/profile'),
+  updateProfile: (data: { name?: string; username?: string; email?: string; phone?: string; photo?: string | null }) => api.put('/profile', data),
+  updateSecurity: (data: { current_password: string; new_password: string }) => api.put('/profile/security', data),
+};
+

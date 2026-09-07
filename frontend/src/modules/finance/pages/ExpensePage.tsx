@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
+import { CoaSelect } from '../../../components/ui/CoaSelect';
+import { DatePicker } from '../../../components/ui/DatePicker';
 import { ArrowLeft, Save, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { financeApi, financialsApi, projectsApi, rabApi } from '../../../services/api';
@@ -39,6 +41,7 @@ export function ExpensePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [coas, setCoas] = useState<COA[]>([]);
   const [rabItems, setRabItems] = useState<any[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   
   const [_isLoading, setIsLoading] = useState(true);
   const [_isSaving, setIsSaving] = useState(false);
@@ -58,11 +61,14 @@ export function ExpensePage() {
     try {
       setIsLoading(true);
       const [expRes, projRes, coasRes] = await Promise.all([
-        financeApi.getExpenses(),
+        financeApi.getExpenses(selectedMonth),
         projectsApi.getProjects(),
         financialsApi.getCoas()
       ]);
-      setExpenses(expRes.data);
+      const sortedExpenses = expRes.data.sort((a: Expense, b: Expense) => {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+      setExpenses(sortedExpenses);
       setProjects(projRes.data);
       const sortedCoas = coasRes.data.sort((a: COA, b: COA) => a.account_code.localeCompare(b.account_code));
       setCoas(sortedCoas);
@@ -76,7 +82,7 @@ export function ExpensePage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedMonth]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val);
@@ -202,6 +208,14 @@ export function ExpensePage() {
             <span className="text-primary font-medium">Expenses</span>
           </div>
         </div>
+        <div className="flex items-center gap-4">
+          <input 
+            type="month" 
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="px-4 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden min-h-0">
@@ -231,7 +245,11 @@ export function ExpensePage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Date <span className="text-danger">*</span></label>
-              <input required type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary"/>
+              <DatePicker
+                required
+                value={formData.date}
+                onChange={(val) => setFormData({ ...formData, date: val })}
+              />
             </div>
           </div>
           
@@ -269,17 +287,29 @@ export function ExpensePage() {
           <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border mt-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Expense Category (Debit) <span className="text-danger">*</span></label>
-              <select required value={formData.expense_account_id} onChange={e => setFormData({...formData, expense_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-                <option value="">-- Select Expense Account --</option>
-                {expenseAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
-              </select>
+              <CoaSelect
+                required
+                placement="top"
+                align="left"
+                popupWidth="w-[440px] sm:w-[500px] md:w-[540px]"
+                accounts={expenseAccounts}
+                value={formData.expense_account_id}
+                onChange={(val) => setFormData({ ...formData, expense_account_id: val })}
+                placeholder="-- Pilih Akun Biaya (Debit) --"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Paid Via (Credit) <span className="text-danger">*</span></label>
-              <select required value={formData.payment_account_id} onChange={e => setFormData({...formData, payment_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-                <option value="">-- Select Payment Account --</option>
-                {paymentAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
-              </select>
+              <CoaSelect
+                required
+                placement="top"
+                align="right"
+                popupWidth="w-[440px] sm:w-[500px] md:w-[540px]"
+                accounts={paymentAccounts}
+                value={formData.payment_account_id}
+                onChange={(val) => setFormData({ ...formData, payment_account_id: val })}
+                placeholder="-- Pilih Akun Kas/Bank (Credit) --"
+              />
             </div>
           </div>
 
@@ -302,10 +332,16 @@ export function ExpensePage() {
             <div className="grid grid-cols-2 gap-4 bg-background p-3 rounded-lg border border-border mt-2">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-textPrimary">Admin Fee Account <span className="text-danger">*</span></label>
-                <select required={hasAdminFee} value={formData.admin_fee_account_id || ''} onChange={e => setFormData({...formData, admin_fee_account_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-                  <option value="">-- Select Admin Fee Account --</option>
-                  {expenseAccounts.map(c => <option key={c.id} value={c.id}>{c.account_code} - {c.account_name}</option>)}
-                </select>
+                <CoaSelect
+                  required={hasAdminFee}
+                  placement="top"
+                  align="left"
+                  popupWidth="w-[440px] sm:w-[500px] md:w-[540px]"
+                  accounts={expenseAccounts}
+                  value={formData.admin_fee_account_id || ''}
+                  onChange={(val) => setFormData({ ...formData, admin_fee_account_id: val })}
+                  placeholder="-- Pilih Akun Biaya Admin --"
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-textPrimary">Admin Fee Amount (Rp) <span className="text-danger">*</span></label>

@@ -157,8 +157,15 @@ def get_balance_sheet(
             liability_items.append(item)
             total_liabilities += net_balance
         elif row.account_type == 'Equity':
+            # For Equity accounts, Credit increases equity, Debit (Prive/Dividends) reduces equity
+            equity_balance = credit - debit
+            item = {
+                'account_code': row.account_code,
+                'account_name': row.account_name,
+                'balance': equity_balance
+            }
             equity_items.append(item)
-            total_equity_ledger += net_balance
+            total_equity_ledger += equity_balance
         elif row.account_type == 'Revenue':
             total_revenue += (credit - debit)
         elif row.account_type == 'Expense':
@@ -360,7 +367,33 @@ def get_equity_changes(
         Journal.status == 'Posted'
     ).first()
     
-    beginning_equity = beginning_query.net_equity or 0.0
+    base_equity = beginning_query.net_equity or 0.0
+    
+    # 1b. Get Retained Earnings (Net Income from prior periods)
+    prior_income_query = db.query(
+        ChartOfAccount.account_type,
+        func.sum(JournalLine.credit).label('total_credit'),
+        func.sum(JournalLine.debit).label('total_debit')
+    ).join(
+        ChartOfAccount, ChartOfAccount.id == JournalLine.account_id
+    ).join(
+        Journal, Journal.id == JournalLine.journal_id
+    ).filter(
+        ChartOfAccount.account_type.in_(['Revenue', 'Expense']),
+        Journal.date < start_date,
+        Journal.status == 'Posted'
+    ).group_by(ChartOfAccount.account_type).all()
+    
+    prior_revenue = 0.0
+    prior_expenses = 0.0
+    for row in prior_income_query:
+        if row.account_type == 'Revenue':
+            prior_revenue += (row.total_credit or 0.0) - (row.total_debit or 0.0)
+        else:
+            prior_expenses += (row.total_debit or 0.0) - (row.total_credit or 0.0)
+            
+    prior_retained_earnings = prior_revenue - prior_expenses
+    beginning_equity = base_equity + prior_retained_earnings
     
     # 2. Get Net Income for the period
     income_query = db.query(
@@ -447,8 +480,13 @@ def get_calk_notes(
     from db.models import Journal, JournalLine, ChartOfAccount, ArInvoice, ApInvoice, Project
 
     # 1. Cash Position
-    cash_codes = ['1110','1121','1122','1123','1124','1125']
-    cash_accounts = db.query(ChartOfAccount).filter(ChartOfAccount.account_code.in_(cash_codes)).all()
+    from sqlalchemy import or_
+    cash_accounts = db.query(ChartOfAccount).filter(
+        or_(
+            ChartOfAccount.account_code.like('111%'),
+            ChartOfAccount.account_code.like('112%')
+        )
+    ).all()
     cash_ids = [a.id for a in cash_accounts]
     cash_lines = (
         db.query(JournalLine)

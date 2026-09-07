@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Calculator, X, Minus, RefreshCw, DollarSign } from 'lucide-react';
+import { Calculator, X, Minus, RefreshCw, DollarSign, Delete } from 'lucide-react';
 
 type CalcKey =
   | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
@@ -202,10 +202,10 @@ export function FloatingCalculator() {
       const resultStr = isNaN(result) ? 'Error' : String(parseFloat(result.toFixed(10)));
       setDisplay(resultStr);
       setPrevValue(resultStr);
-      setExpression(`${resultStr} ${op}`);
+      setExpression(`${formatDisplay(resultStr)} ${op}`);
     } else {
       setPrevValue(display);
-      setExpression(`${display} ${op}`);
+      setExpression(`${formatDisplay(display)} ${op}`);
     }
     setOperator(op);
     setWaitingForOperand(true);
@@ -225,7 +225,7 @@ export function FloatingCalculator() {
       default: result = current;
     }
     const resultStr = isNaN(result) ? 'Error' : String(parseFloat(result.toFixed(10)));
-    const historyEntry = `${expression} ${display} = ${resultStr}`;
+    const historyEntry = `${expression} ${formatDisplay(display)} = ${formatDisplay(resultStr)}`;
     setHistory(prev => [historyEntry, ...prev].slice(0, 10));
     setDisplay(resultStr);
     setExpression('');
@@ -311,7 +311,7 @@ export function FloatingCalculator() {
 
   const getButtonStyle = (key: CalcKey): string => {
     const isActive = activeKey === key;
-    const base = 'flex items-center justify-center rounded-xl text-sm font-bold h-10 w-full transition-all duration-100 active:scale-95 select-none cursor-pointer ';
+    const base = 'flex items-center justify-center rounded-xl text-sm font-bold min-h-[40px] h-full w-full transition-all duration-100 active:scale-95 select-none cursor-pointer ';
     if (key === '=') return base + (isActive ? 'bg-[#a8874a] scale-95 shadow-inner' : 'bg-[#c8a96e] text-white shadow-lg hover:bg-[#b8975a] active:bg-[#a8874a]') + ' text-white';
     if (['+', '-', '*', '/'].includes(key)) return base + (isActive ? 'bg-primary/50 scale-95' : 'bg-primary/20 hover:bg-primary/30') + ' text-primary';
     if (['C', 'CE', '%'].includes(key)) return base + (isActive ? 'bg-red-500/40 scale-95' : 'bg-red-500/15 hover:bg-red-500/25') + ' text-red-400';
@@ -319,15 +319,51 @@ export function FloatingCalculator() {
     return base + (isActive ? 'bg-primary/20 border-primary scale-95' : 'bg-card border border-border hover:bg-background hover:border-primary/30') + ' text-textPrimary';
   };
 
-  const getKeyLabel = (key: CalcKey): string => {
+  const getKeyLabel = (key: CalcKey): React.ReactNode => {
     if (key === '*') return '×';
     if (key === '/') return '÷';
     if (key === '+/-') return '±';
+    if (key === 'CE') return <Delete className="w-4 h-4" />;
     return key;
   };
 
+  useEffect(() => {
+    if (!calcRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        // Default base is 290x400
+        const scale = Math.min(width / 290, height / 400);
+        (entry.target as HTMLElement).style.setProperty('--calc-scale', scale.toString());
+      }
+    });
+    observer.observe(calcRef.current);
+    return () => observer.disconnect();
+  }, [isOpen]);
+
   return (
     <>
+      <style>{`
+        .scalable-calc {
+          --calc-scale: 1;
+        }
+        .scalable-calc .text-xs { font-size: calc(12px * var(--calc-scale)) !important; line-height: calc(16px * var(--calc-scale)) !important; }
+        .scalable-calc .text-sm { font-size: calc(14px * var(--calc-scale)) !important; line-height: calc(20px * var(--calc-scale)) !important; }
+        .scalable-calc .text-lg { font-size: calc(18px * var(--calc-scale)) !important; line-height: calc(28px * var(--calc-scale)) !important; }
+        .scalable-calc .text-2xl { font-size: calc(24px * var(--calc-scale)) !important; line-height: calc(32px * var(--calc-scale)) !important; }
+        .scalable-calc .text-3xl { font-size: calc(30px * var(--calc-scale)) !important; line-height: calc(36px * var(--calc-scale)) !important; }
+        .scalable-calc .text-\\[9px\\] { font-size: calc(9px * var(--calc-scale)) !important; line-height: calc(12px * var(--calc-scale)) !important; }
+        .scalable-calc .text-\\[10px\\] { font-size: calc(10px * var(--calc-scale)) !important; line-height: calc(14px * var(--calc-scale)) !important; }
+        .scalable-calc .text-\\[11px\\] { font-size: calc(11px * var(--calc-scale)) !important; line-height: calc(16px * var(--calc-scale)) !important; }
+        
+        .scalable-calc .w-3 { width: calc(12px * var(--calc-scale)) !important; }
+        .scalable-calc .h-3 { height: calc(12px * var(--calc-scale)) !important; }
+        .scalable-calc .w-4 { width: calc(16px * var(--calc-scale)) !important; }
+        .scalable-calc .h-4 { height: calc(16px * var(--calc-scale)) !important; }
+        .scalable-calc .w-6 { width: calc(24px * var(--calc-scale)) !important; }
+        .scalable-calc .h-6 { height: calc(24px * var(--calc-scale)) !important; }
+      `}</style>
+
       {/* Floating Trigger Button */}
       {!isOpen && (
         <button
@@ -349,10 +385,13 @@ export function FloatingCalculator() {
             left: position.x,
             top: position.y,
             zIndex: 9999,
-            width: activeTab === 'forex' ? '310px' : '290px',
+            minWidth: activeTab === 'forex' ? '310px' : '290px',
+            minHeight: '400px',
+            resize: 'both',
+            overflow: 'hidden',
             userSelect: 'none',
           }}
-          className="rounded-2xl overflow-hidden shadow-2xl border border-border/60 backdrop-blur-sm"
+          className="rounded-2xl shadow-2xl border border-border/60 backdrop-blur-sm bg-card flex flex-col scalable-calc"
           tabIndex={-1}
         >
           {/* Title Bar */}
@@ -410,7 +449,7 @@ export function FloatingCalculator() {
           </div>
 
           {!isMinimized && activeTab === 'forex' && (
-            <div className="bg-card px-4 py-3 space-y-3">
+            <div className="bg-card px-4 py-3 space-y-3 flex-1 overflow-auto">
               {/* Rate Info */}
               <div className="flex items-center justify-between">
                 <div>
@@ -509,7 +548,7 @@ export function FloatingCalculator() {
           )}
 
           {!isMinimized && activeTab === 'calc' && (
-            <div className="bg-card">
+            <div className="bg-card flex flex-col flex-1 h-full">
               {/* Display */}
               <div className="px-4 pt-3 pb-2 bg-background/50">
                 {/* Expression line */}
@@ -536,7 +575,7 @@ export function FloatingCalculator() {
               )}
 
               {/* Buttons */}
-              <div className="px-3 pb-3 grid grid-cols-4 gap-2">
+              <div className="px-3 pb-3 grid grid-cols-4 gap-2 flex-1 mt-2">
                 {BUTTON_ROWS.flat().map((key) => (
                   <button
                     key={key}

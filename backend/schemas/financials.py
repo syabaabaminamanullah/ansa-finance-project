@@ -11,6 +11,8 @@ class COABase(BaseModel):
     account_type: str
     normal_balance: str
     is_active: bool = True
+    is_header: bool = False
+    parent_code: Optional[str] = None
 
 class COACreate(COABase):
     pass
@@ -21,6 +23,8 @@ class COAUpdate(BaseModel):
     account_type: Optional[str] = None
     normal_balance: Optional[str] = None
     is_active: Optional[bool] = None
+    is_header: Optional[bool] = None
+    parent_code: Optional[str] = None
 
 class COAResponse(COABase):
     id: str
@@ -87,6 +91,7 @@ class BankBase(BaseModel):
     account_number: str
     account_name: str
     currency_id: Optional[str] = None
+    coa_account_id: Optional[str] = None
     is_active: bool = True
 
 class BankCreate(BankBase):
@@ -98,6 +103,7 @@ class BankUpdate(BaseModel):
     account_number: Optional[str] = None
     account_name: Optional[str] = None
     currency_id: Optional[str] = None
+    coa_account_id: Optional[str] = None
     is_active: Optional[bool] = None
 
 class BankResponse(BankBase):
@@ -105,4 +111,5 @@ class BankResponse(BankBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     currency: Optional[CurrencyResponse] = None
+    coa_account: Optional[COAResponse] = None
     model_config = ConfigDict(from_attributes=True)

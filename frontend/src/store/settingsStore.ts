@@ -10,6 +10,7 @@ interface CompanySettings {
   baseCurrency: string;
   timezone: string;
   dateFormat: string;
+  logoBase64?: string;
 }
 
 interface SettingsState {

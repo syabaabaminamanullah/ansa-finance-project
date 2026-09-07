@@ -1,13 +1,131 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, FileText, Download, Calendar, Filter, BarChart3, TrendingUp, Wallet, Landmark, BookOpen } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Calendar, Filter, BarChart3, TrendingUp, Wallet, Landmark, BookOpen, ChevronDown, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToastStore } from '../../../store/toastStore';
+import { generateSingleReportPDF, generateConsolidatedReportPDF } from '../utils/pdfGenerator';
+
+const getWeekLabel = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d.setDate(diff));
+  
+  const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+  return `Minggu: ${monday.toLocaleDateString('id-ID', options)}`;
+};
+
+const formatCurrencyStatic = (val: number) => {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val || 0);
+};
+
+const HierarchicalCashFlowTable = ({ details }: { details: any[] }) => {
+  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+  const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>({});
+
+  if (!details || details.length === 0) return null;
+
+  const hierarchy: Record<string, any> = {};
+  details.forEach(detail => {
+    const proj = detail.project || 'Umum / Lainnya';
+    const week = getWeekLabel(detail.date);
+    
+    if (!hierarchy[proj]) hierarchy[proj] = { inflow: 0, outflow: 0, net: 0, weeks: {} };
+    if (!hierarchy[proj].weeks[week]) hierarchy[proj].weeks[week] = { inflow: 0, outflow: 0, net: 0, transactions: [] };
+    
+    const amt = detail.amount;
+    if (detail.type === 'inflow') {
+      hierarchy[proj].inflow += amt;
+      hierarchy[proj].weeks[week].inflow += amt;
+    } else {
+      hierarchy[proj].outflow += amt;
+      hierarchy[proj].weeks[week].outflow += amt;
+    }
+    hierarchy[proj].net = hierarchy[proj].inflow - hierarchy[proj].outflow;
+    hierarchy[proj].weeks[week].net = hierarchy[proj].weeks[week].inflow - hierarchy[proj].weeks[week].outflow;
+    hierarchy[proj].weeks[week].transactions.push(detail);
+  });
+
+  const toggleProject = (p: string) => setExpandedProjects(prev => ({ ...prev, [p]: !prev[p] }));
+  const toggleWeek = (key: string) => setExpandedWeeks(prev => ({ ...prev, [key]: !prev[key] }));
+
+  return (
+    <div className="bg-background border-t border-border">
+      {Object.entries(hierarchy).map(([projName, projData]) => (
+        <div key={projName} className="border-b border-border last:border-b-0">
+          <div 
+            className="flex items-center justify-between p-3 hover:bg-card cursor-pointer"
+            onClick={() => toggleProject(projName)}
+          >
+            <div className="flex items-center gap-2">
+              {expandedProjects[projName] ? <ChevronDown className="w-4 h-4 text-textSecondary" /> : <ChevronRight className="w-4 h-4 text-textSecondary" />}
+              <span className="font-bold text-textPrimary">{projName}</span>
+            </div>
+            <div className="flex gap-4 text-xs font-medium">
+              <span className="text-success">+{formatCurrencyStatic(projData.inflow)}</span>
+              <span className="text-danger">-{formatCurrencyStatic(projData.outflow)}</span>
+            </div>
+          </div>
+          
+          {expandedProjects[projName] && (
+            <div className="pl-6 bg-card/50">
+              {Object.entries(projData.weeks).map(([weekLabel, weekData]: [string, any]) => {
+                const weekKey = `${projName}-${weekLabel}`;
+                return (
+                  <div key={weekKey} className="border-b border-border/50 last:border-b-0">
+                    <div 
+                      className="flex items-center justify-between p-2 hover:bg-background cursor-pointer"
+                      onClick={() => toggleWeek(weekKey)}
+                    >
+                      <div className="flex items-center gap-2">
+                        {expandedWeeks[weekKey] ? <ChevronDown className="w-3.5 h-3.5 text-textSecondary" /> : <ChevronRight className="w-3.5 h-3.5 text-textSecondary" />}
+                        <span className="text-sm text-textSecondary">{weekLabel}</span>
+                      </div>
+                      <div className="flex gap-4 text-xs">
+                        <span className="text-success">+{formatCurrencyStatic(weekData.inflow)}</span>
+                        <span className="text-danger">-{formatCurrencyStatic(weekData.outflow)}</span>
+                      </div>
+                    </div>
+                    
+                    {expandedWeeks[weekKey] && (
+                      <div className="pl-6 bg-background p-2 border-t border-border/50">
+                        <table className="w-full text-xs text-left">
+                          <thead className="text-textSecondary uppercase border-b border-border/50">
+                            <tr>
+                              <th className="py-2 px-4 w-28">Tanggal</th>
+                              <th className="py-2 px-4">Keterangan</th>
+                              <th className="py-2 px-4 text-right">Nominal</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/50">
+                            {weekData.transactions.map((detail: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-card">
+                                <td className="py-2 px-4 whitespace-nowrap text-textSecondary">{detail.date}</td>
+                                <td className="py-2 px-4 text-textPrimary">{detail.description || detail.journal_number}</td>
+                                <td className={`py-2 px-4 text-right font-medium ${detail.type === 'inflow' ? 'text-success' : 'text-danger'}`}>
+                                  {detail.type === 'inflow' ? '+' : '-'}{formatCurrencyStatic(detail.amount)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export function FinancialReportsPage() {
   const [activeTab, setActiveTab] = useState<'income' | 'balance' | 'cashflow' | 'equity' | 'calk'>('income');
-  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]); // Start of year
+  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]); // Start of month
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]); // Today
-  const [isDetailedMode, setIsDetailedMode] = useState(false);
+  const [isDetailedMode, setIsDetailedMode] = useState(true);
   
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -283,30 +401,7 @@ export function FinancialReportsPage() {
               </div>
             </div>
             {isDetailedMode && reportData.operating_activities?.details?.length > 0 && (
-              <div className="bg-background border-t border-border p-0">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-background border-b border-border text-textSecondary uppercase">
-                    <tr>
-                      <th className="px-4 py-2">Tanggal</th>
-                      <th className="px-4 py-2">Proyek / Tag</th>
-                      <th className="px-4 py-2">Keterangan</th>
-                      <th className="px-4 py-2 text-right">Nominal</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {reportData.operating_activities.details.map((detail: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-card">
-                        <td className="px-4 py-2 whitespace-nowrap text-textPrimary">{detail.date}</td>
-                        <td className="px-4 py-2 font-medium text-textPrimary">{detail.project}</td>
-                        <td className="px-4 py-2 text-textSecondary">{detail.description || detail.journal_number}</td>
-                        <td className={`px-4 py-2 text-right font-medium ${detail.type === 'inflow' ? 'text-success' : 'text-danger'}`}>
-                          {detail.type === 'inflow' ? '+' : '-'}{formatCurrency(detail.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <HierarchicalCashFlowTable details={reportData.operating_activities.details} />
             )}
           </div>
 
@@ -327,30 +422,7 @@ export function FinancialReportsPage() {
               </div>
             </div>
             {isDetailedMode && reportData.investing_activities?.details?.length > 0 && (
-              <div className="bg-background border-t border-border p-0">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-background border-b border-border text-textSecondary uppercase">
-                    <tr>
-                      <th className="px-4 py-2">Tanggal</th>
-                      <th className="px-4 py-2">Proyek / Tag</th>
-                      <th className="px-4 py-2">Keterangan</th>
-                      <th className="px-4 py-2 text-right">Nominal</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {reportData.investing_activities.details.map((detail: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-card">
-                        <td className="px-4 py-2 whitespace-nowrap text-textPrimary">{detail.date}</td>
-                        <td className="px-4 py-2 font-medium text-textPrimary">{detail.project}</td>
-                        <td className="px-4 py-2 text-textSecondary">{detail.description || detail.journal_number}</td>
-                        <td className={`px-4 py-2 text-right font-medium ${detail.type === 'inflow' ? 'text-success' : 'text-danger'}`}>
-                          {detail.type === 'inflow' ? '+' : '-'}{formatCurrency(detail.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <HierarchicalCashFlowTable details={reportData.investing_activities.details} />
             )}
           </div>
 
@@ -371,30 +443,7 @@ export function FinancialReportsPage() {
               </div>
             </div>
             {isDetailedMode && reportData.financing_activities?.details?.length > 0 && (
-              <div className="bg-background border-t border-border p-0">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-background border-b border-border text-textSecondary uppercase">
-                    <tr>
-                      <th className="px-4 py-2">Tanggal</th>
-                      <th className="px-4 py-2">Proyek / Tag</th>
-                      <th className="px-4 py-2">Keterangan</th>
-                      <th className="px-4 py-2 text-right">Nominal</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {reportData.financing_activities.details.map((detail: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-card">
-                        <td className="px-4 py-2 whitespace-nowrap text-textPrimary">{detail.date}</td>
-                        <td className="px-4 py-2 font-medium text-textPrimary">{detail.project}</td>
-                        <td className="px-4 py-2 text-textSecondary">{detail.description || detail.journal_number}</td>
-                        <td className={`px-4 py-2 text-right font-medium ${detail.type === 'inflow' ? 'text-success' : 'text-danger'}`}>
-                          {detail.type === 'inflow' ? '+' : '-'}{formatCurrency(detail.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <HierarchicalCashFlowTable details={reportData.financing_activities.details} />
             )}
           </div>
 
@@ -425,15 +474,17 @@ export function FinancialReportsPage() {
           <div className="pl-6 border-l-2 border-border space-y-4">
             <div className="flex justify-between text-textPrimary">
               <span>Laba Bersih Tahun Berjalan</span>
-              <span className="text-success font-medium">+{formatCurrency(reportData.additions?.net_income)}</span>
+              <span className={`font-medium ${reportData.additions?.net_income >= 0 ? 'text-success' : 'text-danger'}`}>
+                {formatCurrency(reportData.additions?.net_income)}
+              </span>
             </div>
             <div className="flex justify-between text-textPrimary">
               <span>Tambahan Modal Disetor</span>
-              <span className="text-success font-medium">+{formatCurrency(reportData.additions?.new_capital)}</span>
+              <span className="text-success font-medium">{formatCurrency(reportData.additions?.new_capital)}</span>
             </div>
             <div className="flex justify-between text-textPrimary">
               <span>Penarikan Dividen / Prive</span>
-              <span className="text-danger font-medium">-{formatCurrency(reportData.deductions?.dividends_paid)}</span>
+              <span className="text-danger font-medium">{formatCurrency(reportData.deductions?.dividends_paid)}</span>
             </div>
           </div>
 
@@ -625,6 +676,28 @@ export function FinancialReportsPage() {
               <p className="font-bold underline">Manajer Keuangan / Akuntansi</p>
             </div>
           </div>
+
+          {/* 5. Kebijakan Akuntansi & Catatan Penting */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b border-border pb-2 mb-4">
+              <BookOpen className="text-primary w-6 h-6" />
+              <h3 className="font-bold text-xl text-primary">5. Kebijakan Akuntansi & Catatan Penting</h3>
+            </div>
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-5 space-y-4 text-textSecondary text-sm leading-relaxed">
+              <p>
+                <strong className="text-primary block mb-1">A. Sistem Laporan Keuangan Umum vs Laporan Per Proyek</strong>
+                Laporan Keuangan Umum (General Financial Statements) mencakup seluruh aktivitas finansial perusahaan, termasuk Pendapatan, Beban Pokok (COGS), dan Beban Operasional (OPEX). Sementara itu, <strong>Laporan Keuangan Per Proyek</strong> hanya berfokus pada Laba Kotor (Gross Profit) dari masing-masing proyek secara individual (Nilai Pendapatan Proyek dikurangi Beban Langsung/Subkontraktor).
+              </p>
+              <p>
+                Oleh karena itu, total Laba Kotor dari seluruh proyek <strong>tidak akan sama</strong> dengan Laba Bersih (Net Profit) maupun Sisa Kas Aktual perusahaan. Hal ini disebabkan karena sebagian dari kas dan laba kotor proyek tersebut telah digunakan untuk membiayai pengeluaran operasional (OPEX) seperti gaji staf non-proyek, utilitas, pajak, dan pengeluaran administrasi lainnya.
+              </p>
+              <p>
+                <strong className="text-primary block mb-1">B. Mutasi Kas dan Bank (Inter-bank Transfers)</strong>
+                Perpindahan dana antar rekening bank milik perusahaan (misalnya dari Bank Mandiri ke Bank CIMB) dicatat murni sebagai pemindahan letak kas melalui Jurnal Umum (Journal Entries) dan <strong>tidak diakui sebagai beban maupun pendapatan</strong>. Mutasi ini tidak mempengaruhi Laba/Rugi perusahaan, melainkan hanya merubah rincian pada Posisi Kas & Bank di Neraca.
+              </p>
+            </div>
+          </div>
+
         </div>
       </div>
     );
@@ -671,9 +744,27 @@ export function FinancialReportsPage() {
               className="pl-9 pr-3 py-1.5 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
-          <button className="flex items-center gap-2 px-3 py-1.5 bg-primary text-card rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm ml-2">
+          <button onClick={fetchReportData} className="flex items-center gap-2 px-3 py-1.5 bg-primary text-card rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm ml-2">
             <Filter className="w-4 h-4" />
             Apply
+          </button>
+          <div className="w-px h-6 bg-border mx-1"></div>
+          <button 
+            onClick={() => generateSingleReportPDF(activeTab, reportData, startDate, endDate)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-slate-900 rounded-lg font-medium hover:bg-secondary/90 transition-colors text-sm border border-secondary"
+          >
+            <Download className="w-4 h-4" />
+            {activeTab === 'income' ? 'Unduh Laba Rugi' : 
+             activeTab === 'balance' ? 'Unduh Neraca' : 
+             activeTab === 'cashflow' ? 'Unduh Arus Kas' : 
+             activeTab === 'equity' ? 'Unduh Ekuitas' : 'Unduh CALK'}
+          </button>
+          <button 
+            onClick={() => generateConsolidatedReportPDF(startDate, endDate, addToast)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors text-sm"
+          >
+            <FileText className="w-4 h-4" />
+            Unduh Semua Laporan
           </button>
         </div>
       </div>

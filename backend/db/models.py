@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime, Float, Integer
+from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime, Float, Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
@@ -53,6 +53,8 @@ class ChartOfAccount(BaseModel):
     account_name = Column(String, nullable=False)
     account_type = Column(String, nullable=False) # Asset, Liability, Equity, Revenue, Expense
     normal_balance = Column(String, nullable=False) # Debit, Credit
+    is_header = Column(Boolean, default=False)
+    parent_code = Column(String, nullable=True)
 
 class TaxCode(BaseModel):
     __tablename__ = "tax_codes"
@@ -77,8 +79,10 @@ class Bank(BaseModel):
     account_number = Column(String, nullable=False)
     account_name = Column(String, nullable=False)
     currency_id = Column(String, ForeignKey("currencies.id"))
+    coa_account_id = Column(String, ForeignKey("chart_of_accounts.id"), nullable=True)
 
     currency = relationship("Currency")
+    coa_account = relationship("ChartOfAccount")
 
 # ====================
 # Project Management
@@ -392,6 +396,8 @@ class Journal(BaseModel):
     ref_type = Column(String) # e.g. 'Manual', 'AP Invoice', 'AR Invoice'
     ref_id = Column(String) # ID of the reference document
     status = Column(String, default="Draft") # Draft, Posted
+    attachment_path = Column(String, nullable=True)  # Path to uploaded bukti transfer
+    attachment_memo = Column(String, nullable=True)  # Memo/catatan tambahan untuk bukti
 
     lines = relationship("JournalLine", back_populates="journal", cascade="all, delete-orphan")
 
@@ -532,3 +538,75 @@ class PurchaseOrderItem(BaseModel):
     total_price = Column(Float, default=0.0)
 
     purchase_order = relationship("PurchaseOrder", back_populates="items")
+
+
+# ====================
+# Billing Schedule (Invoice Termin)
+# ====================
+class BillingSchedule(BaseModel):
+    __tablename__ = "billing_schedules"
+
+    project_id = Column(String, ForeignKey("projects.id"), nullable=True)
+    customer_id = Column(String, ForeignKey("customers.id"), nullable=False)
+    schedule_number = Column(String, unique=True, nullable=False)
+    contract_description = Column(String, nullable=True)
+    contract_number = Column(String, nullable=True)
+
+    total_contract_value = Column(Float, default=0.0)
+    currency = Column(String, default="IDR")
+    exchange_rate = Column(Float, default=1.0)
+
+    include_ppn = Column(Boolean, default=False)
+    ppn_rate = Column(Float, default=11.0)
+
+    bank_name = Column(String, nullable=True)
+    bank_account_number = Column(String, nullable=True)
+    bank_account_name = Column(String, nullable=True)
+
+    notes = Column(String, nullable=True)
+    status = Column(String, default="Active")  # Active, Completed, Cancelled
+
+    project = relationship("Project")
+    customer = relationship("Customer")
+    terms = relationship("BillingTerm", back_populates="billing_schedule",
+                         cascade="all, delete-orphan", order_by="BillingTerm.term_number")
+
+
+class BillingTerm(BaseModel):
+    __tablename__ = "billing_terms"
+
+    billing_schedule_id = Column(String, ForeignKey("billing_schedules.id"), nullable=False)
+    term_number = Column(Integer, nullable=False)
+    term_name = Column(String, nullable=False)          # e.g. "Uang Muka (DP)"
+    term_name_en = Column(String, nullable=True)         # e.g. "Down Payment"
+
+    percentage = Column(Float, default=0.0)
+    amount = Column(Float, default=0.0)
+    amount_before_tax = Column(Float, default=0.0)
+    tax_amount = Column(Float, default=0.0)
+    total_amount = Column(Float, default=0.0)
+
+    due_date = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    description_en = Column(String, nullable=True)
+
+    status = Column(String, default="Pending")          # Pending, Invoiced, Paid
+    invoice_number = Column(String, nullable=True)
+    invoice_date = Column(String, nullable=True)
+    ar_invoice_id = Column(String, nullable=True)
+
+    billing_schedule = relationship("BillingSchedule", back_populates="terms")
+
+
+# ====================
+# User & Admin Profile
+# ====================
+class UserProfile(BaseModel):
+    __tablename__ = "user_profiles"
+
+    name = Column(String, default="Super Admin", nullable=False)
+    username = Column(String, default="admin", nullable=False)
+    email = Column(String, default="admin@ansa.com", nullable=False)
+    phone = Column(String, default="+62 812 3456 7890", nullable=True)
+    photo = Column(Text, nullable=True) # Durable Base64 data URL
+    password_hash = Column(String, nullable=True)

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Camera, Save, Phone, Mail, User, Lock, Eye } from 'lucide-react';
+import { X, Camera, Save, Phone, Mail, User, Lock, Eye, Loader2 } from 'lucide-react';
 import { useToastStore } from '../../store/toastStore';
 import { useProfileStore } from '../../store/profileStore';
+import { profileApi } from '../../services/api';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const addToast = useToastStore((state) => state.addToast);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { profile: globalProfile, setProfile: setGlobalProfile } = useProfileStore();
+  const { profile: globalProfile, saveProfile, fetchProfile } = useProfileStore();
   
   const [profile, setProfile] = useState({
     name: globalProfile.name,
@@ -33,43 +34,71 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    fetchProfile();
     return () => setMounted(false);
   }, []);
 
+  useEffect(() => {
+    if (isOpen) {
+      setProfile({
+        name: globalProfile.name,
+        username: globalProfile.username,
+        email: globalProfile.email,
+        phone: globalProfile.phone,
+      });
+      setProfilePhoto(globalProfile.photo);
+    }
+  }, [isOpen, globalProfile]);
+
   if (!isOpen || !mounted) return null;
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setGlobalProfile({
+    try {
+      await saveProfile({
         ...profile,
         photo: profilePhoto
       });
-      addToast('success', 'Profile Updated', 'Your profile details have been saved.');
-      setIsSubmitting(false);
+      addToast('success', 'Profil Berhasil Disimpan', 'Data profil & foto telah tersimpan permanen di database.');
       onClose();
-    }, 800);
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || 'Gagal menyimpan profil ke database.';
+      addToast('error', 'Gagal Simpan', typeof msg === 'string' ? msg : 'Error saat menyimpan profil.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSaveSecurity = (e: React.FormEvent) => {
+  const handleSaveSecurity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm) {
-      addToast('error', 'Error', 'New password and confirmation do not match.');
+      addToast('error', 'Validasi Gagal', 'Password baru dan konfirmasi tidak cocok.');
+      return;
+    }
+    if (passwords.new.length < 4) {
+      addToast('error', 'Validasi Gagal', 'Password minimal 4 karakter.');
       return;
     }
     setIsSubmitting(true);
-    setTimeout(() => {
-      addToast('success', 'Password Updated', 'Your password has been changed successfully.');
-      setIsSubmitting(false);
+    try {
+      await profileApi.updateSecurity({
+        current_password: passwords.current,
+        new_password: passwords.new
+      });
+      addToast('success', 'Password Diperbarui', 'Password akun Anda berhasil disimpan ke database.');
       setPasswords({ current: '', new: '', confirm: '' });
       onClose();
-    }, 800);
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || 'Password saat ini salah.';
+      addToast('error', 'Gagal Ubah Password', typeof msg === 'string' ? msg : 'Gagal memperbarui password.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handlePhotoClick = () => {
@@ -79,9 +108,14 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setProfilePhoto(url);
-      addToast('success', 'Photo Uploaded', `${file.name} uploaded successfully.`);
+      // Convert to persistent Base64 Data URL (Never expires or gets revoked on restart)
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setProfilePhoto(base64);
+        addToast('success', 'Foto Terpilih', `${file.name} siap disimpan ke database.`);
+      };
+      reader.readAsDataURL(file);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -39,7 +39,11 @@ export function Sidebar() {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const { profile } = useProfileStore();
+  const { profile, fetchProfile } = useProfileStore();
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const getInitials = (name: string) => {
     return name
@@ -57,10 +61,19 @@ export function Sidebar() {
     )}>
       <div className="px-5 py-6 flex items-center justify-between">
         {!isCollapsed && (
-          <h1 className="text-xl font-bold text-primary flex items-center gap-2 overflow-hidden whitespace-nowrap truncate pr-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-card flex-shrink-0">A</div>
-            <span className="truncate">ANSA Enterprise</span>
-          </h1>
+          <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap truncate pr-2">
+            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-card font-bold text-lg flex-shrink-0 shadow-sm">
+              A
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-base font-extrabold text-primary tracking-tight truncate leading-tight">
+                ANSA Enterprise
+              </span>
+              <span className="text-[11px] font-bold text-textSecondary tracking-wider uppercase truncate leading-tight mt-0.5">
+                ANSA Geo Finance
+              </span>
+            </div>
+          </div>
         )}
         {isCollapsed && (
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-card flex-shrink-0 mx-auto">A</div>
@@ -77,25 +90,36 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 overflow-y-auto py-4 overflow-x-hidden">
         <ul className="space-y-1 px-3">
-          {menuItems.map((item) => {
+          {menuItems.map((item, index) => {
             const isActive = location.pathname === item.path || (location.pathname.startsWith(item.path) && item.path !== '/');
             return (
-              <li key={item.path}>
+              <li 
+                key={item.path}
+                className="animate-in fade-in zoom-in-95 duration-150 fill-mode-both"
+              >
                 <Link
                   to={item.path}
                   className={twMerge(
                     clsx(
-                      "flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                      isCollapsed ? "justify-center px-0" : "px-3",
+                      "relative group flex items-center gap-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.98]",
+                      isCollapsed ? "justify-center px-0" : "px-3.5",
                       isActive 
-                        ? "bg-secondary/30 text-primary" 
-                        : "text-textSecondary hover:bg-secondary/10 hover:text-textPrimary"
+                        ? "bg-primary/10 text-primary font-semibold shadow-sm" 
+                        : "text-textSecondary hover:bg-secondary/20 hover:text-textPrimary hover:translate-x-1"
                     )
                   )}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <item.icon className={clsx("w-5 h-5 flex-shrink-0", isActive ? "text-primary" : "text-border")} />
-                  {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                  {/* Active Indicator Bar */}
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full animate-in fade-in zoom-in-50 duration-200" />
+                  )}
+
+                  <item.icon className={clsx(
+                    "w-5 h-5 flex-shrink-0 transition-all duration-200 group-hover:scale-110", 
+                    isActive ? "text-primary" : "text-textSecondary group-hover:text-primary/80"
+                  )} />
+                  {!isCollapsed && <span className="whitespace-nowrap transition-colors">{item.label}</span>}
                 </Link>
               </li>
             );

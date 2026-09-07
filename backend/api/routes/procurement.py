@@ -28,8 +28,8 @@ def _enrich_po(po, db: Session) -> PurchaseOrder:
 
 
 def _get_default_expense_account(db: Session) -> str:
-    """Cari akun Biaya Subkontraktor (5110) sebagai default."""
-    acc = db.query(ChartOfAccount).filter(ChartOfAccount.account_code == "5110").first()
+    """Cari akun Biaya Subkontraktor (51100 / 5110) sebagai default."""
+    acc = db.query(ChartOfAccount).filter(ChartOfAccount.account_code.in_(["51100", "5110"])).first()
     if not acc:
         # Fallback: akun expense pertama yang ada
         acc = db.query(ChartOfAccount).filter(ChartOfAccount.account_type == "Expense").first()
@@ -37,8 +37,8 @@ def _get_default_expense_account(db: Session) -> str:
 
 
 def _get_ap_account(db: Session) -> str:
-    """Cari akun Hutang Usaha (2110)."""
-    acc = db.query(ChartOfAccount).filter(ChartOfAccount.account_code == "2110").first()
+    """Cari akun Hutang Usaha (21100 / 2110)."""
+    acc = db.query(ChartOfAccount).filter(ChartOfAccount.account_code.in_(["21100", "2110"])).first()
     return acc.id if acc else None
 
 
