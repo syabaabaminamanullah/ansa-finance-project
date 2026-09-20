@@ -14,6 +14,15 @@ interface Vendor {
   code: string;
 }
 
+interface ApInvoiceLineItem {
+  description: string;
+  quantity: number;
+  unit?: string;
+  unit_price: number;
+  total_price: number;
+  item_code?: string;
+}
+
 interface ApInvoice {
   id: string;
   invoice_number: string;
@@ -29,6 +38,7 @@ interface ApInvoice {
   amount_paid?: number;
   expense_account_id?: string;
   tax_account_id?: string;
+  lines?: ApInvoiceLineItem[];   // Line items dari PO terkait (di-enrich backend)
 }
 
 interface Project {
@@ -631,11 +641,8 @@ export function ApInvoicePage() {
                 <p className="text-sm text-textSecondary">Invoice Date</p>
                 <p className="font-medium text-textPrimary">{editingItem.date}</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm text-textSecondary">Due Date</p>
-                <p className="font-medium text-textPrimary">{editingItem.due_date}</p>
-              </div>
             </div>
+
 
             {editingItem.project_rab_id && (
               <div className="p-3 bg-secondary/10 border border-border rounded-lg text-xs">

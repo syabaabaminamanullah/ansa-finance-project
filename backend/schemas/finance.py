@@ -83,9 +83,19 @@ class ApInvoiceUpdate(BaseModel):
     expense_account_id: Optional[str] = None
     tax_account_id: Optional[str] = None
 
+class ApInvoiceLineItem(BaseModel):
+    """Line item dari PO yang terkait dengan AP Invoice ini."""
+    description: str
+    quantity: float = 1.0
+    unit: Optional[str] = None
+    unit_price: float = 0.0
+    total_price: float = 0.0
+    item_code: Optional[str] = None
+
 class ApInvoiceResponse(ApInvoiceBase):
     id: str
     created_at: datetime
+    lines: List[ApInvoiceLineItem] = []   # Di-enrich dari PO items di backend
     model_config = ConfigDict(from_attributes=True)
 
 # ====================
@@ -105,6 +115,9 @@ class ArInvoiceBase(BaseModel):
     amount_paid: float = 0.0
     revenue_account_id: Optional[str] = None
     tax_account_id: Optional[str] = None
+    milestone: Optional[str] = "Field preparation"
+    unit: Optional[str] = "Lump Sump"
+    po_number: Optional[str] = None
 
 class ArInvoiceCreate(ArInvoiceBase):
     pass
@@ -113,6 +126,9 @@ class ArInvoiceUpdate(BaseModel):
     date: Optional[str] = None
     due_date: Optional[str] = None
     description: Optional[str] = None
+    milestone: Optional[str] = None
+    unit: Optional[str] = None
+    po_number: Optional[str] = None
     amount: Optional[float] = None
     tax_amount: Optional[float] = None
     total_amount: Optional[float] = None
@@ -156,9 +172,15 @@ class ExpenseCreate(ExpenseBase):
     pass
 
 class ExpenseUpdate(BaseModel):
+    expense_number: Optional[str] = None
     date: Optional[str] = None
+    employee_id: Optional[str] = None
+    project_id: Optional[str] = None
+    project_rab_id: Optional[str] = None
     description: Optional[str] = None
     amount: Optional[float] = None
+    expense_account_id: Optional[str] = None
+    payment_account_id: Optional[str] = None
     status: Optional[str] = None
     admin_fee_amount: Optional[float] = None
     admin_fee_account_id: Optional[str] = None
@@ -166,4 +188,6 @@ class ExpenseUpdate(BaseModel):
 class ExpenseResponse(ExpenseBase):
     id: str
     created_at: datetime
+    journal_status: Optional[str] = "Draft"
+    journal_number: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)

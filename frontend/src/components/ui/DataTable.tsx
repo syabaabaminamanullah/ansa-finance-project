@@ -32,6 +32,8 @@ interface DataTableProps<T> {
   onDelete?: (row: T) => void;
   onView?: (row: T) => void;
   searchPlaceholder?: string;
+  groupBy?: (row: T) => string;
+  isActionDisabled?: (row: T, action: 'edit' | 'delete') => { disabled: boolean; message?: string } | boolean;
 }
 
 export function DataTable<T extends { id: string | number }>({ 
@@ -44,7 +46,8 @@ export function DataTable<T extends { id: string | number }>({
   onDelete,
   onView,
   searchPlaceholder = "Search...",
-  groupBy
+  groupBy,
+  isActionDisabled
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showSort, setShowSort] = useState(false);
@@ -380,24 +383,44 @@ export function DataTable<T extends { id: string | number }>({
                                 <Eye className="w-4 h-4" />
                               </button>
                             )}
-                            {onEdit && (
-                              <button 
-                                onClick={() => onEdit(row)}
-                                className="p-1.5 text-textSecondary hover:text-primary hover:bg-secondary/20 rounded-md transition-colors"
-                                title="Edit"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button 
-                                onClick={() => onDelete(row)}
-                                className="p-1.5 text-textSecondary hover:text-danger hover:bg-danger/10 rounded-md transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            {onEdit && (() => {
+                              const check = isActionDisabled ? isActionDisabled(row, 'edit') : false;
+                              const isDisabled = typeof check === 'boolean' ? check : check.disabled;
+                              const tooltipMsg = typeof check === 'object' && check.message ? check.message : (isDisabled ? 'Aksi terkunci (Status Posted)' : 'Edit');
+                              return (
+                                <button 
+                                  onClick={() => !isDisabled && onEdit(row)}
+                                  disabled={isDisabled}
+                                  className={`p-1.5 rounded-md transition-colors ${
+                                    isDisabled 
+                                      ? 'text-textSecondary/25 cursor-not-allowed hover:bg-transparent' 
+                                      : 'text-textSecondary hover:text-primary hover:bg-secondary/20'
+                                  }`}
+                                  title={tooltipMsg}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              );
+                            })()}
+                            {onDelete && (() => {
+                              const check = isActionDisabled ? isActionDisabled(row, 'delete') : false;
+                              const isDisabled = typeof check === 'boolean' ? check : check.disabled;
+                              const tooltipMsg = typeof check === 'object' && check.message ? check.message : (isDisabled ? 'Aksi terkunci (Status Posted)' : 'Delete');
+                              return (
+                                <button 
+                                  onClick={() => !isDisabled && onDelete(row)}
+                                  disabled={isDisabled}
+                                  className={`p-1.5 rounded-md transition-colors ${
+                                    isDisabled 
+                                      ? 'text-textSecondary/25 cursor-not-allowed hover:bg-transparent' 
+                                      : 'text-textSecondary hover:text-danger hover:bg-danger/10'
+                                  }`}
+                                  title={tooltipMsg}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              );
+                            })()}
                           </div>
                         </td>
                       )}

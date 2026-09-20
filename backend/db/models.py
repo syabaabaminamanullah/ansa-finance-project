@@ -457,6 +457,9 @@ class ArInvoice(BaseModel):
     status = Column(String, default="Draft") # Draft, Unpaid, Partial, Paid
     revenue_account_id = Column(String, nullable=True)
     tax_account_id = Column(String, nullable=True)
+    milestone = Column(String, nullable=True, default="Field preparation")
+    unit = Column(String, nullable=True, default="Lump Sump")
+    po_number = Column(String, nullable=True)
 
     customer = relationship("Customer")
     project = relationship("Project")
@@ -519,21 +522,32 @@ class PurchaseOrder(BaseModel):
     project_id = Column(String, ForeignKey("projects.id"), nullable=True)
     date = Column(String)
     status = Column(String, default="Draft") # Draft, Approved, Completed, Cancelled
+    subtotal = Column(Float, default=0.0)
+    tax_rate = Column(Float, default=0.0)
+    tax_amount = Column(Float, default=0.0)
     total_amount = Column(Float, default=0.0)
     notes = Column(String, nullable=True)
+    category = Column(String, default="Jasa Subkontraktor") # Jasa Subkontraktor, Material Proyek, Sewa Alat, Aset / Mesin Proyek, Aset Peralatan Kantor, Operasional Kantor
+    payment_terms = Column(String, default="Net 30 Hari")   # Net 7 Hari, Net 14 Hari, Net 30 Hari, COD, Selesai Pekerjaan
+    due_date = Column(String, nullable=True)               # YYYY-MM-DD
+    account_id = Column(String, ForeignKey("chart_of_accounts.id"), nullable=True)
+
     # Track auto-generated documents
     ap_invoice_id = Column(String, nullable=True)  # ID of auto-created AP Invoice
     journal_id = Column(String, nullable=True)      # ID of auto-created Journal Entry
 
     vendor = relationship("Vendor", foreign_keys=[vendor_id])
     project = relationship("Project", foreign_keys=[project_id])
+    account = relationship("ChartOfAccount", foreign_keys=[account_id])
     items = relationship("PurchaseOrderItem", back_populates="purchase_order")
 
 class PurchaseOrderItem(BaseModel):
     __tablename__ = "purchase_order_items"
     purchase_order_id = Column(String, ForeignKey("purchase_orders.id"))
+    item_code = Column(String, nullable=True)
     description = Column(String)
     quantity = Column(Float, default=1.0)
+    unit = Column(String, nullable=True)
     unit_price = Column(Float, default=0.0)
     total_price = Column(Float, default=0.0)
 

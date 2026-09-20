@@ -5,7 +5,8 @@ import {
   Receipt, 
   FileText,
   PieChart,
-  CreditCard
+  CreditCard,
+  BrainCircuit
 } from 'lucide-react';
 
 const financeCategories = [
@@ -22,6 +23,7 @@ const financeCategories = [
     title: 'Accounts Payable (AP)',
     items: [
       { name: 'AP Invoices', icon: Receipt, path: '/finance/ap-invoices', desc: 'Manage vendor bills and payments' },
+      { name: 'AP Aging Report', icon: Receipt, path: '/finance/ap-aging', desc: 'Laporan umur hutang vendor / jatuh tempo' },
     ]
   },
   {
@@ -33,8 +35,9 @@ const financeCategories = [
     ]
   },
   {
-    title: 'Reports',
+    title: 'Reports & Intelligence',
     items: [
+      { name: 'Smart Financial Model', icon: BrainCircuit, path: '/finance/smart-forecast', desc: 'Forecast kas cerdas, runway & kecukupan OPEX' },
       { name: 'Financial Reports', icon: PieChart, path: '/finance/reports', desc: 'Income Statement, Balance Sheet' },
       { name: 'Project Financials', icon: PieChart, path: '/finance/project-reports', desc: 'Budget vs Actual per Project' },
       { name: 'Asset Depreciation', icon: PieChart, path: '/finance/asset-depreciation', desc: 'Nilai buku & beban penyusutan' },

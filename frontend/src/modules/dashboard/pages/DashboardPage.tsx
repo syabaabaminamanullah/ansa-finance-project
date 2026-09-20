@@ -24,7 +24,8 @@ import {
   Compass,
   PieChart as PieIcon,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  BrainCircuit
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -42,9 +43,11 @@ import {
   Cell
 } from 'recharts';
 import { clsx } from 'clsx';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { financeApi, projectsApi, api } from '../../../services/api';
+import { financeApi, projectsApi, api, financialsApi } from '../../../services/api';
+import { calculateSmartForecast } from '../../finance/utils/smartForecastEngine';
+import type { SmartForecastResult, HorizonType } from '../../finance/utils/smartForecastEngine';
 
 // Equipment Matrix Data - Always Global Overview
 const ALL_EQUIPMENT_DATA = [
@@ -114,6 +117,13 @@ export function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('YTD');
   const [cashFlowInterval, setCashFlowInterval] = useState<'week' | 'month' | 'year'>('month');
 
+  // Smart Cash Forecast States
+  const [coas, setCoas] = useState<any[]>([]);
+  const [journals, setJournals] = useState<any[]>([]);
+  const [arInvoicesList, setArInvoicesList] = useState<any[]>([]);
+  const [forecastHorizon, setForecastHorizon] = useState<HorizonType>('1_month');
+  const [forecastProject, setForecastProject] = useState<string>('ALL');
+
   // Master Data & Filtered Fetch Function
   const fetchDashboardData = useCallback(async (projId: string, period: string, interval: 'week' | 'month' | 'year' = 'month') => {
     setIsLoading(true);
@@ -125,7 +135,7 @@ export function DashboardPage() {
 
       const cfQuery = [projId !== 'ALL' ? `project_id=${projId}` : '', `interval=${interval}`].filter(Boolean).join('&');
 
-      const [projRes, expRes, apRes, arRes, summaryRes, treasuryRes, expBreakdownRes, cfRes] = await Promise.all([
+      const [projRes, expRes, apRes, arRes, summaryRes, treasuryRes, expBreakdownRes, cfRes, coasRes, jourRes] = await Promise.all([
         projectsApi.getProjects(),
         financeApi.getExpenses(),
         financeApi.getApInvoices(),
@@ -133,7 +143,9 @@ export function DashboardPage() {
         api.get(`/dashboard/summary${urlQuery}`),
         api.get(`/dashboard/treasury`),
         api.get(`/dashboard/expense-breakdown${urlQuery}`),
-        api.get(`/dashboard/cashflow-monthly?${cfQuery}`)
+        api.get(`/dashboard/cashflow-monthly?${cfQuery}`),
+        financialsApi.getCoas(),
+        financeApi.getJournals()
       ]);
 
       const projects = projRes.data;
@@ -146,6 +158,9 @@ export function DashboardPage() {
       setTreasuryData(treasuryRes.data);
       setExpenseBreakdown(expBreakdownRes.data);
       setCashFlowData(cfRes.data);
+      setCoas(coasRes.data || []);
+      setJournals(jourRes.data || []);
+      setArInvoicesList(arRes.data || []);
 
       // 1. Budget vs Actual
       const targetProjects = projId === 'ALL' 
@@ -463,6 +478,61 @@ export function DashboardPage() {
           <div className="flex justify-between items-center text-xs">
             <span className="text-textSecondary">Porsi:</span>
             <span className="font-bold text-primary">{data.percentage}% dari Beban</span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Smart Cash Forecast Memo
+  const smartForecast: SmartForecastResult | null = useMemo(() => {
+    if (!journals.length || !coas.length) return null;
+    return calculateSmartForecast(
+      journals,
+      coas,
+      allProjectsList,
+      arInvoicesList,
+      forecastProject === 'ALL' ? '' : forecastProject,
+      forecastHorizon,
+      2
+    );
+  }, [journals, coas, allProjectsList, arInvoicesList, forecastProject, forecastHorizon]);
+
+  const forecastChartData = useMemo(() => {
+    if (!smartForecast || !smartForecast.cadenceGroups) return [];
+    return smartForecast.cadenceGroups.map((g) => ({
+      name: g.badge,
+      fullName: g.title,
+      value: g.projectedTotal,
+      color: g.color,
+      monthlyTotal: g.monthlyTotal,
+    }));
+  }, [smartForecast]);
+
+  const formatForecastIDR = (val: number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
+  };
+
+  const CustomForecastDonutTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const total = smartForecast?.projectedTotalRequired || 1;
+      const percentage = Math.round((data.value / total) * 100);
+      return (
+        <div className="bg-card border border-border/80 p-3 rounded-xl shadow-lg text-xs space-y-1.5 min-w-[210px]">
+          <div className="font-bold text-textPrimary flex items-center gap-2 border-b border-border/40 pb-1">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.color }} />
+            <span>{data.name}</span>
+          </div>
+          <div className="text-textSecondary text-[11px] leading-snug">{data.fullName}</div>
+          <div className="flex justify-between items-center pt-0.5">
+            <span className="text-textSecondary">Kebutuhan:</span>
+            <span className="font-bold text-[#294825] font-mono">{formatForecastIDR(data.value)}</span>
+          </div>
+          <div className="flex justify-between items-center text-[11px] text-textSecondary">
+            <span>Porsi Forecast:</span>
+            <span className="font-bold text-textPrimary">{percentage}%</span>
           </div>
         </div>
       );
@@ -979,10 +1049,10 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* 5. Section: Real-Time Expense Breakdown Donut Chart & Equipment Deployment Matrix */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Donut Chart (5 Columns) - 100% REAL-TIME FROM DATABASE */}
-        <div className="lg:col-span-5 bg-card p-6 rounded-2xl border border-border/70 shadow-sm flex flex-col justify-between">
+      {/* 5. Section: Historical Expense vs Future Smart Cash Forecast Donut Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Card: Historical Expense Breakdown Donut Chart */}
+        <div className="bg-card p-6 rounded-2xl border border-border/70 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -990,7 +1060,7 @@ export function DashboardPage() {
                   <PieIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-textPrimary">Komposisi Pengeluaran</h3>
+                  <h3 className="text-base font-bold text-textPrimary">Komposisi Pengeluaran (Historis)</h3>
                   <p className="text-xs text-textSecondary">
                     {isSingleProject ? `Beban biaya proyek ${selectedProjectCode}` : 'Distribusi pos biaya riil dari jurnal & beban'}
                   </p>
@@ -1051,76 +1121,119 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Equipment & Rig Matrix (7 Columns) - ALWAYS GLOBAL OVERVIEW */}
-        <div className="lg:col-span-7 bg-card p-6 rounded-2xl border border-border/70 shadow-sm flex flex-col justify-between">
+        {/* Right Card: Smart Cash Forecast Donut Chart (Proyeksi Kebutuhan Kas Ke Depan) */}
+        <div className="bg-card p-6 rounded-2xl border border-border/70 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            {/* Header with Title and Horizon Toggle */}
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-secondary/30 rounded-xl text-[#294825]">
-                  <Wrench className="w-5 h-5" />
+                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                  <BrainCircuit className="w-5 h-5 text-[#294825]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-textPrimary">Rig & Equipment Deployment Matrix</h3>
-                  <p className="text-xs text-textSecondary">Monitoring sewa unit bor & instrumen geofisika di lapangan</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-textPrimary">Proyeksi Kebutuhan Kas</h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#294825]/10 text-[#294825] font-bold">
+                      Smart Model
+                    </span>
+                  </div>
+                  <p className="text-xs text-textSecondary">
+                    Estimasi alokasi ritme operasional ke depan
+                  </p>
                 </div>
               </div>
-              <button 
-                onClick={() => navigate('/equipment')}
-                className="text-xs font-bold text-primary hover:text-[#294825] flex items-center gap-1 transition-colors"
-              >
-                Detail Alat <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
 
-            {/* Equipment Deployment Cards - ALWAYS SHOW ALL UNITS */}
-            <div className="space-y-3">
-              {ALL_EQUIPMENT_DATA.map((eq) => {
-                const isHighlighted = isSingleProject && selectedProjObj && (selectedProjObj.code.includes(eq.code) || eq.project.includes(selectedProjObj.code));
-                return (
-                  <div 
-                    key={eq.name} 
+              {/* Mini Horizon Switcher */}
+              <div className="flex items-center gap-1 bg-secondary/20 p-1 rounded-xl border border-border/50">
+                {(['1_week', '2_weeks', '1_month'] as HorizonType[]).map((hz) => (
+                  <button
+                    key={hz}
+                    type="button"
+                    onClick={() => setForecastHorizon(hz)}
                     className={clsx(
-                      "p-3.5 rounded-xl transition-all space-y-2",
-                      isHighlighted 
-                        ? "bg-secondary/30 border-2 border-primary shadow-xs" 
-                        : "bg-background/70 border border-border/40 hover:bg-card hover:border-border"
+                      "px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all",
+                      forecastHorizon === hz
+                        ? "bg-[#294825] text-white shadow-xs"
+                        : "text-textSecondary hover:text-textPrimary"
                     )}
                   >
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div>
-                        <div className="text-xs font-bold text-textPrimary flex items-center gap-2">
-                          <span>{eq.name}</span>
-                          <span className={clsx(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                            eq.statusType === 'active' ? "bg-secondary/50 text-[#294825] border border-border/40" : "bg-amber-500/15 text-[#B45309] border border-amber-500/30"
-                          )}>
-                            {eq.status}
-                          </span>
-                          {isHighlighted && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-white">
-                              Fokus Proyek
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-textSecondary mt-0.5">
-                          {eq.project} • <span className="font-semibold text-textPrimary">{eq.location}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs font-extrabold text-[#294825] font-mono">{eq.utilization}%</div>
-                        <div className="text-[10px] text-textSecondary font-semibold">Utilisasi Site</div>
-                      </div>
-                    </div>
+                    {hz === '1_week' ? '1 Mgg' : hz === '2_weeks' ? '2 Mgg' : '1 Bln'}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                    {/* Progress Bar */}
-                    <div className="w-full bg-secondary/30 h-1.5 rounded-full overflow-hidden">
-                      <div 
-                        className={clsx(
-                          "h-full rounded-full transition-all duration-500",
-                          eq.statusType === 'active' ? "bg-[#294825]" : "bg-[#D4AF37]"
-                        )}
-                        style={{ width: `${eq.utilization}%` }}
-                      />
+            {/* Project Selector Toggle Bar */}
+            <div className="mb-3 px-3 py-1.5 bg-background/80 border border-border/60 rounded-xl flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-textSecondary font-semibold shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-[#294825]" />
+                <span>Proyek:</span>
+              </div>
+              <select
+                value={forecastProject}
+                onChange={(e) => setForecastProject(e.target.value)}
+                className="bg-transparent text-xs font-bold text-textPrimary focus:outline-none cursor-pointer flex-1 text-right max-w-[280px]"
+              >
+                <option value="ALL">Semua Proyek (Konsolidasi)</option>
+                {allProjectsList.map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.code} - {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="h-56 relative flex items-center justify-center">
+              {forecastChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip content={<CustomForecastDonutTooltip />} />
+                    <Pie
+                      data={forecastChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {forecastChartData.map((entry: any, index: number) => (
+                        <Cell key={`fc-cell-${index}`} fill={entry.color} stroke="#FFFFFF" strokeWidth={2} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-xs text-textSecondary">Memuat data proyeksi kas...</div>
+              )}
+              {/* Inner Donut Center Total Required */}
+              <div className="absolute flex flex-col items-center justify-center pointer-events-none text-center px-1">
+                <span className="text-[9px] uppercase font-bold text-textSecondary tracking-wider">Total Butuh</span>
+                <span className="text-xs font-extrabold text-[#294825] font-mono leading-tight">
+                  Rp {((smartForecast?.projectedTotalRequired || 0) / 1000000).toFixed(1)}Jt
+                </span>
+                <span className="text-[9px] text-textSecondary font-medium">
+                  {smartForecast?.horizonDays || 30} Hari
+                </span>
+              </div>
+            </div>
+
+            {/* Dynamic Forecast Legend */}
+            <div className="space-y-2 pt-2 border-t border-border/40">
+              {forecastChartData.map((item: any) => {
+                const totalReq = smartForecast?.projectedTotalRequired || 1;
+                const pct = Math.round((item.value / totalReq) * 100);
+                return (
+                  <div key={item.name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="text-textSecondary font-medium">{item.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 font-mono">
+                      <span className="font-bold text-textPrimary">{pct}%</span>
+                      <span className="text-textSecondary text-[11px]">
+                        (Rp {(item.value / 1000000).toFixed(1)}Jt)
+                      </span>
                     </div>
                   </div>
                 );
@@ -1128,10 +1241,106 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="pt-3 mt-3 border-t border-border/40 flex items-center justify-between text-xs text-textSecondary font-medium">
-            <span>Total 9 Unit Alat Lapangan Aktif Tersebar di 4 Site Proyek</span>
-            <span className="font-bold text-[#294825]">Rata-rata Utilisasi: 85%</span>
+          <div className="pt-3 mt-3 border-t border-border/40 flex items-center justify-between text-xs">
+            <span className="text-textSecondary flex items-center gap-1.5 font-medium">
+              Runway Kas:{' '}
+              <strong className={clsx(
+                "font-mono font-bold",
+                (smartForecast?.runwayDays || 0) >= 60 ? "text-[#294825]" : (smartForecast?.runwayDays || 0) >= 30 ? "text-amber-600" : "text-rose-600"
+              )}>
+                {smartForecast?.runwayDays || 0} Hari
+              </strong>
+            </span>
+            <button
+              onClick={() => navigate('/finance/smart-forecast')}
+              className="font-bold text-[#294825] hover:text-primary flex items-center gap-1 transition-colors"
+            >
+              Detail Model <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
+        </div>
+      </div>
+
+      {/* Equipment & Rig Matrix - Full Width Grid */}
+      <div className="bg-card p-6 rounded-2xl border border-border/70 shadow-sm flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-secondary/30 rounded-xl text-[#294825]">
+                <Wrench className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-textPrimary">Rig & Equipment Deployment Matrix</h3>
+                <p className="text-xs text-textSecondary">Monitoring sewa unit bor & instrumen geofisika di lapangan</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => navigate('/equipment')}
+              className="text-xs font-bold text-primary hover:text-[#294825] flex items-center gap-1 transition-colors"
+            >
+              Detail Alat <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Equipment Deployment Cards - 2x2 Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {ALL_EQUIPMENT_DATA.map((eq) => {
+              const isHighlighted = isSingleProject && selectedProjObj && (selectedProjObj.code.includes(eq.code) || eq.project.includes(selectedProjObj.code));
+              return (
+                <div 
+                  key={eq.name} 
+                  className={clsx(
+                    "p-3.5 rounded-xl transition-all space-y-2",
+                    isHighlighted 
+                      ? "bg-secondary/30 border-2 border-primary shadow-xs" 
+                      : "bg-background/70 border border-border/40 hover:bg-card hover:border-border"
+                  )}
+                >
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <div className="text-xs font-bold text-textPrimary flex items-center gap-2">
+                        <span>{eq.name}</span>
+                        <span className={clsx(
+                          "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                          eq.statusType === 'active' ? "bg-secondary/50 text-[#294825] border border-border/40" : "bg-amber-500/15 text-[#B45309] border border-amber-500/30"
+                        )}>
+                          {eq.status}
+                        </span>
+                        {isHighlighted && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-white">
+                            Fokus Proyek
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-textSecondary mt-0.5">
+                        {eq.project} • <span className="font-semibold text-textPrimary">{eq.location}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-extrabold text-[#294825] font-mono">{eq.utilization}%</div>
+                      <div className="text-[10px] text-textSecondary font-semibold">Utilisasi Site</div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full bg-secondary/30 h-1.5 rounded-full overflow-hidden">
+                    <div 
+                      className={clsx(
+                        "h-full rounded-full transition-all duration-500",
+                        eq.statusType === 'active' ? "bg-[#294825]" : "bg-[#D4AF37]"
+                      )}
+                      style={{ width: `${eq.utilization}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="pt-3 mt-4 border-t border-border/40 flex items-center justify-between text-xs text-textSecondary font-medium">
+          <span>Total 9 Unit Alat Lapangan Aktif Tersebar di 4 Site Proyek</span>
+          <span className="font-bold text-[#294825]">Rata-rata Utilisasi: 85%</span>
         </div>
       </div>
 

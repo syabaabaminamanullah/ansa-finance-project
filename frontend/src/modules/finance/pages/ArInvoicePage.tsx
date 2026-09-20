@@ -26,9 +26,12 @@ interface ArInvoice {
   invoice_number: string;
   customer_id: string;
   project_id?: string;
+  po_number?: string;
   date: string;
   due_date: string;
   description: string;
+  milestone?: string;
+  unit?: string;
   amount: number;
   tax_amount: number;
   total_amount: number;
@@ -57,7 +60,7 @@ export function ArInvoicePage() {
   const [paymentData, setPaymentData] = useState({ bank_account_id: '', revenue_account_id: '', tax_account_id: '' });
 
   const [formData, setFormData] = useState<Omit<ArInvoice, 'id' | 'created_at'>>({
-    invoice_number: '', customer_id: '', project_id: '', date: '', due_date: '', description: '', amount: 0, tax_amount: 0, total_amount: 0, status: 'Unpaid'
+    invoice_number: '', customer_id: '', project_id: '', po_number: '', date: '', due_date: '', description: '', milestone: 'Field preparation', unit: 'Lump Sump', amount: 0, tax_amount: 0, total_amount: 0, status: 'Unpaid'
   });
 
   const fetchData = async () => {
@@ -141,21 +144,41 @@ export function ArInvoicePage() {
             onClick={() => {
               const selectedProj = projects.find(p => p.id === row.project_id);
               const selectedCust = customers.find(c => c.id === row.customer_id);
+
+              // Calculate previous invoices for the same project
+              const projectInvoices = row.project_id ? invoices.filter(inv => inv.project_id === row.project_id) : [];
+              const prevInvoices = projectInvoices.filter(inv => 
+                inv.id !== row.id && 
+                inv.invoice_number !== row.invoice_number &&
+                (inv.status === 'Paid' || new Date(inv.date).getTime() < new Date(row.date).getTime())
+              );
+              const prevBilledTotal = prevInvoices.reduce((sum, inv) => sum + (Number(inv.total_amount) || Number(inv.amount) || 0), 0);
+              const prevInvoiceNum = prevInvoices.map(inv => inv.invoice_number).filter(Boolean).join(', ');
+              const contractVal = Number((selectedProj as any)?.contract_value_idr) || Number((selectedProj as any)?.contract_value) || 0;
+              const totalContract = contractVal > 0 ? contractVal : (prevBilledTotal + (Number(row.total_amount) || Number(row.amount) || 0));
+
               import('../utils/billingInvoicePDF').then(m => {
                 m.generateExactCoreterraInvoicePDF({
                   invoiceNumber: row.invoice_number,
                   invoiceDate: new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
-                  customerName: selectedCust?.name || 'PT Solusi Monitoring Indonesia',
-                  projectName: selectedProj?.name || 'Washbore Borpile & Foundation Project, Muara Laboh, West Sumatera',
-                  poNumber: `KONTRAK/${selectedProj?.code || row.invoice_number}`,
+                  customerName: selectedCust?.name || 'PT Volta Indo Technology',
+                  customerAddress: (selectedCust as any)?.address || '',
+                  customerNpwp: (selectedCust as any)?.tax_id || '',
+                  customerEmail: (selectedCust as any)?.email || '',
+                  projectName: selectedProj?.name || 'Studi Geolistrik Pembangkit Listrik Tenaga Minihidro (PLTM) Pongkor',
+                  poNumber: row.po_number || (selectedProj?.code ? `KONTRAK/${selectedProj.code}` : row.invoice_number),
                   itemDescription: row.description || 'Progres Pekerjaan Lapangan',
-                  amount: row.total_amount || 21090000,
-                  totalContract: (selectedProj as any)?.contract_value_idr || 42180000
+                  milestone: row.milestone || 'Field preparation',
+                  unit: row.unit || 'Lump Sump',
+                  amount: Number(row.total_amount) || Number(row.amount) || 21090000,
+                  prevBilledTotal: prevBilledTotal,
+                  prevInvoiceNum: prevInvoiceNum,
+                  totalContract: totalContract
                 });
               });
             }}
-            className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors shadow-sm font-semibold flex items-center gap-1"
-            title="Download PDF Format 1 (Corporate Progress)"
+            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors shadow-sm font-semibold flex items-center gap-1"
+            title="Download PDF Format 1 (Standard Coreterra)"
           >
             PDF 1
           </button>
@@ -163,6 +186,19 @@ export function ArInvoicePage() {
             onClick={() => {
               const selectedProj = projects.find(p => p.id === row.project_id);
               const selectedCust = customers.find(c => c.id === row.customer_id);
+
+              // Calculate previous invoices for the same project
+              const projectInvoices = row.project_id ? invoices.filter(inv => inv.project_id === row.project_id) : [];
+              const prevInvoices = projectInvoices.filter(inv => 
+                inv.id !== row.id && 
+                inv.invoice_number !== row.invoice_number &&
+                (inv.status === 'Paid' || new Date(inv.date).getTime() < new Date(row.date).getTime())
+              );
+              const prevBilledTotal = prevInvoices.reduce((sum, inv) => sum + (Number(inv.total_amount) || Number(inv.amount) || 0), 0);
+              const prevInvoiceNum = prevInvoices.map(inv => inv.invoice_number).filter(Boolean).join(', ');
+              const contractVal = Number((selectedProj as any)?.contract_value_idr) || Number((selectedProj as any)?.contract_value) || 0;
+              const totalContract = contractVal > 0 ? contractVal : (prevBilledTotal + (Number(row.total_amount) || Number(row.amount) || 0));
+
               import('../utils/invoiceFormat2PDF').then(m => {
                 m.generateFormat2InvoicePDF({
                   invoiceNumber: row.invoice_number,
@@ -176,13 +212,15 @@ export function ArInvoicePage() {
                   companyAddress: 'Gardenia Estate, Blok A5 No 12 RT 007 RW 014, Ciputat, Kota Tangerang Selatan, Banten 15411',
                   companyBranch: 'Head Office Tangerang Selatan & Jakarta',
                   orderNumber: `ORD-${row.invoice_number.replace(/[^0-9]/g, '').slice(-8) || '004-IKPT-001'}`,
-                  contractNumber: selectedProj?.code || 'KONTRAK/004_IKPT-SOLOK-001/2026',
-                  poNumber: `PO-${selectedProj?.code || 'IKPT-SOLOK-2026-08'}`,
+                  contractNumber: row.po_number || (selectedProj?.code ? `KONTRAK/${selectedProj.code}/2026` : 'KONTRAK/004_IKPT-SOLOK-001/2026'),
+                  poNumber: row.po_number || (selectedProj?.code ? `PO-${selectedProj.code}` : 'IKPT-SOLOK-2026-08'),
                   activityTitle: row.description || selectedProj?.name || 'Washbore Borpile & Foundation Project, Muara Laboh, West Sumatera',
                   feeAmount: row.amount || (row.total_amount ? Math.round(row.total_amount / 1.11) : 19000000),
                   taxAmount: row.tax_amount || (row.total_amount ? row.total_amount - Math.round(row.total_amount / 1.11) : 2090000),
                   totalAmount: row.total_amount || 21090000,
-                  totalContractAmount: (selectedProj as any)?.contract_value_idr || (row.total_amount * 2),
+                  prevBilledTotal: prevBilledTotal,
+                  prevInvoiceNum: prevInvoiceNum,
+                  totalContractAmount: totalContract,
                   signatoryName: 'Setyo Mardani'
                 });
               });
@@ -204,9 +242,9 @@ export function ArInvoicePage() {
                     receiptDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
                     customerName: selectedCust?.name || 'PT Solusi Monitoring Indonesia',
                     projectName: selectedProj?.name || 'Washbore Borpile & Foundation Project, Muara Laboh, West Sumatera',
-                    poNumber: (selectedProj as any)?.code ? `PO-${(selectedProj as any).code}` : 'PO-004_IKPT-SOLOK-001',
-                    contractNumber: (selectedProj as any)?.code ? `KONTRAK/${(selectedProj as any).code}/2026` : 'KONTRAK/004_IKPT-SOLOK-001/2026',
-                    milestone: row.description || 'Uang Muka (DP) - Tahap 2',
+                    poNumber: row.po_number || ((selectedProj as any)?.code ? `PO-${(selectedProj as any).code}` : 'PO-004_IKPT-SOLOK-001'),
+                    contractNumber: row.po_number || ((selectedProj as any)?.code ? `KONTRAK/${(selectedProj as any).code}/2026` : 'KONTRAK/004_IKPT-SOLOK-001/2026'),
+                    milestone: row.milestone || row.description || 'Uang Muka (DP) - Tahap 2',
                     amount: row.total_amount || 0,
                     signatoryName: 'Setyo Mardani'
                   });
@@ -232,9 +270,12 @@ export function ArInvoicePage() {
       invoice_number: `AR-${Date.now().toString().slice(-5)}`, 
       customer_id: '', 
       project_id: '',
+      po_number: '',
       date: new Date().toISOString().split('T')[0], 
       due_date: '', 
       description: '', 
+      milestone: 'Field preparation',
+      unit: 'Lump Sump',
       amount: 0, 
       tax_amount: 0, 
       total_amount: 0, 
@@ -262,9 +303,12 @@ export function ArInvoicePage() {
       invoice_number: row.invoice_number, 
       customer_id: row.customer_id, 
       project_id: row.project_id || '',
+      po_number: row.po_number || '',
       date: row.date, 
       due_date: row.due_date, 
-      description: row.description, 
+      description: row.description || '', 
+      milestone: row.milestone || 'Field preparation',
+      unit: row.unit || 'Lump Sump',
       amount: row.amount, 
       tax_amount: row.tax_amount, 
       total_amount: row.total_amount, 
@@ -504,8 +548,43 @@ export function ArInvoicePage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-textPrimary">Description</label>
-              <input type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="Brief description..."/>
+              <label className="text-sm font-medium text-textPrimary">PO / Contract Number (Optional)</label>
+              <input type="text" value={formData.po_number || ''} onChange={e => setFormData({...formData, po_number: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="e.g. KONTRAK/004_IKPT-SOLOK-001/2026"/>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-textPrimary">Item & Payment Terms / Description <span className="text-danger">*</span></label>
+            <input required type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="e.g. Progres Pekerjaan Lapangan / Washbore Borpile"/>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-textPrimary">Milestone / Tahapan Pekerjaan</label>
+              <input type="text" list="milestone-suggestions" value={formData.milestone || ''} onChange={e => setFormData({...formData, milestone: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="e.g. Field preparation"/>
+              <datalist id="milestone-suggestions">
+                <option value="Field preparation" />
+                <option value="Uang Muka (DP 20%)" />
+                <option value="Uang Muka (DP 30%)" />
+                <option value="Termin 1 (Progres 50%)" />
+                <option value="Termin 2 (Progres 75%)" />
+                <option value="Pelunasan (100%)" />
+                <option value="Retensi (5%)" />
+              </datalist>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-textPrimary">Unit / Satuan</label>
+              <input type="text" list="unit-suggestions" value={formData.unit || ''} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="e.g. Lump Sump"/>
+              <datalist id="unit-suggestions">
+                <option value="Lump Sump" />
+                <option value="Lot" />
+                <option value="Paket" />
+                <option value="Unit" />
+                <option value="Month" />
+                <option value="Bulan" />
+                <option value="Titik" />
+                <option value="Meter" />
+              </datalist>
             </div>
           </div>
 
@@ -596,11 +675,23 @@ export function ArInvoicePage() {
                 <p className="text-sm text-textSecondary">Due Date</p>
                 <p className="font-medium text-textPrimary">{editingItem.due_date}</p>
               </div>
+              <div className="space-y-1">
+                <p className="text-sm text-textSecondary">PO / Contract No.</p>
+                <p className="font-medium text-textPrimary font-mono">{editingItem.po_number || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-textSecondary">Milestone</p>
+                <p className="font-medium text-textPrimary">{editingItem.milestone || 'Field preparation'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-textSecondary">Unit / Satuan</p>
+                <p className="font-medium text-textPrimary">{editingItem.unit || 'Lump Sump'}</p>
+              </div>
             </div>
             
             {editingItem.description && (
               <div>
-                <p className="text-sm text-textSecondary mb-1">Description</p>
+                <p className="text-sm text-textSecondary mb-1">Item & Payment Terms / Description</p>
                 <p className="text-sm text-textPrimary p-3 bg-background border border-border rounded-lg">{editingItem.description}</p>
               </div>
             )}

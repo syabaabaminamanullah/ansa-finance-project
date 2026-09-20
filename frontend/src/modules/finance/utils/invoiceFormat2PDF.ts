@@ -184,8 +184,20 @@ export function generateFormat2InvoicePDF(params?: Format2InvoiceParams) {
   const totalContract = params?.totalContractAmount || 42180000;
   const signatory = params?.signatoryName || 'Setyo Mardani';
   
-  const bankName = params?.bankName || 'Bank Mandiri KCP Jakarta Gedung Jaya';
-  const bankAcc = params?.bankAccountNo || '103-00-1332575-4';
+  let defaultSettings: any = {};
+  try {
+    const settingsStr = localStorage.getItem('ansa-settings-storage');
+    if (settingsStr) {
+      const parsed = JSON.parse(settingsStr);
+      if (parsed?.state?.settings) {
+        defaultSettings = parsed.state.settings;
+      }
+    }
+  } catch (e) {}
+
+  const bankName = params?.bankName || defaultSettings.bankName || 'Bank Mandiri KCP Jakarta Gedung Jaya';
+  const bankAcc = params?.bankAccountNo || defaultSettings.bankAccountNumber || '103-00-1332575-4';
+  const bankAccName = params?.bankAccountName || defaultSettings.bankAccountName || defaultSettings.companyName || 'PT Coreterra Geo Engineering';
   const mvaIdr = params?.mvaIdr || '88101 278162';
   const mvaUsd = params?.mvaUsd || '88202 278162';
 
@@ -390,23 +402,25 @@ export function generateFormat2InvoicePDF(params?: Format2InvoiceParams) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
   doc.setTextColor(15, 23, 42); // Slate 900
-  doc.text('INFORMASI STRUKTUR DP & KONTRAK', 15, noteBoxY + 4.5);
+  doc.text('INFORMASI STRUKTUR KONTRAK & PEMBAYARAN', 15, noteBoxY + 4.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(51, 65, 85); // Slate 700
 
-  const dpAlloc = params?.totalDp ?? 800000000;
-  const dpPaidPrev = params?.prevBilledDp ?? (params?.prevBilledTotal ?? 175000000);
+  const dpAlloc = params?.totalDp ?? (params?.totalContractAmount || totalContract);
+  const dpPaidPrev = params?.prevBilledDp ?? (params?.prevBilledTotal ?? 0);
   const currentInv = grandTotal;
   const remainingDp = Math.max(0, dpAlloc - dpPaidPrev - currentInv);
   const remainingContract = Math.max(0, totalContract - dpPaidPrev - currentInv);
 
-  doc.text(`• Total Alokasi DP: Rp ${formatNum(dpAlloc)},-`, 15, noteBoxY + 8.5);
-  doc.text(`• DP Tahap 1 (Lunas): Rp ${formatNum(dpPaidPrev)},-`, 15, noteBoxY + 12.5);
-  doc.text(`• Tagihan Ini (DP Tahap 2): Rp ${formatNum(currentInv)},-`, 15, noteBoxY + 16.5);
-  doc.text(`• Sisa DP Belum Ditagih: ${remainingDp > 0 ? `Rp ${formatNum(remainingDp)},-` : 'Rp 0,- (Lunas)'}`, 15, noteBoxY + 20.5);
-  doc.text(`• Sisa Kontrak Akhir: Rp ${formatNum(remainingContract)},-`, 15, noteBoxY + 24.5);
+  doc.text(`• Nilai Total Kontrak: Rp ${formatNum(totalContract)},-`, 15, noteBoxY + 8.5);
+  doc.text(`• Total Dibayar Sebelumnya: Rp ${formatNum(dpPaidPrev)},- (Lunas)`, 15, noteBoxY + 12.5);
+  doc.text(`• Tagihan Ini: Rp ${formatNum(currentInv)},-`, 15, noteBoxY + 16.5);
+  doc.text(`• Sisa Kontrak Akhir: ${remainingContract > 0 ? `Rp ${formatNum(remainingContract)},-` : 'Rp 0,- (Lunas)'}`, 15, noteBoxY + 20.5);
+  if (params?.prevInvoiceNum) {
+    doc.text(`• Reff Invoice Lunas: ${params.prevInvoiceNum}`, 15, noteBoxY + 24.5);
+  }
 
   // Legalities: e-Meterai & QR Code & Signature
   try {
@@ -453,7 +467,7 @@ export function generateFormat2InvoicePDF(params?: Format2InvoiceParams) {
   doc.text('stated clearly in your transfer slip. Payment account number :', 12, y);
 
   const notesList = [
-    `a.  ${bankName} (IDR) A/C No. ${bankAcc} a.n. PT Coreterra Geo Engineering`,
+    `a.  ${bankName} (IDR) A/C No. ${bankAcc} a.n. ${bankAccName}`,
     `b.  Mandiri Virtual Account atau MVA (Bank Mandiri dan Bank lainnya) / Mandiri Virtual Account or MVA (Bank Mandiri and others)`,
     `     • A/C IDR ${mvaIdr}    ||    A/C USD ${mvaUsd}`,
     `c.  Pembayaran melalui rekening lainnya harus sesuai kesepakatan kontrak atau perjanjian / Payment by other specified account should be written on contract or agreement`,

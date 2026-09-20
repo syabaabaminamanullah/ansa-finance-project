@@ -73,10 +73,12 @@ import { BillingSchedulePage } from './modules/finance/pages/BillingSchedulePage
 import { FinancialReportsPage } from './modules/finance/pages/FinancialReportsPage';
 import { AssetDepreciationReport } from './modules/finance/pages/AssetDepreciationReport';
 import { ArAgingReport } from './modules/finance/pages/ArAgingReport';
+import { ApAgingReport } from './modules/finance/pages/ApAgingReport';
 import { ExpensePage } from './modules/finance/pages/ExpensePage';
 import { AllJournalEntriesPage } from './modules/finance/pages/AllJournalEntriesPage';
 import { ProjectFinancialReportsPage } from './modules/finance/pages/ProjectFinancialReportsPage';
 import { PurchaseOrderPage } from './modules/finance/pages/PurchaseOrderPage';
+import { SmartForecastPage } from './modules/finance/pages/SmartForecastPage';
 
 // Equipment Pages
 import { EquipmentDashboard } from './modules/equipment/pages/EquipmentDashboard';
@@ -153,8 +155,11 @@ function App() {
           <Route path="finance/billing" element={<BillingSchedulePage />} />
           <Route path="finance/reports" element={<FinancialReportsPage />} />
           <Route path="finance/project-reports" element={<ProjectFinancialReportsPage />} />
+          <Route path="finance/smart-forecast" element={<SmartForecastPage />} />
+          <Route path="smart-forecast" element={<SmartForecastPage />} />
           <Route path="finance/asset-depreciation" element={<AssetDepreciationReport />} />
           <Route path="finance/ar-aging" element={<ArAgingReport />} />
+          <Route path="finance/ap-aging" element={<ApAgingReport />} />
           <Route path="finance/expenses" element={<ExpensePage />} />
 
           <Route path="procurement" element={<PurchaseOrderPage />} />

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, FileText, Download, Calendar, Filter, BarChart3, TrendingUp, Wallet, Landmark, BookOpen, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Calendar, Filter, BarChart3, TrendingUp, Wallet, Landmark, BookOpen, ChevronDown, ChevronRight, Scale, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToastStore } from '../../../store/toastStore';
 import { generateSingleReportPDF, generateConsolidatedReportPDF } from '../utils/pdfGenerator';
+import { DatePicker } from '../../../components/ui/DatePicker';
+
 
 const getWeekLabel = (dateStr: string) => {
   const d = new Date(dateStr);
@@ -126,14 +128,22 @@ export function FinancialReportsPage() {
   const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]); // Start of month
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]); // Today
   const [isDetailedMode, setIsDetailedMode] = useState(true);
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const addToast = useToastStore((state) => state.addToast);
+
+  const activeTabLabel = 
+    activeTab === 'income' ? 'Laba Rugi' :
+    activeTab === 'balance' ? 'Neraca' :
+    activeTab === 'cashflow' ? 'Arus Kas' :
+    activeTab === 'equity' ? 'Perubahan Ekuitas' : 'CALK';
   
   useEffect(() => {
     fetchReportData();
   }, [activeTab, startDate, endDate]);
+
 
   const fetchReportData = async () => {
     try {
@@ -153,6 +163,9 @@ export function FinancialReportsPage() {
           break;
         case 'equity':
           endpoint = `/api/v1/financial-statements/equity-changes?start_date=${startDate}&end_date=${endDate}`;
+          break;
+        case 'trialbalance':
+          endpoint = `/api/v1/financial-statements/trial-balance?start_date=${startDate}&end_date=${endDate}`;
           break;
         case 'calk':
           endpoint = `/api/v1/financial-statements/calk-notes?start_date=${startDate}&end_date=${endDate}`;
@@ -183,6 +196,7 @@ export function FinancialReportsPage() {
     const tabs = [
       { id: 'income', label: 'Laba Rugi', icon: TrendingUp },
       { id: 'balance', label: 'Neraca', icon: Landmark },
+      { id: 'trialbalance', label: 'Neraca Saldo', icon: Scale },
       { id: 'cashflow', label: 'Arus Kas', icon: Wallet },
       { id: 'equity', label: 'Perubahan Modal', icon: BarChart3 },
       { id: 'calk', label: 'CALK', icon: BookOpen },
@@ -366,96 +380,213 @@ export function FinancialReportsPage() {
   };
 
   const renderCashFlow = () => {
-    if (!reportData) return null;
     return (
       <div className="p-6 bg-card rounded-b-xl border border-t-0 border-border shadow-sm">
-         <div className="text-center mb-8 border-b border-border pb-6 relative">
-          <h2 className="text-2xl font-bold text-textPrimary">STATEMENT OF CASH FLOW (ARUS KAS)</h2>
-          <p className="text-textSecondary">Periode: {reportData.period}</p>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-border pb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-textPrimary flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-primary" />
+              Laporan Arus Kas Korporat (PSAK No. 2)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
             <button 
               onClick={() => setIsDetailedMode(!isDetailedMode)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isDetailedMode ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/40 text-textSecondary hover:text-textPrimary transition-all shadow-2xs cursor-pointer"
+              title={isDetailedMode ? "Beralih ke format ringkas" : "Beralih ke format rinci"}
             >
-              <FileText className="w-4 h-4" />
-              {isDetailedMode ? 'Sembunyikan Rincian' : 'Tampilkan Rincian'}
+              <Eye className="w-3.5 h-3.5 text-primary" />
+              <span>{isDetailedMode ? 'Ringkas' : 'Rincian'}</span>
             </button>
           </div>
         </div>
-        <div className="max-w-4xl mx-auto space-y-8">
-          
-          {/* Operating */}
-          <div className="border border-border rounded-xl overflow-hidden shadow-sm">
-            <div className="bg-background px-4 py-3 border-b border-border font-bold text-primary flex justify-between">
-              <span>Arus Kas dari Aktivitas Operasi</span>
-              <span>{formatCurrency(reportData.operating_activities?.net)}</span>
-            </div>
-            <div className="p-4 space-y-2">
-              <div className="flex justify-between text-textSecondary">
-                <span>Penerimaan Kas (Inflow)</span>
-                <span className="text-success">{formatCurrency(reportData.operating_activities?.inflow)}</span>
-              </div>
-              <div className="flex justify-between text-textSecondary">
-                <span>Pengeluaran Kas (Outflow)</span>
-                <span className="text-danger">({formatCurrency(reportData.operating_activities?.outflow)})</span>
-              </div>
-            </div>
-            {isDetailedMode && reportData.operating_activities?.details?.length > 0 && (
-              <HierarchicalCashFlowTable details={reportData.operating_activities.details} />
-            )}
-          </div>
 
-          {/* Investing */}
-          <div className="border border-border rounded-xl overflow-hidden shadow-sm">
-            <div className="bg-background px-4 py-3 border-b border-border font-bold text-primary flex justify-between">
-              <span>Arus Kas dari Aktivitas Investasi</span>
-              <span>{formatCurrency(reportData.investing_activities?.net)}</span>
+        {!reportData ? null : (
+          <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
+            <div className="text-center mb-6 border-b border-border pb-4">
+              <h2 className="text-xl font-bold text-textPrimary">STATEMENT OF CASH FLOW (PSAK NO. 2)</h2>
+              <p className="text-textSecondary text-sm">Periode: {reportData.period}</p>
             </div>
-            <div className="p-4 space-y-2">
-              <div className="flex justify-between text-textSecondary">
-                <span>Penerimaan Kas (Inflow)</span>
-                <span className="text-success">{formatCurrency(reportData.investing_activities?.inflow)}</span>
+            
+            {/* Operating */}
+            <div className="border border-border rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-background px-4 py-3 border-b border-border font-bold text-primary flex justify-between">
+                <span>Arus Kas dari Aktivitas Operasi</span>
+                <span>{formatCurrency(reportData.operating_activities?.net)}</span>
               </div>
-              <div className="flex justify-between text-textSecondary">
-                <span>Pengeluaran Kas (Outflow)</span>
-                <span className="text-danger">({formatCurrency(reportData.investing_activities?.outflow)})</span>
-              </div>
-            </div>
-            {isDetailedMode && reportData.investing_activities?.details?.length > 0 && (
-              <HierarchicalCashFlowTable details={reportData.investing_activities.details} />
-            )}
-          </div>
+              <div className="p-4 space-y-3">
+                <div>
+                  <div className="flex justify-between font-medium text-textPrimary py-1 border-b border-border/50">
+                    <span>Penerimaan Kas (Inflow)</span>
+                    <span className="text-success font-semibold">{formatCurrency(reportData.operating_activities?.inflow)}</span>
+                  </div>
+                  {reportData.operating_activities?.inflow_by_account?.length > 0 && (
+                    <div className="pl-4 py-1.5 space-y-1 bg-background/50 rounded mt-1">
+                      {reportData.operating_activities.inflow_by_account.map((item: any) => (
+                        <div key={item.account} className="flex justify-between text-xs text-textSecondary">
+                          <span>• {item.account}</span>
+                          <span className="text-success">{formatCurrency(item.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-          {/* Financing */}
-          <div className="border border-border rounded-xl overflow-hidden shadow-sm">
-            <div className="bg-background px-4 py-3 border-b border-border font-bold text-primary flex justify-between">
-              <span>Arus Kas dari Aktivitas Pendanaan</span>
-              <span>{formatCurrency(reportData.financing_activities?.net)}</span>
-            </div>
-            <div className="p-4 space-y-2">
-              <div className="flex justify-between text-textSecondary">
-                <span>Penerimaan Kas (Inflow)</span>
-                <span className="text-success">{formatCurrency(reportData.financing_activities?.inflow)}</span>
+                <div>
+                  <div className="flex justify-between font-medium text-textPrimary py-1 border-b border-border/50">
+                    <span>Pengeluaran Kas (Outflow)</span>
+                    <span className="text-danger font-semibold">({formatCurrency(reportData.operating_activities?.outflow)})</span>
+                  </div>
+                  {reportData.operating_activities?.outflow_by_account?.length > 0 && (
+                    <div className="pl-4 py-1.5 space-y-1 bg-background/50 rounded mt-1">
+                      {reportData.operating_activities.outflow_by_account.map((item: any) => (
+                        <div key={item.account} className="flex justify-between text-xs text-textSecondary">
+                          <span>• {item.account}</span>
+                          <span className="text-danger">({formatCurrency(item.amount)})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between text-textSecondary">
-                <span>Pengeluaran Kas (Outflow)</span>
-                <span className="text-danger">({formatCurrency(reportData.financing_activities?.outflow)})</span>
-              </div>
+              {isDetailedMode && reportData.operating_activities?.details?.length > 0 && (
+                <HierarchicalCashFlowTable details={reportData.operating_activities.details} />
+              )}
             </div>
-            {isDetailedMode && reportData.financing_activities?.details?.length > 0 && (
-              <HierarchicalCashFlowTable details={reportData.financing_activities.details} />
-            )}
-          </div>
 
-          <div className={`flex justify-between py-5 px-6 font-bold text-xl rounded-xl shadow-inner ${reportData.net_increase_in_cash >= 0 ? 'bg-success/10 text-success border border-success/20' : 'bg-danger/10 text-danger border border-danger/20'}`}>
-            <span>KENAIKAN / (PENURUNAN) KAS BERSIH</span>
-            <span>{formatCurrency(reportData.net_increase_in_cash)}</span>
-          </div>
+            {/* Investing */}
+            <div className="border border-border rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-background px-4 py-3 border-b border-border font-bold text-primary flex justify-between">
+                <span>Arus Kas dari Aktivitas Investasi</span>
+                <span>{formatCurrency(reportData.investing_activities?.net)}</span>
+              </div>
+              <div className="p-4 space-y-3">
+                <div>
+                  <div className="flex justify-between font-medium text-textPrimary py-1 border-b border-border/50">
+                    <span>Penerimaan Kas (Inflow)</span>
+                    <span className="text-success font-semibold">{formatCurrency(reportData.investing_activities?.inflow)}</span>
+                  </div>
+                  {reportData.investing_activities?.inflow_by_account?.length > 0 && (
+                    <div className="pl-4 py-1.5 space-y-1 bg-background/50 rounded mt-1">
+                      {reportData.investing_activities.inflow_by_account.map((item: any) => (
+                        <div key={item.account} className="flex justify-between text-xs text-textSecondary">
+                          <span>• {item.account}</span>
+                          <span className="text-success">{formatCurrency(item.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-        </div>
+                <div>
+                  <div className="flex justify-between font-medium text-textPrimary py-1 border-b border-border/50">
+                    <span>Pengeluaran Kas (Outflow)</span>
+                    <span className="text-danger font-semibold">({formatCurrency(reportData.investing_activities?.outflow)})</span>
+                  </div>
+                  {reportData.investing_activities?.outflow_by_account?.length > 0 && (
+                    <div className="pl-4 py-1.5 space-y-1 bg-background/50 rounded mt-1">
+                      {reportData.investing_activities.outflow_by_account.map((item: any) => (
+                        <div key={item.account} className="flex justify-between text-xs text-textSecondary">
+                          <span>• {item.account}</span>
+                          <span className="text-danger">({formatCurrency(item.amount)})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {isDetailedMode && reportData.investing_activities?.details?.length > 0 && (
+                <HierarchicalCashFlowTable details={reportData.investing_activities.details} />
+              )}
+            </div>
+
+            {/* Financing */}
+            <div className="border border-border rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-background px-4 py-3 border-b border-border font-bold text-primary flex justify-between">
+                <span>Arus Kas dari Aktivitas Pendanaan</span>
+                <span>{formatCurrency(reportData.financing_activities?.net)}</span>
+              </div>
+              <div className="p-4 space-y-3">
+                <div>
+                  <div className="flex justify-between font-medium text-textPrimary py-1 border-b border-border/50">
+                    <span>Penerimaan Kas (Inflow)</span>
+                    <span className="text-success font-semibold">{formatCurrency(reportData.financing_activities?.inflow)}</span>
+                  </div>
+                  {reportData.financing_activities?.inflow_by_account?.length > 0 && (
+                    <div className="pl-4 py-1.5 space-y-1 bg-background/50 rounded mt-1">
+                      {reportData.financing_activities.inflow_by_account.map((item: any) => (
+                        <div key={item.account} className="flex justify-between text-xs text-textSecondary">
+                          <span>• {item.account}</span>
+                          <span className="text-success">{formatCurrency(item.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex justify-between font-medium text-textPrimary py-1 border-b border-border/50">
+                    <span>Pengeluaran Kas (Outflow)</span>
+                    <span className="text-danger font-semibold">({formatCurrency(reportData.financing_activities?.outflow)})</span>
+                  </div>
+                  {reportData.financing_activities?.outflow_by_account?.length > 0 && (
+                    <div className="pl-4 py-1.5 space-y-1 bg-background/50 rounded mt-1">
+                      {reportData.financing_activities.outflow_by_account.map((item: any) => (
+                        <div key={item.account} className="flex justify-between text-xs text-textSecondary">
+                          <span>• {item.account}</span>
+                          <span className="text-danger">({formatCurrency(item.amount)})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {isDetailedMode && reportData.financing_activities?.details?.length > 0 && (
+                <HierarchicalCashFlowTable details={reportData.financing_activities.details} />
+              )}
+            </div>
+
+            <div className={`flex justify-between py-5 px-6 font-bold text-xl rounded-xl shadow-inner ${reportData.net_increase_in_cash >= 0 ? 'bg-success/10 text-success border border-success/20' : 'bg-danger/10 text-danger border border-danger/20'}`}>
+              <span>KENAIKAN / (PENURUNAN) KAS BERSIH</span>
+              <span>{formatCurrency(reportData.net_increase_in_cash)}</span>
+            </div>
+
+            {/* Rekonsiliasi Saldo Kas Awal & Akhir Periode */}
+            <div className="bg-background border border-border/80 rounded-xl p-5 space-y-3 shadow-xs">
+              <div className="flex justify-between items-center border-b border-border/40 pb-2">
+                <span className="text-xs font-bold text-textPrimary uppercase tracking-wide">
+                  Rekonsiliasi Kas & Setara Kas
+                </span>
+                <span className="text-[11px] px-2 py-0.5 rounded bg-primary/10 text-primary font-bold">
+                  Dasar: PSAK No. 2 & SAK ETAP Bab 7
+                </span>
+              </div>
+              <div className="flex justify-between text-sm font-semibold text-textSecondary">
+                <span>Kas & Setara Kas Awal Periode</span>
+                <span className="font-mono text-textPrimary">{formatCurrency(reportData.beginning_cash_balance || 0)}</span>
+              </div>
+              <div className="flex justify-between text-sm font-semibold text-textSecondary border-b border-border/40 pb-2">
+                <span>Kenaikan / (Penurunan) Kas Bersih Periode Ini</span>
+                <span className={`font-mono ${(reportData.net_increase_in_cash || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {(reportData.net_increase_in_cash || 0) >= 0 ? '+' : ''}{formatCurrency(reportData.net_increase_in_cash || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between text-base font-bold text-[#294825] pt-1">
+                <span>KAS & SETARA KAS AKHIR PERIODE</span>
+                <span className="font-mono text-lg">{formatCurrency(reportData.ending_cash_balance !== undefined ? reportData.ending_cash_balance : ((reportData.beginning_cash_balance || 0) + (reportData.net_increase_in_cash || 0)))}</span>
+              </div>
+              <p className="text-[11px] text-textSecondary italic pt-1">
+                * Sesuai PSAK No. 2 Paragraf 45: Saldo kas akhir ini merekonsiliasi dan klop 100% dengan total akun Kas & Bank pada Laporan Posisi Keuangan / Neraca (Balance Sheet).
+              </p>
+            </div>
+
+          </div>
+        )}
       </div>
     );
   };
+
 
   const renderEquity = () => {
     if (!reportData) return null;
@@ -703,6 +834,178 @@ export function FinancialReportsPage() {
     );
   };
 
+  const renderTrialBalance = () => {
+    if (!reportData) return null;
+    const items = reportData.items || [];
+    const summary = reportData.summary || {};
+
+    return (
+      <div className="p-6 bg-card rounded-b-xl border border-t-0 border-border shadow-sm space-y-6">
+        <div className="text-center border-b border-border pb-6">
+          <h2 className="text-2xl font-bold text-textPrimary">TRIAL BALANCE (NERACA SALDO)</h2>
+          <p className="text-textSecondary text-sm mt-1">Periode: {reportData.period}</p>
+        </div>
+
+        {/* 3 Executive Metric Cards: Saldo Awal, Mutasi, Saldo Akhir */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-background border border-border rounded-xl p-4 shadow-2xs">
+            <div className="flex justify-between items-center pb-2 border-b border-border/60">
+              <span className="text-xs font-bold text-textSecondary uppercase">1. Saldo Awal</span>
+              {summary.is_beginning_balanced ? (
+                <span className="text-[11px] font-semibold text-success bg-success/10 px-2 py-0.5 rounded-full">Klop (Balance)</span>
+              ) : (
+                <span className="text-[11px] font-semibold text-danger bg-danger/10 px-2 py-0.5 rounded-full">Selisih</span>
+              )}
+            </div>
+            <div className="mt-3 space-y-1.5 text-sm">
+              <div className="flex justify-between text-textSecondary">
+                <span>Total Debit:</span>
+                <span className="font-mono font-medium text-textPrimary">{formatCurrency(summary.total_beginning_debit || 0)}</span>
+              </div>
+              <div className="flex justify-between text-textSecondary">
+                <span>Total Kredit:</span>
+                <span className="font-mono font-medium text-textPrimary">{formatCurrency(summary.total_beginning_credit || 0)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-background border border-border rounded-xl p-4 shadow-2xs">
+            <div className="flex justify-between items-center pb-2 border-b border-border/60">
+              <span className="text-xs font-bold text-primary uppercase">2. Mutasi Periode</span>
+              {summary.is_movement_balanced ? (
+                <span className="text-[11px] font-semibold text-success bg-success/10 px-2 py-0.5 rounded-full">Klop (Balance)</span>
+              ) : (
+                <span className="text-[11px] font-semibold text-danger bg-danger/10 px-2 py-0.5 rounded-full">Selisih</span>
+              )}
+            </div>
+            <div className="mt-3 space-y-1.5 text-sm">
+              <div className="flex justify-between text-textSecondary">
+                <span>Total Debit:</span>
+                <span className="font-mono font-medium text-primary">{formatCurrency(summary.total_movement_debit || 0)}</span>
+              </div>
+              <div className="flex justify-between text-textSecondary">
+                <span>Total Kredit:</span>
+                <span className="font-mono font-medium text-secondary">{formatCurrency(summary.total_movement_credit || 0)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-background border border-border rounded-xl p-4 shadow-2xs">
+            <div className="flex justify-between items-center pb-2 border-b border-border/60">
+              <span className="text-xs font-bold text-textSecondary uppercase">3. Saldo Akhir</span>
+              {summary.is_ending_balanced ? (
+                <span className="text-[11px] font-semibold text-success bg-success/10 px-2 py-0.5 rounded-full">Klop (Balance)</span>
+              ) : (
+                <span className="text-[11px] font-semibold text-danger bg-danger/10 px-2 py-0.5 rounded-full">Selisih</span>
+              )}
+            </div>
+            <div className="mt-3 space-y-1.5 text-sm">
+              <div className="flex justify-between text-textSecondary">
+                <span>Total Debit:</span>
+                <span className="font-mono font-medium text-textPrimary">{formatCurrency(summary.total_ending_debit || 0)}</span>
+              </div>
+              <div className="flex justify-between text-textSecondary">
+                <span>Total Kredit:</span>
+                <span className="font-mono font-medium text-textPrimary">{formatCurrency(summary.total_ending_credit || 0)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Clean Accounting Table */}
+        <div className="border border-border rounded-xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead className="bg-[#294825] text-white uppercase text-xs tracking-wider">
+                <tr>
+                  <th className="px-3.5 py-3.5 text-center w-20">Kode</th>
+                  <th className="px-4 py-3.5">Nama Akun</th>
+                  <th className="px-3 py-3.5 text-center w-24">Tipe</th>
+                  <th className="px-4 py-3.5 text-right">Saldo Awal</th>
+                  <th className="px-4 py-3.5 text-right bg-[#233f20]">Mutasi Debit</th>
+                  <th className="px-4 py-3.5 text-right bg-[#233f20]">Mutasi Kredit</th>
+                  <th className="px-4 py-3.5 text-right">Saldo Akhir</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border bg-card">
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-textSecondary">
+                      Tidak ada pergerakan akun pada periode ini.
+                    </td>
+                  </tr>
+                ) : (
+                  items.map((item: any, idx: number) => (
+                    <tr 
+                      key={item.account_code} 
+                      className={`hover:bg-primary/5 transition-colors ${idx % 2 === 1 ? 'bg-background/40' : ''}`}
+                    >
+                      <td className="px-3.5 py-2.5 font-mono text-xs font-semibold text-textSecondary text-center">
+                        {item.account_code}
+                      </td>
+                      <td className="px-4 py-2.5 font-medium text-textPrimary">
+                        {item.account_name}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-secondary/15 text-textSecondary uppercase">
+                          {item.account_type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono text-xs text-textSecondary">
+                        {item.beginning_balance !== 0 ? formatCurrency(item.beginning_balance) : 'Rp 0'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono text-xs text-primary font-semibold">
+                        {item.debit > 0 ? formatCurrency(item.debit) : '-'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono text-xs text-secondary font-semibold">
+                        {item.credit > 0 ? formatCurrency(item.credit) : '-'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono text-xs font-bold text-textPrimary">
+                        {item.ending_balance !== 0 ? formatCurrency(item.ending_balance) : 'Rp 0'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              <tfoot className="bg-background font-bold border-t-2 border-border text-sm">
+                <tr className="bg-secondary/10 font-bold border-b border-border">
+                  <td colSpan={3} className="px-4 py-3 text-right text-textPrimary uppercase tracking-wider font-bold">
+                    JUMLAH TOTAL
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-xs text-textSecondary font-bold">
+                    {formatCurrency(summary.total_beginning_debit || 0)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-xs text-primary font-bold">
+                    {formatCurrency(summary.total_movement_debit || 0)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-xs text-secondary font-bold">
+                    {formatCurrency(summary.total_movement_credit || 0)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-xs text-textPrimary font-bold">
+                    {formatCurrency(summary.total_ending_debit || 0)}
+                  </td>
+                </tr>
+                <tr className={summary.is_movement_balanced ? "bg-success/10" : "bg-danger/10"}>
+                  <td colSpan={7} className="px-4 py-2 text-center text-xs font-bold">
+                    {summary.is_movement_balanced ? (
+                      <span className="inline-flex items-center gap-1.5 text-success">
+                        <span className="w-2 h-2 rounded-full bg-success"></span> STATUS KESEIMBANGAN: SEIMBANG (BALANCED) — Total Mutasi Debit dan Kredit Klop
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-danger">
+                        <span className="w-2 h-2 rounded-full bg-danger"></span> STATUS KESEIMBANGAN: TERDAPAT SELISIH (UNBALANCED) — Selisih sebesar {formatCurrency(summary.movement_difference || 0)}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -724,48 +1027,67 @@ export function FinancialReportsPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-3 bg-card p-2 rounded-xl border border-border shadow-sm">
+        <div className="flex items-center gap-2 bg-card p-1.5 rounded-xl border border-border shadow-sm">
+          <DatePicker
+            value={startDate}
+            onChange={(val) => setStartDate(val)}
+            placeholder="Dari tanggal..."
+            className="w-38"
+          />
+          <span className="text-textSecondary text-xs font-semibold px-0.5 select-none">s/d</span>
+          <DatePicker
+            value={endDate}
+            onChange={(val) => setEndDate(val)}
+            placeholder="Sampai tanggal..."
+            className="w-38"
+          />
+          <button onClick={fetchReportData} className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors text-xs shadow-2xs cursor-pointer ml-1">
+            <Filter className="w-3.5 h-3.5" />
+            <span>Filter</span>
+          </button>
+          
+          <div className="w-px h-5 bg-border mx-1"></div>
+
           <div className="relative">
-            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary" />
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="pl-9 pr-3 py-1.5 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
+            <button 
+              onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-card hover:bg-background border border-border hover:border-primary/40 text-textPrimary rounded-lg font-semibold text-xs transition-all shadow-2xs cursor-pointer"
+              title="Pilihan Unduh Dokumen PDF"
+            >
+              <Download className="w-3.5 h-3.5 text-primary" />
+              <span>Unduh PDF</span>
+              <ChevronDown className="w-3 h-3 text-textSecondary" />
+            </button>
+
+            {isExportDropdownOpen && (
+              <div 
+                className="absolute right-0 mt-1.5 w-60 bg-card border border-border rounded-xl shadow-xl p-1.5 z-40 animate-in fade-in zoom-in-95 duration-150"
+                onClick={() => setIsExportDropdownOpen(false)}
+              >
+                <button
+                  onClick={() => generateSingleReportPDF(activeTab, reportData, startDate, endDate)}
+                  className="w-full text-left px-3 py-2 text-xs text-textPrimary hover:bg-primary/10 hover:text-primary rounded-lg flex items-center gap-2 font-medium transition-colors cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <div className="truncate">
+                    <span className="block font-semibold">Laporan {activeTabLabel}</span>
+                    <span className="text-[10px] text-textSecondary">Format PDF tab yang aktif saat ini</span>
+                  </div>
+                </button>
+                <div className="h-px bg-border/60 my-1"></div>
+                <button
+                  onClick={() => generateConsolidatedReportPDF(startDate, endDate, addToast)}
+                  className="w-full text-left px-3 py-2 text-xs text-textPrimary hover:bg-primary/10 hover:text-primary rounded-lg flex items-center gap-2 font-medium transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <div className="truncate">
+                    <span className="block font-semibold">Semua Laporan Lengkap</span>
+                    <span className="text-[10px] text-textSecondary">Bundel komprehensif seluruh laporan</span>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
-          <span className="text-textSecondary text-sm">to</span>
-          <div className="relative">
-            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary" />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="pl-9 pr-3 py-1.5 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-          <button onClick={fetchReportData} className="flex items-center gap-2 px-3 py-1.5 bg-primary text-card rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm ml-2">
-            <Filter className="w-4 h-4" />
-            Apply
-          </button>
-          <div className="w-px h-6 bg-border mx-1"></div>
-          <button 
-            onClick={() => generateSingleReportPDF(activeTab, reportData, startDate, endDate)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-slate-900 rounded-lg font-medium hover:bg-secondary/90 transition-colors text-sm border border-secondary"
-          >
-            <Download className="w-4 h-4" />
-            {activeTab === 'income' ? 'Unduh Laba Rugi' : 
-             activeTab === 'balance' ? 'Unduh Neraca' : 
-             activeTab === 'cashflow' ? 'Unduh Arus Kas' : 
-             activeTab === 'equity' ? 'Unduh Ekuitas' : 'Unduh CALK'}
-          </button>
-          <button 
-            onClick={() => generateConsolidatedReportPDF(startDate, endDate, addToast)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors text-sm"
-          >
-            <FileText className="w-4 h-4" />
-            Unduh Semua Laporan
-          </button>
         </div>
       </div>
 
@@ -781,6 +1103,7 @@ export function FinancialReportsPage() {
           <div className="animate-in fade-in duration-500">
             {activeTab === 'income' && renderIncomeStatement()}
             {activeTab === 'balance' && renderBalanceSheet()}
+            {activeTab === 'trialbalance' && renderTrialBalance()}
             {activeTab === 'cashflow' && renderCashFlow()}
             {activeTab === 'equity' && renderEquity()}
             {activeTab === 'calk' && renderCalk()}

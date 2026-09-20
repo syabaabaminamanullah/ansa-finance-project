@@ -3,31 +3,79 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from db.database import get_db
-from db.models import Journal, JournalLine, ApInvoice, ArInvoice, Vendor, Customer, Project, BillingTerm
+from db.models import Journal, JournalLine, ApInvoice, ArInvoice, Vendor, Customer, Project, BillingTerm, PurchaseOrder, PurchaseOrderItem
 from schemas.finance import (
     JournalCreate, JournalUpdate, JournalResponse,
-    ApInvoiceCreate, ApInvoiceUpdate, ApInvoiceResponse,
+    ApInvoiceCreate, ApInvoiceUpdate, ApInvoiceResponse, ApInvoiceLineItem,
     ArInvoiceCreate, ArInvoiceUpdate, ArInvoiceResponse,
     PaymentRequest
 )
 
 router = APIRouter()
 
+def _enrich_ap_invoice(ap: ApInvoice, db: Session) -> dict:
+    """
+    Enrich AP Invoice response dengan line items dari PO terkait.
+    PO number di-extract dari invoice_number format: AP-YYYYMMDD-{po_number}
+    atau dari description field.
+    """
+    data = {c.name: getattr(ap, c.name) for c in ap.__table__.columns}
+    data['lines'] = []
+
+    # Coba ekstrak PO number dari invoice_number (format: AP-YYYYMMDD-CGE-PO-XXXX-YYYY)
+    # invoice_number = "AP-20260917-CGE-PO-2609-0001" -> po_number = "CGE-PO-2609-0001"
+    po = None
+    inv_num = ap.invoice_number or ""
+    # Format: AP-{8digit_date}-{po_number}
+    if inv_num.startswith("AP-") and len(inv_num) > 11:
+        # Extract: everything after "AP-YYYYMMDD-"
+        rest = inv_num[3:]  # remove "AP-"
+        dash_idx = rest.find("-", 8)  # skip 8 digit date, find next dash
+        if dash_idx >= 0:
+            candidate_po_number = rest[dash_idx + 1:]
+            po = db.query(PurchaseOrder).filter(PurchaseOrder.po_number == candidate_po_number).first()
+
+    # Fallback: cari dari description field ("AP dari PO {po_number} ...")
+    if not po and ap.description:
+        import re
+        m = re.search(r'PO\s+(CGE-PO-[A-Z0-9\-]+)', ap.description)
+        if m:
+            candidate = m.group(1)
+            po = db.query(PurchaseOrder).filter(PurchaseOrder.po_number == candidate).first()
+
+    # Fallback: cari PO yang punya ap_invoice_id ini
+    if not po:
+        po = db.query(PurchaseOrder).filter(PurchaseOrder.ap_invoice_id == ap.id).first()
+
+    if po:
+        items = db.query(PurchaseOrderItem).filter(PurchaseOrderItem.purchase_order_id == po.id).all()
+        data['lines'] = [
+            {
+                'description': item.description or '',
+                'quantity': item.quantity or 1.0,
+                'unit': item.unit,
+                'unit_price': item.unit_price or 0.0,
+                'total_price': item.total_price or 0.0,
+                'item_code': item.item_code,
+            }
+            for item in items
+        ]
+
+    return ApInvoiceResponse(**data)
+
+
+from datetime import datetime
+
 def generate_transaction_number(db: Session, date_str, project_id: str, tx_type: str, model_class, field_name: str) -> str:
     date_val = str(date_str).split('T')[0] if 'T' in str(date_str) else str(date_str)
     parts = date_val.split('-')
     if len(parts) == 3:
-        formatted_date = f"{parts[2]}{parts[1]}{parts[0][-2:]}" # DDMMYY
+        yymm = f"{parts[0][-2:]}{parts[1]}"  # YYMM format e.g. 2609
     else:
-        formatted_date = "000000"
+        now = datetime.now()
+        yymm = f"{str(now.year)[-2:]}{now.month:02d}"
         
-    project_code = "OH"
-    if project_id:
-        project = db.query(Project).filter(Project.id == project_id).first()
-        if project and project.code:
-            project_code = project.code
-            
-    prefix = f"{formatted_date}-{project_code}-{tx_type}-"
+    prefix = f"{tx_type}-{yymm}-"
     
     last_items = db.query(model_class).filter(getattr(model_class, field_name).like(f"{prefix}%")).all()
     
@@ -43,7 +91,23 @@ def generate_transaction_number(db: Session, date_str, project_id: str, tx_type:
             pass
             
     new_seq = max_seq + 1
-    return f"{prefix}{new_seq:03d}"
+    return f"{prefix}{new_seq:04d}"
+
+
+@router.get("/expenses/next-number")
+def get_next_expense_number(date: str = None, db: Session = Depends(get_db)):
+    if not date:
+        date = datetime.now().strftime("%Y-%m-%d")
+    next_num = generate_transaction_number(db, date, None, 'EXP', Expense, 'expense_number')
+    return {"next_number": next_num}
+
+
+@router.get("/journals/next-number")
+def get_next_journal_number(date: str = None, db: Session = Depends(get_db)):
+    if not date:
+        date = datetime.now().strftime("%Y-%m-%d")
+    next_num = generate_transaction_number(db, date, None, 'JV', Journal, 'journal_number')
+    return {"next_number": next_num}
 
 
 # ====================
@@ -61,8 +125,14 @@ def create_journal(journal: JournalCreate, db: Session = Depends(get_db)):
     journal_data = journal.model_dump(exclude={'lines'})
     
     # Auto-numbering logic
-    if journal_data['journal_number'] == 'AUTO' or journal_data['journal_number'].startswith('JV-'):
-        journal_data['journal_number'] = generate_transaction_number(db, journal_data['date'], journal_data.get('project_id'), 'JV', Journal, 'journal_number')
+    if not journal_data.get('journal_number') or journal_data['journal_number'] == 'AUTO' or journal_data['journal_number'].startswith('JV-'):
+        # Check if already formatted and doesn't conflict
+        if journal_data.get('journal_number') and journal_data['journal_number'] != 'AUTO':
+            existing = db.query(Journal).filter(Journal.journal_number == journal_data['journal_number']).first()
+            if existing:
+                journal_data['journal_number'] = generate_transaction_number(db, journal_data['date'], None, 'JV', Journal, 'journal_number')
+        else:
+            journal_data['journal_number'] = generate_transaction_number(db, journal_data['date'], None, 'JV', Journal, 'journal_number')
 
     new_journal = Journal(**journal_data)
     db.add(new_journal)
@@ -88,8 +158,8 @@ def create_journal(journal: JournalCreate, db: Session = Depends(get_db)):
     return new_journal
 
 @router.get("/journals", response_model=List[JournalResponse])
-def get_journals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(Journal).offset(skip).limit(limit).all()
+def get_journals(skip: int = 0, limit: int = 10000, db: Session = Depends(get_db)):
+    return db.query(Journal).order_by(Journal.date.asc(), Journal.created_at.asc()).offset(skip).limit(limit).all()
 
 @router.get("/journals/{journal_id}", response_model=JournalResponse)
 def get_journal(journal_id: str, db: Session = Depends(get_db)):
@@ -131,8 +201,8 @@ def update_journal(journal_id: str, journal_update: JournalCreate, db: Session =
     if db_journal.ref_type in ["Expense"] and db_journal.ref_id:
         linked_exp = db.query(Expense).filter(Expense.id == db_journal.ref_id).first()
         if linked_exp:
-            if first_proj_id:
-                linked_exp.project_id = first_proj_id
+            linked_exp.project_id = first_proj_id  # Properly syncs None (Overhead) as well as Project ID
+            linked_exp.date = journal_update.date
             main_debit = sum(l.debit for l in journal_update.lines if l.account_id == linked_exp.expense_account_id)
             if main_debit > 0:
                 linked_exp.amount = main_debit
@@ -141,15 +211,13 @@ def update_journal(journal_id: str, journal_update: JournalCreate, db: Session =
     elif db_journal.ref_type in ["AP_Invoice", "AP_Invoice_Approve", "AP_Invoice_Pay"] and db_journal.ref_id:
         linked_ap = db.query(ApInvoice).filter(ApInvoice.id == db_journal.ref_id).first()
         if linked_ap:
-            if first_proj_id:
-                linked_ap.project_id = first_proj_id
+            linked_ap.project_id = first_proj_id
             if total_debit > 0:
                 linked_ap.total_amount = total_debit
     elif db_journal.ref_type in ["AR_Invoice", "AR_Invoice_Pay", "AR_Invoice_Approve", "AR_Invoice_Receipt"] and db_journal.ref_id:
         linked_ar = db.query(ArInvoice).filter(ArInvoice.id == db_journal.ref_id).first()
         if linked_ar:
-            if first_proj_id:
-                linked_ar.project_id = first_proj_id
+            linked_ar.project_id = first_proj_id
             if total_credit > 0:
                 linked_ar.total_amount = total_credit
 
@@ -175,6 +243,9 @@ def delete_journal(journal_id: str, db: Session = Depends(get_db)):
     db_journal = db.query(Journal).filter(Journal.id == journal_id).first()
     if not db_journal:
         raise HTTPException(status_code=404, detail="Journal not found")
+    if db_journal.status == 'Posted':
+        raise HTTPException(status_code=400, detail="Jurnal berstatus POSTED terkunci. Silakan unpost terlebih dahulu di menu All Journal Entries.")
+    db.query(JournalLine).filter(JournalLine.journal_id == journal_id).delete()
     db.delete(db_journal)
     db.commit()
     return {"ok": True}
@@ -196,15 +267,39 @@ async def upload_journal_attachment(
     if ext not in ["pdf", "jpg", "jpeg", "png"]:
         raise HTTPException(status_code=400, detail="File type not allowed. Use PDF, JPG, or PNG.")
     
-    # Save file
+    # Save locally as cache/backup if directory is accessible
     upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "journal_attachments")
-    os.makedirs(upload_dir, exist_ok=True)
-    
-    filename = f"{journal_id}.{ext}"
-    filepath = os.path.join(upload_dir, filename)
-    
-    with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    try:
+        os.makedirs(upload_dir, exist_ok=True)
+        filename = f"{journal_id}.{ext}"
+        filepath = os.path.join(upload_dir, filename)
+        file.file.seek(0)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        filename = f"{journal_id}.{ext}"
+
+    # Also upload to Supabase Storage if configured
+    supabase_url = os.getenv("SUPABASE_URL", "https://rwglshhjtgwjudwdgkvf.supabase.co")
+    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", os.getenv("SUPABASE_KEY", ""))
+    supabase_bucket = os.getenv("SUPABASE_STORAGE_BUCKET", "attachments")
+
+    if supabase_url and supabase_key:
+        try:
+            import requests, mimetypes
+            file.file.seek(0)
+            file_bytes = file.file.read()
+            mime_type, _ = mimetypes.guess_type(filename)
+            headers = {
+                "Authorization": f"Bearer {supabase_key}",
+                "apikey": supabase_key,
+                "Content-Type": mime_type or "application/octet-stream",
+                "x-upsert": "true"
+            }
+            storage_url = f"{supabase_url}/storage/v1/object/{supabase_bucket}/journal_attachments/{filename}"
+            requests.post(storage_url, headers=headers, data=file_bytes, timeout=10)
+        except Exception as err:
+            print(f"Failed to upload to Supabase Storage: {err}")
     
     # Save path to DB
     db_journal.attachment_path = f"journal_attachments/{filename}"
@@ -215,20 +310,27 @@ async def upload_journal_attachment(
 
 @router.get("/journals/{journal_id}/attachment")
 def get_journal_attachment(journal_id: str, db: Session = Depends(get_db)):
-    from fastapi.responses import FileResponse
+    from fastapi.responses import FileResponse, RedirectResponse
     import os
 
     db_journal = db.query(Journal).filter(Journal.id == journal_id).first()
     if not db_journal or not db_journal.attachment_path:
         raise HTTPException(status_code=404, detail="No attachment found for this journal")
     
+    # 1. Check if file exists locally on disk
     upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads")
     filepath = os.path.join(upload_dir, db_journal.attachment_path)
+    if os.path.exists(filepath):
+        return FileResponse(filepath)
     
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Attachment file not found on disk")
-    
-    return FileResponse(filepath)
+    # 2. Otherwise redirect to Supabase Storage CDN
+    supabase_url = os.getenv("SUPABASE_URL", "https://rwglshhjtgwjudwdgkvf.supabase.co")
+    supabase_bucket = os.getenv("SUPABASE_STORAGE_BUCKET", "attachments")
+    if supabase_url:
+        cloud_url = f"{supabase_url}/storage/v1/object/public/{supabase_bucket}/{db_journal.attachment_path}"
+        return RedirectResponse(cloud_url)
+        
+    raise HTTPException(status_code=404, detail="Attachment file not found")
 
 @router.put("/journals/{journal_id}/memo")
 def save_journal_memo(
@@ -258,18 +360,19 @@ def create_ap_invoice(invoice: ApInvoiceCreate, db: Session = Depends(get_db)):
     db.add(new_invoice)
     db.commit()
     db.refresh(new_invoice)
-    return new_invoice
+    return _enrich_ap_invoice(new_invoice, db)
 
 @router.get("/ap-invoices", response_model=List[ApInvoiceResponse])
-def get_ap_invoices(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(ApInvoice).offset(skip).limit(limit).all()
+def get_ap_invoices(skip: int = 0, limit: int = 10000, db: Session = Depends(get_db)):
+    invoices = db.query(ApInvoice).order_by(ApInvoice.date.desc()).offset(skip).limit(limit).all()
+    return [_enrich_ap_invoice(ap, db) for ap in invoices]
 
 @router.get("/ap-invoices/{invoice_id}", response_model=ApInvoiceResponse)
 def get_ap_invoice(invoice_id: str, db: Session = Depends(get_db)):
     invoice = db.query(ApInvoice).filter(ApInvoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    return invoice
+    return _enrich_ap_invoice(invoice, db)
 
 @router.put("/ap-invoices/{invoice_id}", response_model=ApInvoiceResponse)
 def update_ap_invoice(invoice_id: str, invoice_update: ApInvoiceUpdate, db: Session = Depends(get_db)):
@@ -287,7 +390,7 @@ def update_ap_invoice(invoice_id: str, invoice_update: ApInvoiceUpdate, db: Sess
 
     db.commit()
     db.refresh(db_invoice)
-    return db_invoice
+    return _enrich_ap_invoice(db_invoice, db)
 
 @router.delete("/ap-invoices/{invoice_id}")
 def delete_ap_invoice(invoice_id: str, db: Session = Depends(get_db)):
@@ -308,6 +411,7 @@ def delete_ap_invoice(invoice_id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"ok": True}
 
+
 # ====================
 # AR Invoices
 # ====================
@@ -324,8 +428,8 @@ def create_ar_invoice(invoice: ArInvoiceCreate, db: Session = Depends(get_db)):
     return new_invoice
 
 @router.get("/ar-invoices", response_model=List[ArInvoiceResponse])
-def get_ar_invoices(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(ArInvoice).offset(skip).limit(limit).all()
+def get_ar_invoices(skip: int = 0, limit: int = 10000, db: Session = Depends(get_db)):
+    return db.query(ArInvoice).order_by(ArInvoice.date.desc()).offset(skip).limit(limit).all()
 
 @router.get("/ar-invoices/{invoice_id}", response_model=ArInvoiceResponse)
 def get_ar_invoice(invoice_id: str, db: Session = Depends(get_db)):
@@ -595,8 +699,17 @@ from schemas.finance import ExpenseCreate, ExpenseUpdate, ExpenseResponse
 import uuid
 @router.post("/expenses", response_model=ExpenseResponse, status_code=status.HTTP_201_CREATED)
 def create_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
-    # 1. Create the Expense
-    new_expense = Expense(**expense.model_dump())
+    expense_data = expense.model_dump()
+    
+    # 1. Ensure expense_number is standardized EXP-YYMM-XXXX
+    if not expense_data.get('expense_number') or expense_data['expense_number'] == 'AUTO' or not expense_data['expense_number'].startswith('EXP-'):
+        expense_data['expense_number'] = generate_transaction_number(db, expense_data['date'], None, 'EXP', Expense, 'expense_number')
+    else:
+        existing_exp = db.query(Expense).filter(Expense.expense_number == expense_data['expense_number']).first()
+        if existing_exp:
+            expense_data['expense_number'] = generate_transaction_number(db, expense_data['date'], None, 'EXP', Expense, 'expense_number')
+
+    new_expense = Expense(**expense_data)
     db.add(new_expense)
     db.commit()
     db.refresh(new_expense)
@@ -627,7 +740,7 @@ def create_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
 
 
     # 2. Auto-generate Journal
-    journal_number = generate_transaction_number(db, new_expense.date, new_expense.project_id, 'EXP', Journal, 'journal_number')
+    journal_number = generate_transaction_number(db, new_expense.date, None, 'JV', Journal, 'journal_number')
     new_journal = Journal(
         journal_number=journal_number,
         date=new_expense.date,
@@ -646,6 +759,7 @@ def create_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
         journal_id=new_journal.id,
         account_id=new_expense.expense_account_id,
         project_id=new_expense.project_id,
+        project_rab_id=new_expense.project_rab_id,
         description=new_expense.description,
         debit=new_expense.amount,
         credit=0.0
@@ -688,8 +802,11 @@ def update_expense(expense_id: str, expense_update: ExpenseUpdate, db: Session =
         
     auto_journal = db.query(Journal).filter(Journal.ref_id == expense_id, Journal.ref_type == "Expense").first()
     if auto_journal and auto_journal.status == 'Posted':
-        raise HTTPException(status_code=400, detail="Cannot edit an Expense whose Journal is Posted. Please unpost it first from All Journal Entries.")
-        
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Transaksi tidak dapat diedit karena Jurnal ({auto_journal.journal_number}) berstatus POSTED. Silakan Unpost terlebih dahulu di menu All Journal Entries."
+        )
+
     for key, value in expense_update.model_dump(exclude_unset=True).items():
         setattr(db_expense, key, value)
     
@@ -697,11 +814,11 @@ def update_expense(expense_id: str, expense_update: ExpenseUpdate, db: Session =
     db.refresh(db_expense)
     
     # Update associated auto-journal if it exists
-    auto_journal = db.query(Journal).filter(Journal.ref_id == expense_id, Journal.ref_type == "Expense").first()
     if auto_journal:
         auto_journal.date = db_expense.date
         auto_journal.description = f"Auto-journal for Expense {db_expense.expense_number}: {db_expense.description}"
-        auto_journal.journal_number = generate_transaction_number(db, db_expense.date, db_expense.project_id, 'EXP', Journal, 'journal_number')
+        if not auto_journal.journal_number:
+            auto_journal.journal_number = generate_transaction_number(db, db_expense.date, None, 'JV', Journal, 'journal_number')
         
         # Delete old lines and recreate
         db.query(JournalLine).filter(JournalLine.journal_id == auto_journal.id).delete()
@@ -710,6 +827,7 @@ def update_expense(expense_id: str, expense_update: ExpenseUpdate, db: Session =
             journal_id=auto_journal.id,
             account_id=db_expense.expense_account_id,
             project_id=db_expense.project_id,
+            project_rab_id=db_expense.project_rab_id,
             description=db_expense.description,
             debit=db_expense.amount,
             credit=0.0
@@ -749,7 +867,23 @@ def get_expenses(month: Optional[str] = None, skip: int = 0, limit: int = 1000, 
     query = db.query(Expense)
     if month:
         query = query.filter(Expense.date.like(f"{month}%"))
-    return query.order_by(Expense.date.desc()).offset(skip).limit(limit).all()
+    expenses = query.order_by(Expense.date.desc()).offset(skip).limit(limit).all()
+    
+    exp_ids = [e.id for e in expenses]
+    journals = db.query(Journal.ref_id, Journal.status, Journal.journal_number).filter(
+        Journal.ref_id.in_(exp_ids),
+        Journal.ref_type == "Expense"
+    ).all()
+    journal_map = {j[0]: (j[1], j[2]) for j in journals}
+    
+    results = []
+    for exp in expenses:
+        exp_dict = {c.name: getattr(exp, c.name) for c in exp.__table__.columns}
+        j_info = journal_map.get(exp.id)
+        exp_dict['journal_status'] = j_info[0] if j_info else "Draft"
+        exp_dict['journal_number'] = j_info[1] if j_info else None
+        results.append(ExpenseResponse(**exp_dict))
+    return results
 
 @router.delete("/expenses/{expense_id}")
 def delete_expense(expense_id: str, db: Session = Depends(get_db)):
@@ -757,9 +891,16 @@ def delete_expense(expense_id: str, db: Session = Depends(get_db)):
     if not db_expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
-    # Optional: also delete the associated auto-journal
+    # Check associated auto-journal
     auto_journal = db.query(Journal).filter(Journal.ref_id == expense_id, Journal.ref_type == "Expense").first()
+    if auto_journal and auto_journal.status == 'Posted':
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Transaksi tidak dapat dihapus karena Jurnal ({auto_journal.journal_number}) berstatus POSTED. Silakan Unpost terlebih dahulu di menu All Journal Entries."
+        )
+
     if auto_journal:
+        db.query(JournalLine).filter(JournalLine.journal_id == auto_journal.id).delete()
         db.delete(auto_journal)
 
     db.delete(db_expense)

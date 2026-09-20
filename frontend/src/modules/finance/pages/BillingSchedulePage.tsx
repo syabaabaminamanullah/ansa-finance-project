@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft, Plus, FileText, ChevronDown, ChevronRight,
   CheckCircle, Clock, Send, Eye, Trash2, X, Upload,
-  Building2, User, Calendar, DollarSign, Percent, AlertCircle, Save, Edit, Edit3, Pencil
+  Building2, User, Calendar, DollarSign, Percent, AlertCircle, Save, Edit, Edit3, Pencil, RotateCcw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { financeApi, projectsApi, stakeholdersApi } from '../../../services/api';
@@ -223,9 +223,18 @@ function NewScheduleModal({
   const [exchangeRate, setExchangeRate] = useState('16000');
   const [includePpn, setIncludePpn] = useState(false);
   const [ppnRate, setPpnRate] = useState('11');
-  const [bankName, setBankName] = useState('');
-  const [bankAcc, setBankAcc] = useState('');
-  const [bankAccName, setBankAccName] = useState('');
+  const { settings: globalSettings } = useSettingsStore();
+  const [bankName, setBankName] = useState(globalSettings.bankName || 'Bank Mandiri');
+  const [bankAcc, setBankAcc] = useState(globalSettings.bankAccountNumber || '103-00-1332575-4');
+  const [bankAccName, setBankAccName] = useState(globalSettings.bankAccountName || globalSettings.companyName || 'PT Coreterra Geo Engineering');
+
+  useEffect(() => {
+    if (globalSettings) {
+      if (!bankName || bankName === 'Bank Mandiri') setBankName(globalSettings.bankName || 'Bank Mandiri');
+      if (!bankAcc || bankAcc === '103-00-1332575-4') setBankAcc(globalSettings.bankAccountNumber || '103-00-1332575-4');
+      if (!bankAccName || bankAccName === 'PT Coreterra Geo Engineering') setBankAccName(globalSettings.bankAccountName || globalSettings.companyName || 'PT Coreterra Geo Engineering');
+    }
+  }, [globalSettings.bankName, globalSettings.bankAccountNumber, globalSettings.bankAccountName, globalSettings.companyName]);
   const [numTerms, setNumTerms] = useState(3);
   const [terms, setTerms] = useState([
     { term_number: 1, term_name: 'Uang Muka (DP)', term_name_en: 'Down Payment', percentage: 30, due_date: '', description: '', description_en: '' },
@@ -475,19 +484,34 @@ function NewScheduleModal({
 
           {/* Bank */}
           <section className="border-t border-border pt-5">
-            <h3 className="text-xs font-bold text-textSecondary uppercase tracking-widest mb-3">Info Pembayaran (untuk Invoice)</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-textSecondary uppercase tracking-widest">Info Pembayaran (untuk Invoice)</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setBankName(globalSettings.bankName || 'Bank Mandiri');
+                  setBankAcc(globalSettings.bankAccountNumber || '103-00-1332575-4');
+                  setBankAccName(globalSettings.bankAccountName || globalSettings.companyName || 'PT Coreterra Geo Engineering');
+                  addToast('info', 'Data Sinkron', 'Data rekening diambil dari Profil Perusahaan.');
+                }}
+                className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 font-medium bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded border border-primary/20 transition-colors"
+                title="Muat ulang data rekening dari Pengaturan Profil Perusahaan"
+              >
+                <RotateCcw className="w-3 h-3" /> Ambil dari Profil Perusahaan
+              </button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-textSecondary">Nama Bank</label>
-                <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Bank Mandiri" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Contoh: Bank Mandiri" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-textSecondary">Nomor Rekening</label>
-                <input value={bankAcc} onChange={(e) => setBankAcc(e.target.value)} placeholder="1234567890" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                <input value={bankAcc} onChange={(e) => setBankAcc(e.target.value)} placeholder="Contoh: 103-00-1332575-4" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-textSecondary">Atas Nama</label>
-                <input value={bankAccName} onChange={(e) => setBankAccName(e.target.value)} placeholder="PT. CGE..." className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                <input value={bankAccName} onChange={(e) => setBankAccName(e.target.value)} placeholder="Contoh: PT. CoreTerra Geo Engineering" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50" />
               </div>
             </div>
           </section>
@@ -654,11 +678,18 @@ function ScheduleCard({
       amount: term.amount || term.total_amount,
       totalContract: schedule.total_contract_value || undefined,
       prevBilledTotal,
-      prevInvoiceNum
+      prevInvoiceNum,
+      bankName: schedule.bank_name || settings.bankName,
+      bankAccountNumber: schedule.bank_account_number || settings.bankAccountNumber,
+      bankAccountName: schedule.bank_account_name || settings.bankAccountName || settings.companyName,
     });
   };
 
   const handlePrintFormat2Invoice = (term: BillingTerm) => {
+    const prevTerms = schedule.terms.filter(t => t.term_number < term.term_number && (t.status === 'Invoiced' || t.status === 'Paid'));
+    const prevBilledTotal = prevTerms.reduce((sum, t) => sum + (t.amount || t.total_amount), 0);
+    const prevInvoiceNum = prevTerms.map(t => t.invoice_number).filter(Boolean).join(', ');
+
     generateFormat2InvoicePDF({
       invoiceNumber: term.invoice_number || 'INV-2026-001',
       invoiceDate: term.invoice_date || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
@@ -666,10 +697,13 @@ function ScheduleCard({
       customerCode: 'SMI-2026',
       customerAddress: 'Gedung Menara Mulia Lt. 12, Jl. Gatot Subroto Kav. 9-11, Jakarta Selatan 12930',
       customerNpwp: '01.234.567.8-012.000',
-      companyName: 'PT CORETERRA GEO ENGINEERING',
-      companyNpwp: '1000 0000 1002 1192',
-      companyAddress: 'Gardenia Estate, Blok A5 No 12 RT 007 RW 014, Ciputat, Kota Tangerang Selatan, Banten 15411',
+      companyName: settings.companyName || 'PT CORETERRA GEO ENGINEERING',
+      companyNpwp: settings.taxId || '1000 0000 1002 1192',
+      companyAddress: settings.address || 'Gardenia Estate, Blok A5 No 12 RT 007 RW 014, Ciputat, Kota Tangerang Selatan, Banten 15411',
       companyBranch: 'Head Office Tangerang Selatan & Jakarta',
+      bankName: schedule.bank_name || settings.bankName,
+      bankAccountNo: schedule.bank_account_number || settings.bankAccountNumber,
+      bankAccountName: schedule.bank_account_name || settings.bankAccountName || settings.companyName,
       orderNumber: `ORD-${(term.invoice_number || '41010226').replace(/[^0-9]/g, '').slice(-8)}`,
       contractNumber: schedule.contract_number || 'KONTRAK/004_IKPT-SOLOK-001/2026',
       poNumber: `PO-${schedule.contract_number || 'IKPT-SOLOK-2026-08'}`,
@@ -677,6 +711,8 @@ function ScheduleCard({
       feeAmount: term.amount || term.total_amount,
       taxAmount: term.tax_amount || (term.total_amount ? term.total_amount - Math.round(term.total_amount / 1.11) : 0),
       totalAmount: term.total_amount || term.amount,
+      prevBilledTotal,
+      prevInvoiceNum,
       totalContractAmount: schedule.total_contract_value || (term.total_amount * 2),
       signatoryName: 'Setyo Mardani'
     });
@@ -1081,9 +1117,10 @@ function EditScheduleModal({ schedule, onClose, onSaveSuccess }: { schedule: any
   const [currency, setCurrency] = useState(schedule.currency || 'IDR');
   const [includePpn, setIncludePpn] = useState(schedule.include_ppn ?? false);
   const [ppnRate, setPpnRate] = useState(schedule.ppn_rate?.toString() || '11');
-  const [bankName, setBankName] = useState(schedule.bank_name || 'Bank Mandiri');
-  const [bankAccNo, setBankAccNo] = useState(schedule.bank_account_number || '103-00-1332575-4');
-  const [bankAccName, setBankAccName] = useState(schedule.bank_account_name || 'PT Coreterra Geo Engineering');
+  const { settings: globalSettings } = useSettingsStore();
+  const [bankName, setBankName] = useState(schedule.bank_name || globalSettings.bankName || 'Bank Mandiri');
+  const [bankAccNo, setBankAccNo] = useState(schedule.bank_account_number || globalSettings.bankAccountNumber || '103-00-1332575-4');
+  const [bankAccName, setBankAccName] = useState(schedule.bank_account_name || globalSettings.bankAccountName || globalSettings.companyName || 'PT Coreterra Geo Engineering');
   const [notes, setNotes] = useState(schedule.notes || '');
   const [loading, setLoading] = useState(false);
   const addToast = useToastStore(state => state.addToast);
@@ -1139,6 +1176,22 @@ function EditScheduleModal({ schedule, onClose, onSaveSuccess }: { schedule: any
               <div className="space-y-1 md:col-span-2">
                 <label className="font-semibold text-textSecondary">Deskripsi Kontrak / Nama Proyek</label>
                 <input value={contractDesc} onChange={e => setContractDesc(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="Contoh: Borpile & Struktur - IKPT Solok" />
+              </div>
+              <div className="md:col-span-2 flex items-center justify-between border-t border-border pt-2 mt-1">
+                <span className="font-bold text-textSecondary uppercase tracking-wider text-[11px]">Info Rekening Pembayaran</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBankName(globalSettings.bankName || 'Bank Mandiri');
+                    setBankAccNo(globalSettings.bankAccountNumber || '103-00-1332575-4');
+                    setBankAccName(globalSettings.bankAccountName || globalSettings.companyName || 'PT Coreterra Geo Engineering');
+                    addToast('info', 'Data Sinkron', 'Data rekening diperbarui dari Profil Perusahaan.');
+                  }}
+                  className="text-primary hover:text-primary/80 flex items-center gap-1 font-medium bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded border border-primary/20 transition-colors text-[11px]"
+                  title="Muat data rekening dari Pengaturan Profil Perusahaan"
+                >
+                  <RotateCcw className="w-3 h-3" /> Ambil dari Profil Perusahaan
+                </button>
               </div>
               <div className="space-y-1">
                 <label className="font-semibold text-textSecondary">Nama Bank</label>

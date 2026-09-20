@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { ArrowLeft, Briefcase, TrendingUp, TrendingDown, DollarSign, PieChart as PieChartIcon, Download, Eye, Paperclip, Upload, X, FileText, BookOpen, Save, Loader2, ShieldCheck, CheckCircle2, Coins, Receipt, Activity, Wallet } from 'lucide-react';
+import { ArrowLeft, Briefcase, TrendingUp, TrendingDown, DollarSign, PieChart as PieChartIcon, Download, Eye, Paperclip, Upload, X, FileText, BookOpen, Save, Loader2, ShieldCheck, CheckCircle2, Coins, Receipt, Activity, Wallet, Building2, Sparkles, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { financeApi, financialsApi, projectsApi, stakeholdersApi, rabApi } from '../../../services/api';
 import { useToastStore } from '../../../store/toastStore';
@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, L
 import { DataTable } from '../../../components/ui/DataTable';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { WeeklyProjectCashflowView } from '../components/WeeklyProjectCashflowView';
 
 const API_BASE = 'http://localhost:8000/api/v1/finance';
 
@@ -409,7 +410,19 @@ export function ProjectFinancialReportsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [activeReportMode, setActiveReportMode] = useState<'overview' | 'weekly_project' | 'copy1'>('overview');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isProjectPdfDropdownOpen, setIsProjectPdfDropdownOpen] = useState(false);
+
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
+
+  useEffect(() => {
+    if (selectedProjectId && selectedProject) {
+      if (!selectedProject.code.includes('IKPT') && activeReportMode === 'copy1') {
+        setActiveReportMode('weekly_project');
+      }
+    }
+  }, [selectedProjectId, selectedProject, activeReportMode]);
   
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [apInvoices, setApInvoices] = useState<ApInvoice[]>([]);
@@ -797,6 +810,13 @@ export function ProjectFinancialReportsPage() {
           statusBukti
         });
       });
+    });
+
+    // Urutkan kronologis tanggal dan nomor jurnal
+    projJournalsList.sort((a, b) => {
+      const cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (cmp !== 0) return cmp;
+      return (a.ref || '').localeCompare(b.ref || '');
     });
 
     const doc = new jsPDF('landscape', 'mm', 'a4');
@@ -1191,6 +1211,13 @@ ${formatCurrency(profitMargin)}`
           });
         }
       }
+    });
+
+    // Pastikan seluruh jurnal berurutan kronologis
+    comprehensiveJournals.sort((a, b) => {
+      const cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (cmp !== 0) return cmp;
+      return (a.ref || '').localeCompare(b.ref || '');
     });
 
     const doc = new jsPDF('landscape', 'mm', 'a4'); 
@@ -1676,47 +1703,158 @@ ${formatCurrency(profitMargin)}`
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-        <label className="text-sm font-bold text-textPrimary mb-2 flex items-center gap-2">
-          <Briefcase className="w-4 h-4 text-primary" /> Select Project to Analyze
-        </label>
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <select 
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="w-full max-w-xl px-4 py-3 bg-background border border-border rounded-lg text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50 text-base"
-          >
-            <option value="">-- Choose a Project --</option>
-            {projects.map(p => (
-              <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={handleDownloadSingleProjectPDF}
-            disabled={!selectedProjectId}
-            className={`px-5 py-3 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap shadow-sm ${
-              selectedProjectId
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-            title="Download Laporan Keuangan khusus proyek yang dipilih"
-          >
-            <FileText className="w-4 h-4" />
-            Download PDF (Proyek Ini)
-          </button>
-          <button
-            onClick={handleDownloadConsolidatedPDF}
-            className="px-5 py-3 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm font-bold hover:bg-primary/20 transition-colors flex items-center gap-2 whitespace-nowrap"
-            title="Download Laporan Keuangan Konsolidasi (Semua Proyek)"
-          >
-            <Download className="w-4 h-4" />
-            Download Consolidated PDF
-          </button>
+      <div className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex-1 max-w-2xl">
+            <label className="text-sm font-bold text-textPrimary mb-2 flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-primary" /> Select Project to Analyze
+            </label>
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+              <select 
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-lg text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium"
+              >
+                <option value="">-- Choose a Project --</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
+                ))}
+              </select>
+              <div className="relative shrink-0">
+                <button
+                  onClick={() => setIsProjectPdfDropdownOpen(!isProjectPdfDropdownOpen)}
+                  className="px-3.5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-xs transition-all shadow-2xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer active:scale-98"
+                  title="Pilihan Unduh Dokumen PDF"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Unduh PDF</span>
+                  <ChevronDown className="w-3 h-3 opacity-75" />
+                </button>
+
+                {isProjectPdfDropdownOpen && (
+                  <div 
+                    className="absolute right-0 mt-1.5 w-64 bg-card border border-border rounded-xl shadow-xl p-1.5 z-40 animate-in fade-in zoom-in-95 duration-150"
+                    onClick={() => setIsProjectPdfDropdownOpen(false)}
+                  >
+                    <button
+                      onClick={() => {
+                        if (selectedProjectId) {
+                          handleDownloadSingleProjectPDF();
+                        } else {
+                          addToast('warning', 'Pilih Proyek', 'Silakan pilih salah satu proyek terlebih dahulu dari dropdown di samping.');
+                        }
+                      }}
+                      disabled={!selectedProjectId}
+                      className={`w-full text-left px-3 py-2 text-xs rounded-lg flex items-center gap-2.5 transition-colors ${
+                        selectedProjectId
+                          ? 'text-textPrimary hover:bg-primary/10 hover:text-primary cursor-pointer font-medium'
+                          : 'text-textSecondary/40 cursor-not-allowed'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <div className="truncate">
+                        <span className="block font-semibold">Laporan Proyek Terpilih</span>
+                        <span className="text-[10px] text-textSecondary">
+                          {selectedProjectId ? 'Sesuai proyek aktif' : 'Pilih proyek terlebih dahulu'}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="h-px bg-border/60 my-1"></div>
+                    <button
+                      onClick={handleDownloadConsolidatedPDF}
+                      className="w-full text-left px-3 py-2 text-xs text-textPrimary hover:bg-primary/10 hover:text-primary rounded-lg flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <div className="truncate">
+                        <span className="block font-semibold">Konsolidasi (Semua Proyek)</span>
+                        <span className="text-[10px] text-textSecondary">Laporan gabungan seluruh proyek</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mode Switcher Buttons */}
+          <div className="flex flex-wrap items-center gap-2 bg-background p-1.5 rounded-xl border border-border self-start lg:self-end">
+            <button
+              onClick={() => setActiveReportMode('overview')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeReportMode === 'overview'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-textSecondary hover:text-textPrimary hover:bg-card'
+              }`}
+            >
+              <Activity className="w-4 h-4" />
+              Overview & P&L Proyek
+            </button>
+            <button
+              onClick={() => setActiveReportMode('weekly_project')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeReportMode === 'weekly_project'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-textSecondary hover:text-textPrimary hover:bg-card'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-secondary" />
+              Arus Kas Mingguan
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/20 text-secondary uppercase font-bold">Bank</span>
+            </button>
+            {(!selectedProject || selectedProject.code.includes('IKPT')) && (
+              <button
+                onClick={() => setActiveReportMode('copy1')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                  activeReportMode === 'copy1'
+                    ? 'bg-[#294825] text-white shadow-sm'
+                    : 'text-textSecondary hover:text-textPrimary hover:bg-card'
+                }`}
+              >
+                <FileText className="w-4 h-4 text-emerald-400" />
+                Copy 1 (Realisasi LPJ)
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 uppercase font-bold">Site</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {projectData && (
-        <div className="space-y-6">
+      {/* PROMPT BANNER: WHEN NO PROJECT IS SELECTED */}
+      {!selectedProjectId ? (
+        <div className="bg-card border border-border border-dashed rounded-xl p-12 text-center shadow-xs">
+          <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <Briefcase className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold text-textPrimary mb-1">Pilih Proyek Terlebih Dahulu</h3>
+          <p className="text-sm text-textSecondary max-w-md mx-auto mb-6">
+            Silakan pilih salah satu proyek pada menu dropdown di atas untuk menampilkan analisis Laporan Keuangan, P&L, maupun Arus Kas Mingguan.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {projects.slice(0, 3).map(p => (
+              <button
+                key={p.id}
+                onClick={() => setSelectedProjectId(p.id)}
+                className="px-3.5 py-1.5 bg-background hover:bg-primary/10 border border-border rounded-lg text-xs font-semibold text-textPrimary hover:text-primary transition-colors flex items-center gap-1.5"
+              >
+                <span>{p.code} - {p.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* VIEW 1: WEEKLY CASHFLOW (BANK / COPY 1) */}
+          {(activeReportMode === 'weekly_project' || activeReportMode === 'copy1') && (
+            <WeeklyProjectCashflowView
+              projectId={selectedProjectId}
+              initialTab={activeReportMode}
+              onTabChange={(newTab) => setActiveReportMode(newTab)}
+            />
+          )}
+
+          {/* VIEW 2: PROJECT OVERVIEW & P&L (SELECTED PROJECT) */}
+          {activeReportMode === 'overview' && projectData && (
+            <div className="space-y-6">
           {/* Project Details Section */}
           <div className="bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col md:flex-row gap-8 justify-between items-start">
             <div>
@@ -2195,63 +2333,8 @@ ${formatCurrency(profitMargin)}`
           </div>
         </div>
       )}
-
-      {/* When no project selected: Consolidated COA Recap View */}
-      {!projectData && (
-        <div className="space-y-6">
-          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-border flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-textPrimary text-base">Rekapitulasi Berdasarkan Kategori Akun (COA) - Konsolidasi Semua Proyek</h3>
-                <p className="text-sm text-textSecondary mt-0.5">Rincian mutasi Debit dan Kredit per akun COA dari seluruh transaksi proyek perusahaan.</p>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-background text-textSecondary border-b border-border">
-                  <tr>
-                    <th className="px-5 py-3 font-semibold w-32">Kode Akun</th>
-                    <th className="px-5 py-3 font-semibold">Nama Akun</th>
-                    <th className="px-5 py-3 font-semibold text-right w-48">Total Debit (Rp)</th>
-                    <th className="px-5 py-3 font-semibold text-right w-48">Total Kredit (Rp)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {consolidatedCoaRecap.length > 0 ? (
-                    consolidatedCoaRecap.map(item => (
-                      <tr key={item.code} className="hover:bg-background/50 transition-colors">
-                        <td className="px-5 py-3 font-mono font-medium text-primary">{item.code}</td>
-                        <td className="px-5 py-3 font-medium text-textPrimary">{item.name}</td>
-                        <td className="px-5 py-3 text-right font-mono">{item.debit > 0 ? formatCurrency(item.debit) : '-'}</td>
-                        <td className="px-5 py-3 text-right font-mono">{item.credit > 0 ? formatCurrency(item.credit) : '-'}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="px-5 py-8 text-center text-textSecondary">
-                        Belum ada mutasi akun jurnal terposting untuk transaksi proyek.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-                {consolidatedCoaRecap.length > 0 && (
-                  <tfoot className="bg-background/80 font-bold border-t border-border">
-                    <tr>
-                      <td colSpan={2} className="px-5 py-3 text-textPrimary">TOTAL KESELURUHAN</td>
-                      <td className="px-5 py-3 text-right font-mono text-textPrimary">
-                        {formatCurrency(consolidatedCoaRecap.reduce((sum, i) => sum + i.debit, 0))}
-                      </td>
-                      <td className="px-5 py-3 text-right font-mono text-textPrimary">
-                        {formatCurrency(consolidatedCoaRecap.reduce((sum, i) => sum + i.credit, 0))}
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+    </>
+  )}
 
       {selectedTransaction && (
         <JournalDetailModal

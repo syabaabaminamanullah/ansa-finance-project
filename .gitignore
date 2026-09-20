@@ -13,6 +13,8 @@ sampah/
 
 # Databases
 *.db
+*.db.*
+*.backup*
 *.sqlite
 *.sqlite3
 *.pdf

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { DataTable } from '../../../components/ui/DataTable';
+import { DatePicker } from '../../../components/ui/DatePicker';
 import { ArrowLeft, Filter, Download, Paperclip, Upload, Eye, X, FileText, Image, MapPin, Building2, Save, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { financeApi, financialsApi, projectsApi } from '../../../services/api';
@@ -530,27 +531,35 @@ export function AllJournalEntriesPage() {
       </div>
 
       <div className="bg-card border border-border rounded-lg p-4 flex flex-wrap gap-4 items-end justify-between shadow-sm">
-        <div className="flex gap-4 flex-wrap">
-          <div className="space-y-1.5 min-w-[150px]">
-            <label className="text-sm font-medium text-textPrimary flex items-center gap-2">
-              <Filter className="w-4 h-4" /> From Date
+        <div className="flex gap-3 flex-wrap items-end">
+          <div className="space-y-1.5 w-44">
+            <label className="text-sm font-medium text-textPrimary flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5 text-primary" /> Dari Tanggal
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={filterDateFrom}
-              onChange={(e) => setFilterDateFrom(e.target.value)}
-              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-textPrimary"
+              onChange={(val) => setFilterDateFrom(val)}
+              placeholder="Pilih tanggal..."
             />
           </div>
-          <div className="space-y-1.5 min-w-[150px]">
-            <label className="text-sm font-medium text-textPrimary">To Date</label>
-            <input
-              type="date"
+          <div className="space-y-1.5 w-44">
+            <label className="text-sm font-medium text-textPrimary">Sampai Tanggal</label>
+            <DatePicker
               value={filterDateTo}
-              onChange={(e) => setFilterDateTo(e.target.value)}
-              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-textPrimary"
+              onChange={(val) => setFilterDateTo(val)}
+              placeholder="Pilih tanggal..."
             />
           </div>
+          {(filterDateFrom || filterDateTo) && (
+            <button
+              type="button"
+              onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); }}
+              className="px-3 py-2 text-xs font-semibold text-textSecondary hover:text-danger hover:bg-danger/10 rounded-lg transition-colors border border-border"
+              title="Reset Filter Tanggal"
+            >
+              Reset
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-3">

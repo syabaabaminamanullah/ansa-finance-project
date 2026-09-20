@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -54,6 +54,31 @@ export function Sidebar() {
       .substring(0, 2);
   };
 
+  // Determine which menu item is active (longest matching prefix wins to prevent parent & child collisions)
+  const activeItem = useMemo(() => {
+    let matched = null;
+    let maxLength = 0;
+    for (const item of menuItems) {
+      if (item.path === '/') {
+        if (location.pathname === '/' || location.pathname === '/dashboard') {
+          if (maxLength === 0) {
+            matched = item;
+          }
+        }
+      } else if (
+        location.pathname === item.path || 
+        location.pathname.startsWith(item.path + '/') || 
+        location.pathname.startsWith(item.path + '?')
+      ) {
+        if (item.path.length > maxLength) {
+          maxLength = item.path.length;
+          matched = item;
+        }
+      }
+    }
+    return matched;
+  }, [location.pathname]);
+
   return (
     <aside className={clsx(
       "bg-card border-r border-border h-screen sticky top-0 flex flex-col transition-all duration-300",
@@ -62,9 +87,11 @@ export function Sidebar() {
       <div className="px-5 py-6 flex items-center justify-between">
         {!isCollapsed && (
           <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap truncate pr-2">
-            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-card font-bold text-lg flex-shrink-0 shadow-sm">
-              A
-            </div>
+            <img 
+              src="/ansa-icon.png" 
+              alt="ANSA Logo" 
+              className="w-9 h-9 object-contain flex-shrink-0" 
+            />
             <div className="flex flex-col min-w-0">
               <span className="text-base font-extrabold text-primary tracking-tight truncate leading-tight">
                 ANSA Enterprise
@@ -76,7 +103,11 @@ export function Sidebar() {
           </div>
         )}
         {isCollapsed && (
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-card flex-shrink-0 mx-auto">A</div>
+          <img 
+            src="/ansa-icon.png" 
+            alt="ANSA Logo" 
+            className="w-8 h-8 object-contain flex-shrink-0 mx-auto" 
+          />
         )}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -91,7 +122,7 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4 overflow-x-hidden">
         <ul className="space-y-1 px-3">
           {menuItems.map((item, index) => {
-            const isActive = location.pathname === item.path || (location.pathname.startsWith(item.path) && item.path !== '/');
+            const isActive = activeItem?.path === item.path;
             return (
               <li 
                 key={item.path}

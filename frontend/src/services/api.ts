@@ -187,7 +187,7 @@ export const financeApi = {
   generateInvoiceForTerm: (scheduleId: string, termId: string, data: any) => api.post(`/finance/billing-schedules/${scheduleId}/terms/${termId}/generate-invoice`, data),
   markTermPaid: (scheduleId: string, termId: string) => api.put(`/finance/billing-schedules/${scheduleId}/terms/${termId}/mark-paid`),
   // Journals
-  getJournals: () => api.get('/finance/journals'),
+  getJournals: (params?: any) => api.get('/finance/journals', { params: { limit: 10000, ...params } }),
   getJournal: (id: string) => api.get(`/finance/journals/${id}`),
   createJournal: (data: any) => api.post('/finance/journals', data),
   updateJournal: (id: string, data: any) => api.put(`/finance/journals/${id}`, data),
@@ -195,14 +195,14 @@ export const financeApi = {
   deleteJournal: (id: string) => api.delete(`/finance/journals/${id}`),
 
   // AP Invoices
-  getApInvoices: () => api.get('/finance/ap-invoices'),
+  getApInvoices: (params?: any) => api.get('/finance/ap-invoices', { params: { limit: 10000, ...params } }),
   getApInvoice: (id: string) => api.get(`/finance/ap-invoices/${id}`),
   createApInvoice: (data: any) => api.post('/finance/ap-invoices', data),
   updateApInvoice: (id: string, data: any) => api.put(`/finance/ap-invoices/${id}`, data),
   deleteApInvoice: (id: string) => api.delete(`/finance/ap-invoices/${id}`),
 
   // AR Invoices
-  getArInvoices: () => api.get('/finance/ar-invoices'),
+  getArInvoices: (params?: any) => api.get('/finance/ar-invoices', { params: { limit: 10000, ...params } }),
   getArInvoice: (id: string) => api.get(`/finance/ar-invoices/${id}`),
   createArInvoice: (data: any) => api.post('/finance/ar-invoices', data),
   updateArInvoice: (id: string, data: any) => api.put(`/finance/ar-invoices/${id}`, data),
@@ -211,12 +211,17 @@ export const financeApi = {
   // Expenses (Direct Expense / Kas Kecil)
   getExpenses: (month?: string) => api.get('/finance/expenses', { params: { month } }),
   createExpense: (data: any) => api.post('/finance/expenses', data),
+  updateExpense: (id: string, data: any) => api.put(`/finance/expenses/${id}`, data),
   deleteExpense: (id: string) => api.delete(`/finance/expenses/${id}`),
+  getNextExpenseNumber: (date?: string) => api.get('/finance/expenses/next-number', { params: { date } }),
+  getNextJournalNumber: (date?: string) => api.get('/finance/journals/next-number', { params: { date } }),
 };
 
 export const procurementApi = {
   getPurchaseOrders: () => api.get('/procurement/po'),
+  getNextPoNumber: (date?: string) => api.get<{ po_number: string }>('/procurement/po/next-number', { params: { date } }),
   createPurchaseOrder: (data: any) => api.post('/procurement/po', data),
+  updatePurchaseOrder: (id: string, data: any) => api.put(`/procurement/po/${id}`, data),
   updatePurchaseOrderStatus: (id: string, status: string) => api.put(`/procurement/po/${id}/status?status=${status}`),
   deletePurchaseOrder: (id: string) => api.delete(`/procurement/po/${id}`),
 };

@@ -21,16 +21,56 @@ export interface CustomInvoiceParams {
   prevBilledDp?: number;
   prevBilledTotal?: number;
   prevInvoiceNum?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
+  customerAddress?: string;
+  customerEmail?: string;
+  customerNpwp?: string;
 }
 
-interface CompanySettings {
+export interface CompanySettings {
   companyName?: string;
   taxId?: string;
   email?: string;
   phone?: string;
   address?: string;
   logoBase64?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
 }
+
+export const getCompanySettings = (): CompanySettings => {
+  let companySettings: CompanySettings = {
+    companyName: 'PT Coreterra Geo Engineering',
+    taxId: '01.234.567.8-901.000',
+    email: 'admin.cge@coreterra-geo.com',
+    phone: '081214941641',
+    address: 'Ciputat, Tangerang Selatan, Banten, Indonesia, Kode Pos 15411',
+    bankName: 'Bank Mandiri',
+    bankAccountNumber: '103-00-1332575-4',
+    bankAccountName: 'PT Coreterra Geo Engineering',
+    logoBase64: LOGO_CORETERRA_BASE64,
+  };
+  try {
+    const settingsString = localStorage.getItem('ansa-settings-storage');
+    if (settingsString) {
+      const parsed = JSON.parse(settingsString);
+      if (parsed?.state?.settings) {
+        companySettings = { ...companySettings, ...parsed.state.settings };
+      }
+    }
+  } catch (e) {}
+
+  if (companySettings.companyName) {
+    companySettings.companyName = companySettings.companyName.replace(/Enginering/gi, 'Engineering');
+  }
+  if (!companySettings.logoBase64) {
+    companySettings.logoBase64 = LOGO_CORETERRA_BASE64;
+  }
+  return companySettings;
+};
 
 interface BillingTerm {
   term_number: number;
@@ -166,10 +206,17 @@ function drawBeautifulFooter(doc: jsPDF, companyName = 'PT CORETERRA GEO ENGINEE
   doc.setTextColor(255, 255, 255);
   doc.text(companyName.toUpperCase(), 14, footerY + 5);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.2);
-  doc.setTextColor(203, 213, 225); // Slate 300
-  doc.text('Gardenia Estate, Ciputat, Tangsel • +62 812-1494-1641', 14, footerY + 9.5);
+    // Small crisp location pin icon
+    doc.setFillColor(203, 213, 225);
+    doc.circle(15.2, footerY + 8.2, 0.7, 'F');
+    doc.triangle(14.6, footerY + 8.4, 15.8, footerY + 8.4, 15.2, footerY + 9.7, 'F');
+    doc.setFillColor(15, 23, 42);
+    doc.circle(15.2, footerY + 8.2, 0.28, 'F');
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.8);
+    doc.setTextColor(203, 213, 225); // Slate 300
+    doc.text('Gardenia Estate, Ciputat, Tangerang Selatan • +62 812-1494-1641', 17.5, footerY + 9.5);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
@@ -262,31 +309,35 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   const milestoneText = customParams?.milestone || 'Field preparation';
   const unitText = customParams?.unit || 'Lump Sump';
   const invAmount = customParams?.amount ?? 175000000;
-  const totalDp = customParams?.totalDp ?? 800000000;
-  const totalContract = customParams?.totalContract ?? 2870121121;
 
   const isDp = itemDesc.toLowerCase().includes('dp') ||
                itemDesc.toLowerCase().includes('uang muka') ||
                itemDesc.toLowerCase().includes('down payment');
   
   const isDp2 = invAmount === 625000000 || itemDesc.includes('Tahap 2') || itemDesc.includes('Part 2');
-  const prevPaidTotal = customParams?.prevBilledTotal ?? customParams?.prevBilledDp ?? (isDp2 ? 175000000 : (isDp ? 0 : 800000000));
-  const prevInvNum = customParams?.prevInvoiceNum || (isDp2 ? 'INV/001/004_IKPT-SOLOK-001/08/2026' : '');
+  const prevPaidTotal = customParams?.prevBilledTotal ?? customParams?.prevBilledDp ?? (isDp2 ? 175000000 : 0);
+  const prevInvNum = customParams?.prevInvoiceNum || '';
+
+  const totalContract = customParams?.totalContract ?? (prevPaidTotal + invAmount);
+  const totalDp = customParams?.totalDp ?? (isDp ? (prevPaidTotal + invAmount) : totalContract);
 
   const cumulativeBilledTotal = prevPaidTotal + invAmount;
   const remainingDp = Math.max(0, totalDp - cumulativeBilledTotal);
   const remainingContract = Math.max(0, totalContract - cumulativeBilledTotal);
-  const dpPercentage = ((totalDp / totalContract) * 100).toFixed(2);
+  const dpPercentage = totalContract > 0 ? ((totalDp / totalContract) * 100).toFixed(2) : '100.00';
 
   const pageWidth = doc.internal.pageSize.width; // 210mm
-  const primaryColor: [number, number, number] = [15, 23, 42]; // Slate 900
-  const accentColor: [number, number, number] = [217, 119, 6];  // Amber 600
-  const textColor: [number, number, number] = [51, 65, 85];     // Slate 700
-  const lightBg: [number, number, number] = [248, 250, 252];    // Slate 50
+  const primaryColor: [number, number, number] = [15, 23, 42];   // Slate 900 #0F172A
+  const accentColor: [number, number, number] = [217, 119, 6];   // Amber 600 #D97706 (as in top screenshot)
+  const navyAccent: [number, number, number] = [15, 38, 56];     // Deep Navy #0F2638
+  const steelSlate: [number, number, number] = [71, 85, 105];    // Slate 600 #475569
+  const textColor: [number, number, number] = [51, 65, 85];      // Slate 700 #334155
+  const lightBg: [number, number, number] = [248, 250, 252];     // Slate 50 #F8FAFC
+  const subtleBorder: [number, number, number] = [226, 232, 240]; // Slate 200 #E2E8F0
 
   let y = 10;
 
-  // Header Banner Accent Line (Top)
+  // Header Banner Accent Line (Top) - Amber
   doc.setFillColor(...accentColor);
   doc.rect(14, y, pageWidth - 28, 1.5, 'F');
   y += 5;
@@ -316,13 +367,12 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   doc.text('Gardenia Estate, Blok A5 No 12, Ciputat, Tangsel, Banten 15412', compX, y + 10);
   doc.text('Email: admin.cge@coreterra-geo.com | Contact: +62 812-1494-1641', compX, y + 13.5);
 
-  // Invoice Header Box (Top Right: Width=60mm, X=136mm - Clear 18mm Gap!)
+  // Invoice Header Box (Top Right: Width=60mm, X=136mm - Clean No-Border Fill)
   const boxWidth = 60;
   const boxX = pageWidth - 14 - boxWidth; // 136mm
   
   doc.setFillColor(...lightBg);
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(boxX, y, boxWidth, 19, 2, 2, 'FD');
+  doc.roundedRect(boxX, y, boxWidth, 19, 2, 2, 'F');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10.5);
@@ -344,7 +394,7 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   y += 23;
 
   // Thin separator
-  doc.setDrawColor(226, 232, 240);
+  doc.setDrawColor(...subtleBorder);
   doc.setLineWidth(0.4);
   doc.line(14, y, pageWidth - 14, y);
   y += 5;
@@ -352,11 +402,9 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   // 2-Column Section: Bill From & Bill To
   const colWidth = (pageWidth - 34) / 2;
 
-  // Bill From Box
+  // Bill From Box (Clean No-Border Fill)
   doc.setFillColor(...lightBg);
   doc.roundedRect(14, y, colWidth, 32, 2, 2, 'F');
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(14, y, colWidth, 32, 2, 2, 'S');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
@@ -376,12 +424,10 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   doc.text('Telp/WA: +62 812-1494-1641', 18, y + 23.5);
   doc.text('Email: admin.cge@coreterra-geo.com', 18, y + 27.5);
 
-  // Bill To Box
+  // Bill To Box (Clean No-Border Fill)
   const billToX = 14 + colWidth + 6;
   doc.setFillColor(...lightBg);
   doc.roundedRect(billToX, y, colWidth, 32, 2, 2, 'F');
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(billToX, y, colWidth, 32, 2, 2, 'S');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
@@ -396,18 +442,19 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...textColor);
-  doc.text('Ruko Puri Botanical, Blok I-H No. 10-11', billToX + 4, y + 15);
-  doc.text('Joglo, Kembangan, Jakarta Barat 11640', billToX + 4, y + 19);
+  const custAddr = customParams?.customerAddress || 'Mangkuluhur City Office Tower One Lt.19, Jl. Gatot Subroto Kav. 1-3, Karet Semanggi, Jakarta Selatan 12930';
+  const splitAddr = doc.splitTextToSize(custAddr, colWidth - 8);
+  doc.text(splitAddr, billToX + 4, y + 15);
   doc.text('Attn: Procurement / Finance Department', billToX + 4, y + 23.5);
-  doc.text('Email: info@solusimonitoring.id', billToX + 4, y + 27.5);
+  if (customParams?.customerEmail) {
+    doc.text(`Email: ${customParams.customerEmail}`, billToX + 4, y + 27.5);
+  }
 
   y += 36;
 
-  // Project Reference & Contract Overview Card
+  // Project Reference & Contract Overview Card (Clean No-Border Fill)
   doc.setFillColor(241, 245, 249);
   doc.roundedRect(14, y, pageWidth - 28, 22, 2, 2, 'F');
-  doc.setDrawColor(203, 213, 225);
-  doc.roundedRect(14, y, pageWidth - 28, 22, 2, 2, 'S');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
@@ -456,7 +503,7 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
     ],
     theme: 'grid',
     headStyles: {
-      fillColor: primaryColor,
+      fillColor: navyAccent,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 8,
@@ -485,14 +532,12 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   // @ts-ignore
   y = doc.lastAutoTable.finalY + 4;
 
-  // Summary & Breakdown Table Box
+  // Summary & Breakdown Table Box (Clean No-Border Fill)
   const sumWidth = 95;
   const sumX = pageWidth - 14 - sumWidth;
 
   doc.setFillColor(...lightBg);
-  doc.roundedRect(sumX, y, sumWidth, 32, 2, 2, 'FD');
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(sumX, y, sumWidth, 32, 2, 2, 'S');
+  doc.roundedRect(sumX, y, sumWidth, 32, 2, 2, 'F');
 
   const rpX = sumX + 54;
   const numRightX = sumX + sumWidth - 4;
@@ -533,83 +578,93 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   doc.setTextColor(...textColor);
   doc.text('PPN 11% / Tax:', sumX + 4, sy);
   doc.text('Rp', rpX, sy);
-  doc.text('0,- (Included)', numRightX, sy, { align: 'right' });
+  doc.text('0,-', numRightX, sy, { align: 'right' });
 
   sy += 5.5;
-  doc.setDrawColor(203, 213, 225);
+  doc.setDrawColor(...subtleBorder);
   doc.line(sumX + 4, sy - 2, sumX + sumWidth - 4, sy - 2);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.setTextColor(...accentColor);
+  doc.setTextColor(...primaryColor);
   doc.text('Total Harus Dibayar / Due:', sumX + 4, sy + 1.5);
   doc.text('Rp', rpX, sy + 1.5);
   doc.text(`${invAmount.toLocaleString('id-ID')},-`, numRightX, sy + 1.5, { align: 'right' });
 
-  // Left Note Box
+  // Left Note Box (Clean No-Border Fill)
   const noteWidth = pageWidth - 28 - sumWidth - 5; // 82mm
   const noteBoxHeight = (prevInvNum && !isDp) ? 35 : 32;
-  doc.setFillColor(254, 243, 199);
+  doc.setFillColor(...lightBg);
   doc.roundedRect(14, y, noteWidth, noteBoxHeight, 2, 2, 'F');
-  doc.setDrawColor(252, 211, 77);
-  doc.roundedRect(14, y, noteWidth, noteBoxHeight, 2, 2, 'S');
+
+  // Left Navy Accent Stripe (matching Image 2)
+  doc.setFillColor(...navyAccent);
+  doc.rect(14, y, 2.5, noteBoxHeight, 'F');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
-  doc.setTextColor(146, 64, 14);
+  doc.setTextColor(...primaryColor);
   if (isDp) {
-    doc.text('INFORMASI STRUKTUR DP & KONTRAK', 18, y + 4.5);
+    doc.text('INFORMASI STRUKTUR DP & KONTRAK', 19, y + 4.5);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.8);
-    doc.setTextColor(120, 53, 15);
+    doc.setTextColor(...textColor);
     if (prevPaidTotal > 0) {
-      doc.text(`• Total Alokasi DP: ${formatMoney(totalDp)}`, 18, y + 8);
-      doc.text(`• DP Tahap 1 (Lunas): ${formatMoney(prevPaidTotal)}`, 18, y + 12);
-      doc.text(`• Tagihan Ini (DP Tahap 2): ${formatMoney(invAmount)}`, 18, y + 16);
-      doc.text(`• Sisa DP Belum Ditagih: ${remainingDp > 0 ? formatMoney(remainingDp) : 'Rp 0,- (Lunas)'}`, 18, y + 20);
-      doc.text(`• Sisa Kontrak Akhir: ${formatMoney(remainingContract)}`, 18, y + 24);
+      doc.text(`• Total Alokasi DP: ${formatMoney(totalDp)}`, 19, y + 8);
+      doc.text(`• DP Tahap 1 (Lunas): ${formatMoney(prevPaidTotal)}`, 19, y + 12);
+      doc.text(`• Tagihan Ini (DP Tahap 2): ${formatMoney(invAmount)}`, 19, y + 16);
+      doc.text(`• Sisa DP Belum Ditagih: ${remainingDp > 0 ? formatMoney(remainingDp) : 'Rp 0,- (Lunas)'}`, 19, y + 20);
+      doc.text(`• Sisa Kontrak Akhir: ${formatMoney(remainingContract)}`, 19, y + 24);
     } else {
-      doc.text(`• Total Alokasi DP: ${formatMoney(totalDp)}`, 18, y + 9.5);
-      doc.text(`• Tagihan Ini: ${formatMoney(invAmount)}`, 18, y + 14);
-      doc.text(`• Sisa DP Belum Ditagih: ${formatMoney(remainingDp)}`, 18, y + 18.5);
-      doc.text(`• Sisa Kontrak Akhir: ${formatMoney(remainingContract)}`, 18, y + 23);
+      doc.text(`• Total Alokasi DP: ${formatMoney(totalDp)}`, 19, y + 9.5);
+      doc.text(`• Tagihan Ini: ${formatMoney(invAmount)}`, 19, y + 14);
+      doc.text(`• Sisa DP Belum Ditagih: ${formatMoney(remainingDp)}`, 19, y + 18.5);
+      doc.text(`• Sisa Kontrak Akhir: ${formatMoney(remainingContract)}`, 19, y + 23);
     }
   } else {
-    doc.text('INFORMASI STRUKTUR KONTRAK & PEMBAYARAN', 18, y + 4.5);
+    doc.text('INFORMASI STRUKTUR KONTRAK & PEMBAYARAN', 19, y + 4.5);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
-    doc.setTextColor(120, 53, 15);
-    doc.text(`• Nilai Total Kontrak: ${formatMoney(totalContract)}`, 18, y + 8);
-    doc.text(`• Total Dibayar Sebelumnya: ${formatMoney(prevPaidTotal)} (Lunas)`, 18, y + 12.5);
-    doc.text(`• Tagihan Ini (${itemDesc}): ${formatMoney(invAmount)}`, 18, y + 17);
-    doc.text(`• Sisa Nilai Kontrak Akhir: ${formatMoney(remainingContract)}`, 18, y + 21.5);
+    doc.setTextColor(...textColor);
+    doc.text(`• Nilai Total Kontrak: ${formatMoney(totalContract)}`, 19, y + 8);
+    doc.text(`• Total Dibayar Sebelumnya: ${formatMoney(prevPaidTotal)} (Lunas)`, 19, y + 12.5);
+    doc.text(`• Tagihan Ini (${itemDesc}): ${formatMoney(invAmount)}`, 19, y + 17);
+    doc.text(`• Sisa Nilai Kontrak Akhir: ${formatMoney(remainingContract)}`, 19, y + 21.5);
     if (prevInvNum) {
       const refText = `• Reff Invoice Lunas: ${prevInvNum}`;
-      const splitRef = doc.splitTextToSize(refText, noteWidth - 8); // Max 74mm width!
-      doc.text(splitRef, 18, y + 25.5);
+      const splitRef = doc.splitTextToSize(refText, noteWidth - 10);
+      doc.text(splitRef, 19, y + 25.5);
     }
   }
 
   y += 36;
 
-  // Bank Account Details Box
+  // Bank Account Details Box (Clean No-Border Fill)
   doc.setFillColor(...lightBg);
-  doc.roundedRect(14, y, pageWidth - 28, 25, 2, 2, 'FD');
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(14, y, pageWidth - 28, 25, 2, 2, 'S');
+  doc.roundedRect(14, y, pageWidth - 28, 25, 2, 2, 'F');
+
+  // Left Navy Accent Stripe (matching Image 2)
+  doc.setFillColor(...navyAccent);
+  doc.rect(14, y, 2.5, 25, 'F');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.setTextColor(...accentColor);
-  doc.text('REKENING PEMBAYARAN / BANK DETAILS FOR PAYMENT:', 18, y + 4.5);
+  doc.setTextColor(...primaryColor);
+  doc.text('REKENING PEMBAYARAN / BANK DETAILS FOR PAYMENT:', 19, y + 4.5);
+
+  const compSettings = getCompanySettings();
+  const bankNameVal = customParams?.bankName || compSettings.bankName || 'Bank Mandiri';
+  const bankAccVal = customParams?.bankAccountNumber || compSettings.bankAccountNumber || '103-00-1332575-4';
+  const bankAccNameVal = customParams?.bankAccountName || compSettings.bankAccountName || compSettings.companyName || 'PT Coreterra Geo Engineering';
+  const taxIdVal = customParams?.companyNpwp || compSettings.taxId || '01.234.567.8-901.000';
 
   const bankInfo = [
-    ['Nama Bank / Bank Name', ': Bank Mandiri'],
-    ['Atas Nama / Account Name', ': PT Coreterra Geo Engineering'],
-    ['Nomor Rekening / Account No.', ': 103-00-1332575-4'],
+    ['Nama Bank / Bank Name', `: ${bankNameVal}`],
+    ['Atas Nama / Account Name', `: ${bankAccNameVal}`],
+    ['Nomor Rekening / Account No.', `: ${bankAccVal}`],
     ['Kode SWIFT / IFSC Code', ': BMRIIDJA'],
     ['Cabang / Branch Name', ': KCP Jakarta Gedung Jaya'],
-    ['NPWP / TIN', ': 1000 0000 1002 1192'],
+    ['NPWP / TIN', `: ${taxIdVal}`],
   ];
 
   let by1 = y + 9.5;
@@ -618,16 +673,16 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
     doc.setFontSize(7.5);
     if (idx < 3) {
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...textColor);
-      doc.text(lbl, 18, by1);
+      doc.setTextColor(...steelSlate);
+      doc.text(lbl, 19, by1);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...primaryColor);
       doc.text(val, 58, by1);
       by1 += 4.5;
     } else {
-      const bx = 110;
+      const bx = 112;
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...textColor);
+      doc.setTextColor(...steelSlate);
       doc.text(lbl, bx, by2);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...primaryColor);
@@ -911,7 +966,7 @@ export function generateBillingInvoicePDF(
   doc.setTextColor(...textColor);
   doc.text(`PPN (${schedule.ppn_rate || 11}%) / Tax:`, sumX + 4, sy);
   doc.text(currSym, rpX, sy);
-  doc.text(taxAmount > 0 ? `${taxAmount.toLocaleString(currency === 'USD' ? 'en-US' : 'id-ID')},-` : '0,- (Included)', numRightX, sy, { align: 'right' });
+  doc.text(taxAmount > 0 ? `${taxAmount.toLocaleString(currency === 'USD' ? 'en-US' : 'id-ID')},-` : '0,-', numRightX, sy, { align: 'right' });
 
   sy += 5.5;
   doc.setDrawColor(203, 213, 225);
@@ -959,12 +1014,12 @@ export function generateBillingInvoicePDF(
   doc.text('REKENING PEMBAYARAN / BANK DETAILS FOR PAYMENT:', 18, y + 4.5);
 
   const bankInfo = [
-    ['Nama Bank / Bank Name', `: ${schedule.bank_name || 'Bank Mandiri'}`],
-    ['Atas Nama / Account Name', `: ${schedule.bank_account_name || companySettings.companyName || 'PT Coreterra Geo Engineering'}`],
-    ['Nomor Rekening / Account No.', `: ${schedule.bank_account_number || '103-00-1332575-4'}`],
+    ['Nama Bank / Bank Name', `: ${schedule.bank_name || companySettings?.bankName || 'Bank Mandiri'}`],
+    ['Atas Nama / Account Name', `: ${schedule.bank_account_name || companySettings?.bankAccountName || companySettings?.companyName || 'PT Coreterra Geo Engineering'}`],
+    ['Nomor Rekening / Account No.', `: ${schedule.bank_account_number || companySettings?.bankAccountNumber || '103-00-1332575-4'}`],
     ['Kode SWIFT / IFSC Code', ': BMRIIDJA'],
     ['Cabang / Branch Name', ': KCP Jakarta Gedung Jaya'],
-    ['NPWP / TIN', `: ${companySettings.taxId || '1000 0000 1002 1192'}`],
+    ['NPWP / TIN', `: ${companySettings?.taxId || '1000 0000 1002 1192'}`],
   ];
 
   let by1 = y + 9.5;

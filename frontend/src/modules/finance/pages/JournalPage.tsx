@@ -50,7 +50,6 @@ export function JournalPage() {
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [isPostOpen, setIsPostOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Journal | null>(null);
   
@@ -169,10 +168,11 @@ export function JournalPage() {
     },
   ];
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
+    const today = new Date().toISOString().split('T')[0];
     setFormData({
-      journal_number: 'AUTO',
-      date: new Date().toISOString().split('T')[0],
+      journal_number: 'Memuat...',
+      date: today,
       description: '',
       lines: [
         { account_id: '', project_id: '', project_rab_id: '', description: '', debit: 0, credit: 0 },
@@ -180,6 +180,28 @@ export function JournalPage() {
       ]
     });
     setIsFormOpen(true);
+    try {
+      const res = await financeApi.getNextJournalNumber(today);
+      if (res.data?.next_number) {
+        setFormData(prev => ({ ...prev, journal_number: res.data.next_number }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch next journal number:', err);
+    }
+  };
+
+  const handleJournalDateChange = async (newDate: string) => {
+    setFormData(prev => ({ ...prev, date: newDate }));
+    if (newDate) {
+      try {
+        const res = await financeApi.getNextJournalNumber(newDate);
+        if (res.data?.next_number) {
+          setFormData(prev => ({ ...prev, journal_number: res.data.next_number }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch next journal number:', err);
+      }
+    }
   };
 
   const handleAddLine = () => {
@@ -303,26 +325,14 @@ export function JournalPage() {
   };
 
   const handleDeleteClick = (row: Journal) => {
+    if (row.status === 'Posted') {
+      addToast('warning', 'Aksi Ditolak', 'Jurnal berstatus POSTED terkunci dan tidak dapat dihapus. Silakan Unpost terlebih dahulu di menu All Journal Entries.');
+      return;
+    }
     setEditingItem(row);
     setIsDeleteOpen(true);
   };
 
-  const confirmPost = async () => {
-    if (editingItem) {
-      setIsSaving(true);
-      try {
-        await financeApi.updateJournalStatus(editingItem.id, { status: 'Posted' });
-        addToast('success', 'Journal Posted', `Journal ${editingItem.journal_number} is now officially posted.`);
-        await fetchData();
-        setIsPostOpen(false);
-        setIsFormOpen(false); // Close edit form too if it was open
-      } catch (error) {
-        addToast('error', 'Action Failed', 'Failed to post the journal.');
-      } finally {
-        setIsSaving(false);
-      }
-    }
-  };
 
   const confirmDelete = async () => {
     if (editingItem) {
@@ -374,23 +384,49 @@ export function JournalPage() {
           onView={handleViewClick}
           onDelete={handleDeleteClick}
           groupBy={(row) => row.date}
+          isActionDisabled={(row) => {
+            if (row.status === 'Posted') {
+              return {
+                disabled: true,
+                message: 'Terkunci: Jurnal berstatus POSTED. Silakan Unpost di All Journal Entries terlebih dahulu.'
+              };
+            }
+            return false;
+          }}
         />
       </div>
 
       {/* Edit/Create Modal */}
-      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="Create Journal Entry" maxWidth="max-w-7xl">
+      <Modal 
+        isOpen={isFormOpen} 
+        onClose={() => { setIsFormOpen(false); setEditingItem(null); }} 
+        title={editingItem ? `Edit Jurnal Entry (${editingItem.journal_number})` : "Buat Jurnal Baru"} 
+        maxWidth="max-w-7xl"
+      >
         <form onSubmit={handleSave} className="space-y-6">
           <div className="grid grid-cols-3 gap-6">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-textPrimary">Journal No.</label>
-              <input required type="text" value={formData.journal_number} onChange={e => setFormData({...formData, journal_number: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary font-mono font-bold"/>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-textPrimary">Journal No.</label>
+                <span className="text-[10px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
+                  Otomatis
+                </span>
+              </div>
+              <input 
+                required 
+                readOnly 
+                type="text" 
+                value={formData.journal_number} 
+                title="Nomor Jurnal dihitung otomatis berurutan oleh sistem buku besar"
+                className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-sm text-primary font-mono font-bold cursor-not-allowed select-none shadow-xs"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Date</label>
               <DatePicker
                 required
                 value={formData.date}
-                onChange={(val) => setFormData({ ...formData, date: val })}
+                onChange={(val) => handleJournalDateChange(val)}
               />
             </div>
             <div className="space-y-1.5">
@@ -518,14 +554,19 @@ export function JournalPage() {
             )}
             
             <div className="flex gap-3 ml-auto">
-              <button type="button" onClick={() => { setIsFormOpen(false); setEditingItem(null); }} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Cancel</button>
-              {editingItem && (
-                <button type="button" onClick={() => setIsPostOpen(true)} disabled={!isBalanced || _isSaving} className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg text-sm font-medium hover:bg-success/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                  Post Journal
-                </button>
-              )}
-              <button type="submit" disabled={!isBalanced || _isSaving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                <Save className="w-4 h-4" /> {editingItem ? 'Update Journal' : 'Save Journal'}
+              <button 
+                type="button" 
+                onClick={() => { setIsFormOpen(false); setEditingItem(null); }} 
+                className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary"
+              >
+                Batal
+              </button>
+              <button 
+                type="submit" 
+                disabled={!isBalanced || _isSaving} 
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                <Save className="w-4 h-4" /> {editingItem ? 'Simpan Perubahan' : 'Simpan Jurnal'}
               </button>
             </div>
           </div>
@@ -604,20 +645,6 @@ export function JournalPage() {
         )}
       </Modal>
 
-      {/* Post Confirmation Modal */}
-      <Modal isOpen={isPostOpen} onClose={() => setIsPostOpen(false)} title="Post Journal Confirmation" maxWidth="max-w-sm">
-        <div className="flex flex-col items-center text-center space-y-4 py-4">
-          <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center text-success"><ArrowRight className="w-6 h-6" /></div>
-          <div>
-            <h3 className="text-lg font-bold text-textPrimary">Post this Journal?</h3>
-            <p className="text-sm text-textSecondary mt-1">You are about to post <span className="font-bold text-textPrimary">{editingItem?.journal_number}</span>. Once posted, it will affect the General Ledger and Financial Reports and <strong>cannot be deleted</strong>.</p>
-          </div>
-          <div className="flex gap-3 w-full pt-2">
-            <button onClick={() => setIsPostOpen(false)} className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Cancel</button>
-            <button onClick={confirmPost} disabled={_isSaving} className="flex-1 px-4 py-2 bg-success text-white rounded-lg text-sm font-medium hover:bg-success/90 transition-colors disabled:opacity-50">Yes, Post</button>
-          </div>
-        </div>
-      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal isOpen={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="Delete Confirmation" maxWidth="max-w-sm">

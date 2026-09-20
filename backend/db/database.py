@@ -13,9 +13,17 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
     DEFAULT_SQLITE_URL
 )
 
+# Handle postgres:// vs postgresql:// for SQLAlchemy 2.0+
+if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, 
+    connect_args=connect_args,
+    pool_pre_ping=True
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

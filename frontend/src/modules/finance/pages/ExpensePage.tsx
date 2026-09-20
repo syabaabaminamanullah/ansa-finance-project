@@ -3,6 +3,7 @@ import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { CoaSelect } from '../../../components/ui/CoaSelect';
 import { DatePicker } from '../../../components/ui/DatePicker';
+import { MonthPicker } from '../../../components/ui/MonthPicker';
 import { ArrowLeft, Save, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { financeApi, financialsApi, projectsApi, rabApi } from '../../../services/api';
@@ -32,6 +33,8 @@ interface Expense {
   expense_account_id: string;
   payment_account_id: string;
   status: string;
+  journal_status?: 'Posted' | 'Draft' | string;
+  journal_number?: string;
   admin_fee_amount?: number;
   admin_fee_account_id?: string;
 }
@@ -105,14 +108,34 @@ export function ExpensePage() {
       header: 'Total Deducted', 
       accessor: (row: Expense) => formatCurrency(row.amount + (row.admin_fee_amount || 0)),
       className: 'text-right font-semibold'
+    },
+    {
+      header: 'Status Jurnal',
+      accessor: (row: Expense) => {
+        const isPosted = row.journal_status === 'Posted';
+        return (
+          <span 
+            title={isPosted ? `Jurnal ${row.journal_number || ''} Berstatus Posted (Terkunci)` : 'Jurnal Belum Diposting (Draft)'}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold select-none ${
+              isPosted 
+                ? 'bg-success/10 text-success border border-success/20' 
+                : 'bg-warning/10 text-warning border border-warning/20'
+            }`}
+          >
+            {isPosted ? 'Posted' : 'Draft'}
+          </span>
+        );
+      },
+      className: 'w-28 text-center'
     }
   ];
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     setEditingItem(null);
+    const today = new Date().toISOString().split('T')[0];
     setFormData({ 
-      expense_number: `EXP-${Date.now().toString().slice(-5)}`, 
-      date: new Date().toISOString().split('T')[0], 
+      expense_number: 'Memuat...', 
+      date: today, 
       project_id: '',
       description: '', 
       amount: 0, 
@@ -124,6 +147,28 @@ export function ExpensePage() {
     });
     setHasAdminFee(false);
     setIsFormOpen(true);
+    try {
+      const res = await financeApi.getNextExpenseNumber(today);
+      if (res.data?.next_number) {
+        setFormData(prev => ({ ...prev, expense_number: res.data.next_number }));
+      }
+    } catch (err) {
+      console.error('Failed to get next expense number:', err);
+    }
+  };
+
+  const handleDateChange = async (newDate: string) => {
+    setFormData(prev => ({ ...prev, date: newDate }));
+    if (!editingItem && newDate) {
+      try {
+        const res = await financeApi.getNextExpenseNumber(newDate);
+        if (res.data?.next_number) {
+          setFormData(prev => ({ ...prev, expense_number: res.data.next_number }));
+        }
+      } catch (err) {
+        console.error('Failed to get next expense number:', err);
+      }
+    }
   };
 
   const handleViewClick = (row: Expense) => {
@@ -131,7 +176,52 @@ export function ExpensePage() {
     setIsViewOpen(true);
   };
 
+  const handleEditClick = async (row: Expense) => {
+    if (row.journal_status === 'Posted') {
+      addToast(
+        'warning', 
+        'Aksi Ditolak', 
+        `Expense ${row.expense_number} terkunci karena jurnal terkait (${row.journal_number || 'JV'}) berstatus POSTED. Silakan Unpost terlebih dahulu di menu All Journal Entries jika ingin mengedit.`
+      );
+      return;
+    }
+    setEditingItem(row);
+    setFormData({ 
+      expense_number: row.expense_number, 
+      date: row.date, 
+      project_id: row.project_id || '',
+      description: row.description, 
+      amount: row.amount, 
+      expense_account_id: row.expense_account_id, 
+      payment_account_id: row.payment_account_id, 
+      status: row.status || 'Paid',
+      admin_fee_amount: row.admin_fee_amount || 0,
+      admin_fee_account_id: row.admin_fee_account_id || '',
+      project_rab_id: (row as any).project_rab_id || ''
+    });
+    setHasAdminFee(Boolean(row.admin_fee_amount && row.admin_fee_amount > 0));
+    if (row.project_id) {
+      try {
+        const r = await rabApi.getByProject(row.project_id);
+        setRabItems(r.data);
+      } catch {
+        setRabItems([]);
+      }
+    } else {
+      setRabItems([]);
+    }
+    setIsFormOpen(true);
+  };
+
   const handleDeleteClick = (row: Expense) => {
+    if (row.journal_status === 'Posted') {
+      addToast(
+        'warning', 
+        'Aksi Ditolak', 
+        `Expense ${row.expense_number} terkunci karena jurnal terkait (${row.journal_number || 'JV'}) berstatus POSTED. Silakan Unpost terlebih dahulu di menu All Journal Entries jika ingin menghapus.`
+      );
+      return;
+    }
     setEditingItem(row);
     setIsDeleteOpen(true);
   };
@@ -146,7 +236,7 @@ export function ExpensePage() {
     // Optional project ID
     const payload = { ...formData };
     if (!payload.project_id) {
-      delete (payload as any).project_id;
+      payload.project_id = null as any;
     }
     
     // Optional admin fee
@@ -158,7 +248,8 @@ export function ExpensePage() {
     setIsSaving(true);
     try {
       if (editingItem) {
-        addToast('warning', 'Update Disabled', 'Editing a posted expense is not permitted. Please delete and recreate.');
+        await financeApi.updateExpense(editingItem.id, payload);
+        addToast('success', 'Expense Diperbarui', `Expense ${formData.expense_number} dan ayat jurnal otomatis berhasil disinkronkan.`);
       } else {
         await financeApi.createExpense(payload);
         addToast('success', 'Expense Recorded', `Expense ${formData.expense_number} recorded. Auto-journal generated successfully.`);
@@ -182,8 +273,9 @@ export function ExpensePage() {
         addToast('success', 'Expense Deleted', `Expense ${editingItem.expense_number} and its Auto-journal have been removed.`);
         await fetchData();
         setIsDeleteOpen(false);
-      } catch (error) {
-        addToast('error', 'Delete Failed', 'Could not delete the expense.');
+      } catch (error: any) {
+        const errMsg = error.response?.data?.detail || 'Could not delete the expense.';
+        addToast('error', 'Hapus Ditolak', typeof errMsg === 'string' ? errMsg : 'Gagal menghapus expense.');
       } finally {
         setIsSaving(false);
       }
@@ -208,12 +300,11 @@ export function ExpensePage() {
             <span className="text-primary font-medium">Expenses</span>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <input 
-            type="month" 
+        <div className="flex items-center gap-3">
+          <MonthPicker 
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="px-4 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50"
+            onChange={(val) => setSelectedMonth(val)}
+            align="right"
           />
         </div>
       </div>
@@ -227,12 +318,21 @@ export function ExpensePage() {
           searchPlaceholder="Search description or expense no..."
           onAdd={handleAdd}
           onView={handleViewClick}
+          onEdit={handleEditClick}
           onDelete={handleDeleteClick}
-          // Intentionally omitting onEdit to prevent editing posted journals for simplicity
+          isActionDisabled={(row) => {
+            if (row.journal_status === 'Posted') {
+              return {
+                disabled: true,
+                message: `Terkunci: Jurnal ${row.journal_number || ''} berstatus POSTED. Silakan Unpost di All Journal Entries terlebih dahulu.`
+              };
+            }
+            return false;
+          }}
         />
       </div>
 
-      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="Record New Expense" maxWidth="max-w-2xl">
+      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={editingItem ? "Edit Expense" : "Record New Expense"} maxWidth="max-w-2xl">
         <form onSubmit={handleSave} className="space-y-4">
           <div className="p-3 mb-2 bg-primary/10 border border-primary/20 text-primary text-sm rounded-lg flex gap-2">
             <strong>Info:</strong> Saving this expense will automatically create a balanced Journal Entry (Debit: Expense, Credit: Payment Account).
@@ -240,15 +340,27 @@ export function ExpensePage() {
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-textPrimary">Expense No. <span className="text-danger">*</span></label>
-              <input required type="text" value={formData.expense_number} onChange={e => setFormData({...formData, expense_number: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary"/>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-textPrimary">Expense No. <span className="text-danger">*</span></label>
+                <span className="text-[10px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
+                  Otomatis
+                </span>
+              </div>
+              <input 
+                required 
+                readOnly 
+                type="text" 
+                value={formData.expense_number} 
+                title="Nomor Expense dihitung otomatis secara berurutan oleh sistem"
+                className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-sm text-primary font-mono font-bold cursor-not-allowed select-none shadow-xs"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Date <span className="text-danger">*</span></label>
               <DatePicker
                 required
                 value={formData.date}
-                onChange={(val) => setFormData({ ...formData, date: val })}
+                onChange={(val) => handleDateChange(val)}
               />
             </div>
           </div>
@@ -359,8 +471,11 @@ export function ExpensePage() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
-            <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Cancel</button>
-            <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"><Save className="w-4 h-4" /> Save & Generate Journal</button>
+            <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary cursor-pointer">Cancel</button>
+            <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors cursor-pointer">
+              <Save className="w-4 h-4" /> 
+              <span>{editingItem ? 'Simpan & Sinkronkan Jurnal' : 'Save & Generate Journal'}</span>
+            </button>
           </div>
         </form>
       </Modal>

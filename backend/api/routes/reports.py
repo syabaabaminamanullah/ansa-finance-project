@@ -326,6 +326,73 @@ def get_ar_aging(
         'summary': summary
     }
 
+@router.get("/reports/ap-aging")
+def get_ap_aging(
+    as_of_date: str = Query(default_factory=lambda: datetime.now().strftime('%Y-%m-%d')),
+    db: Session = Depends(get_db)
+):
+    from db.models import ApInvoice, Vendor
+    
+    invoices = db.query(ApInvoice).outerjoin(Vendor, Vendor.id == ApInvoice.vendor_id).filter(
+        ApInvoice.status != 'Paid'
+    ).all()
+    
+    results = []
+    summary = {
+        'current': 0.0,
+        'days_1_30': 0.0,
+        'days_31_60': 0.0,
+        'days_61_90': 0.0,
+        'days_over_90': 0.0,
+        'total': 0.0
+    }
+    
+    as_of = datetime.strptime(as_of_date, '%Y-%m-%d')
+    
+    for inv in invoices:
+        if not inv.due_date:
+            continue
+        due = datetime.strptime(inv.due_date.split('T')[0], '%Y-%m-%d')
+        days_late = (as_of - due).days
+        
+        balance = (inv.amount or 0.0) - (inv.amount_paid or 0.0)
+        if balance <= 0:
+            continue
+            
+        bucket = 'current'
+        if days_late > 90:
+            bucket = 'days_over_90'
+            summary['days_over_90'] += balance
+        elif days_late > 60:
+            bucket = 'days_61_90'
+            summary['days_61_90'] += balance
+        elif days_late > 30:
+            bucket = 'days_31_60'
+            summary['days_31_60'] += balance
+        elif days_late > 0:
+            bucket = 'days_1_30'
+            summary['days_1_30'] += balance
+        else:
+            summary['current'] += balance
+            
+        summary['total'] += balance
+        
+        results.append({
+            'id': inv.id,
+            'invoice_number': inv.invoice_number,
+            'vendor_name': inv.vendor.name if inv.vendor else 'Unknown Vendor',
+            'due_date': inv.due_date.split('T')[0],
+            'amount': inv.amount or 0.0,
+            'balance': balance,
+            'days_late': days_late if days_late > 0 else 0,
+            'bucket': bucket
+        })
+        
+    return {
+        'data': results,
+        'summary': summary
+    }
+
 @router.get("/reports/project-profitability")
 def get_project_profitability(db: Session = Depends(get_db)):
     from db.models import Project, ArInvoice, Expense, ApInvoice

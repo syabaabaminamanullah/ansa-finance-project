@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Building2, Save, MapPin, Mail, Phone, Hash } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Building2, Save, MapPin, Mail, Phone, Hash, Landmark, CreditCard } from 'lucide-react';
 import { useToastStore } from '../../../store/toastStore';
 import { useSettingsStore } from '../../../store/settingsStore';
 
@@ -10,16 +10,37 @@ export function GeneralSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [profile, setProfile] = useState({
-    companyName: globalSettings.companyName,
-    taxId: globalSettings.taxId,
-    email: globalSettings.email,
-    phone: globalSettings.phone,
-    address: globalSettings.address,
-    baseCurrency: globalSettings.baseCurrency,
-    timezone: globalSettings.timezone,
-    dateFormat: globalSettings.dateFormat,
-    logoBase64: globalSettings.logoBase64
+    companyName: globalSettings.companyName || '',
+    taxId: globalSettings.taxId || '',
+    email: globalSettings.email || '',
+    phone: globalSettings.phone || '',
+    address: globalSettings.address || '',
+    baseCurrency: globalSettings.baseCurrency || 'IDR',
+    timezone: globalSettings.timezone || 'Asia/Jakarta',
+    dateFormat: globalSettings.dateFormat || 'DD/MM/YYYY',
+    logoBase64: globalSettings.logoBase64 || '',
+    bankName: globalSettings.bankName || 'Bank Mandiri',
+    bankAccountNumber: globalSettings.bankAccountNumber || '103-00-1332575-4',
+    bankAccountName: globalSettings.bankAccountName || globalSettings.companyName || 'PT Coreterra Geo Engineering'
   });
+
+  useEffect(() => {
+    setProfile(prev => ({
+      ...prev,
+      companyName: globalSettings.companyName || prev.companyName,
+      taxId: globalSettings.taxId || prev.taxId,
+      email: globalSettings.email || prev.email,
+      phone: globalSettings.phone || prev.phone,
+      address: globalSettings.address || prev.address,
+      baseCurrency: globalSettings.baseCurrency || prev.baseCurrency,
+      timezone: globalSettings.timezone || prev.timezone,
+      dateFormat: globalSettings.dateFormat || prev.dateFormat,
+      logoBase64: globalSettings.logoBase64 || prev.logoBase64,
+      bankName: globalSettings.bankName || prev.bankName || 'Bank Mandiri',
+      bankAccountNumber: globalSettings.bankAccountNumber || prev.bankAccountNumber || '103-00-1332575-4',
+      bankAccountName: globalSettings.bankAccountName || globalSettings.companyName || prev.bankAccountName || 'PT Coreterra Geo Engineering'
+    }));
+  }, [globalSettings]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -113,6 +134,53 @@ export function GeneralSettings() {
                 <MapPin className="w-4 h-4 absolute left-3 top-3 text-textSecondary" />
                 <textarea rows={2} value={profile.address} onChange={e => setProfile({...profile, address: e.target.value})} className="w-full bg-background border border-border rounded-lg pl-10 pr-3 py-2 text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50" />
               </div>
+            </div>
+
+            {/* Bank Account Information for Invoices */}
+            <div className="border-t border-border pt-6 mt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Landmark className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider">Info Rekening Bank (Default Invoice)</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-textSecondary mb-1">Nama Bank</label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary" />
+                    <input
+                      type="text"
+                      placeholder="Contoh: Bank Mandiri"
+                      value={profile.bankName}
+                      onChange={e => setProfile({...profile, bankName: e.target.value})}
+                      className="w-full bg-background border border-border rounded-lg pl-10 pr-3 py-2 text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-textSecondary mb-1">Nomor Rekening</label>
+                  <div className="relative">
+                    <CreditCard className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary" />
+                    <input
+                      type="text"
+                      placeholder="Contoh: 103-00-1332575-4"
+                      value={profile.bankAccountNumber}
+                      onChange={e => setProfile({...profile, bankAccountNumber: e.target.value})}
+                      className="w-full bg-background border border-border rounded-lg pl-10 pr-3 py-2 text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-textSecondary mb-1">Atas Nama Rekening</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: PT. CoreTerra Geo Engineering"
+                    value={profile.bankAccountName}
+                    onChange={e => setProfile({...profile, bankAccountName: e.target.value})}
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-textSecondary mt-2">Data rekening bank ini akan otomatis digunakan pada pembuatan jadwal penagihan dan cetak invoice.</p>
             </div>
           </div>
         </div>
