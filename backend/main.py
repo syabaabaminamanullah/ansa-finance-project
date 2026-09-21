@@ -3,11 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.routes import organization, financials, finance, projects, stakeholders, hr, inventory, project_ops, reports, project_rabs, assets, financial_statements, procurement, data_management, billing_schedule
 from db.database import engine, Base
 
-# Create tables (safely ignore if connection delays or already migrated)
-try:
-    Base.metadata.create_all(bind=engine)
-except Exception as e:
-    print(f"Database initialization notice: {e}")
+# Tables are already migrated to Supabase PostgreSQL; skip runtime DDL for instant serverless cold-start
+
 
 
 app = FastAPI(

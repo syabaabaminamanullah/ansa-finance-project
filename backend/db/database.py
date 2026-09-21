@@ -18,6 +18,16 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
     DEFAULT_SQLITE_URL
 )
 
+# Automatic IPv4 Supabase Pooler Conversion for Serverless (AWS Lambda / Vercel is IPv4-only)
+if "@db." in SQLALCHEMY_DATABASE_URL and ".supabase.co" in SQLALCHEMY_DATABASE_URL:
+    import re
+    m = re.search(r'@db\.([a-z0-9]+)\.supabase\.co', SQLALCHEMY_DATABASE_URL)
+    if m:
+        ref = m.group(1)
+        if f"://postgres.{ref}:" not in SQLALCHEMY_DATABASE_URL:
+            SQLALCHEMY_DATABASE_URL = re.sub(r'://postgres:', f'://postgres.{ref}:', SQLALCHEMY_DATABASE_URL)
+        SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace(f'db.{ref}.supabase.co', 'aws-0-ap-southeast-1.pooler.supabase.com')
+
 # Prefer pure-Python pg8000 driver for serverless environments (avoids libpq binary crashes)
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
