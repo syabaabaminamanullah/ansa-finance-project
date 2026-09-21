@@ -87,12 +87,30 @@ def health_check():
 
 @app.get("/api/debug")
 def debug():
+    db_url = "unknown"
+    try:
+        from db.database import SQLALCHEMY_DATABASE_URL
+        # Mask password
+        u = SQLALCHEMY_DATABASE_URL
+        if "@" in u:
+            pre, post = u.split("@", 1)
+            if ":" in pre:
+                scheme_user = pre.rsplit(":", 1)[0]
+                db_url = f"{scheme_user}:***@{post}"
+            else:
+                db_url = f"{pre}@{post}"
+        else:
+            db_url = u[:50] + "..."
+    except Exception as e:
+        db_url = f"error: {e}"
     return {
         "routers_loaded": _routers_loaded,
         "router_error": _router_error,
+        "db_url": db_url,
+        "env_SB_POSTGRES_URL": bool(os.environ.get("SB_POSTGRES_URL")),
+        "env_POSTGRES_URL": bool(os.environ.get("POSTGRES_URL")),
+        "env_DATABASE_URL": bool(os.environ.get("DATABASE_URL")),
         "cwd": os.getcwd(),
-        "backend_dir": BACKEND_DIR,
-        "sys_path": sys.path[:6],
     }
 
 
