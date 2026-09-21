@@ -55,3 +55,9 @@ def read_root():
 def health_check():
     return {"status": "healthy"}
 
+@app.get("/api/v1/sync-db")
+def sync_database():
+    from db.auto_sync import ensure_database_synced
+    return ensure_database_synced(engine, Base)
+
+
