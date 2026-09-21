@@ -5,7 +5,9 @@ from sqlalchemy import text
 
 def ensure_database_synced(engine, Base, force: bool = False):
     """
-    Fast batch migration in a single transaction to prevent Vercel 10s serverless timeout.
+    Fast, atomic migration with correct Foreign-Key dependency ordering:
+    - Clean in reverse dependency order (Child -> Parent)
+    - Insert in forward dependency order (Parent -> Child)
     """
     try:
         url_str = str(engine.url)
@@ -36,7 +38,17 @@ def ensure_database_synced(engine, Base, force: bool = False):
         with open(seed_path, "r", encoding="utf-8") as f:
             seed_data = json.load(f)
 
-        # 3. Single connection and transaction for all tables
+        # 3. Step A: Delete existing records in REVERSE order (Child -> Parent)
+        with engine.begin() as conn:
+            for pg_table in reversed(Base.metadata.sorted_tables):
+                t_name = pg_table.name
+                if t_name in seed_data:
+                    try:
+                        conn.execute(pg_table.delete())
+                    except Exception:
+                        pass
+
+        # 4. Step B: Insert records in FORWARD order (Parent -> Child)
         inserted_counts = {}
         with engine.begin() as conn:
             for pg_table in Base.metadata.sorted_tables:
@@ -64,17 +76,12 @@ def ensure_database_synced(engine, Base, force: bool = False):
                     data_to_insert.append(row_dict)
 
                 if data_to_insert:
-                    # Clean existing rows then bulk insert
-                    try:
-                        conn.execute(pg_table.delete())
-                    except Exception:
-                        pass
                     conn.execute(pg_table.insert(), data_to_insert)
                     inserted_counts[t_name] = len(data_to_insert)
 
         return {
             "status": "success",
-            "message": "Data migration finished successfully in single transaction",
+            "message": "Data migration finished successfully in correct FK dependency order",
             "inserted_tables": inserted_counts
         }
 
