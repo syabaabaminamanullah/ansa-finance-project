@@ -40,13 +40,43 @@ interface Expense {
 }
 
 export function ExpensePage() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [coas, setCoas] = useState<COA[]>([]);
-  const [rabItems, setRabItems] = useState<any[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    try {
+      const month = new Date().toISOString().slice(0, 7);
+      const cached = sessionStorage.getItem(`ansa_exp_${month}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [projects, setProjects] = useState<Project[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('ansa_projects_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [coas, setCoas] = useState<COA[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('ansa_coas_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [rabItems, setRabItems] = useState<any[]>([]);
   
-  const [_isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      const month = new Date().toISOString().slice(0, 7);
+      return !sessionStorage.getItem(`ansa_exp_${month}`);
+    } catch {
+      return true;
+    }
+  });
   const [_isSaving, setIsSaving] = useState(false);
   const addToast = useToastStore((state) => state.addToast);
   
@@ -62,19 +92,40 @@ export function ExpensePage() {
 
   const fetchData = async () => {
     try {
-      setIsLoading(true);
-      const [expRes, projRes, coasRes] = await Promise.all([
-        financeApi.getExpenses(selectedMonth),
-        projectsApi.getProjects(),
-        financialsApi.getCoas()
-      ]);
-      const sortedExpenses = expRes.data.sort((a: Expense, b: Expense) => {
+      const cachedMonth = sessionStorage.getItem(`ansa_exp_${selectedMonth}`);
+      if (cachedMonth) {
+        setExpenses(JSON.parse(cachedMonth));
+      } else {
+        setIsLoading(true);
+      }
+
+      const promises: [Promise<any>, Promise<any>?, Promise<any>?] = [
+        financeApi.getExpenses(selectedMonth)
+      ];
+
+      if (projects.length === 0) promises.push(projectsApi.getProjects());
+      if (coas.length === 0) promises.push(financialsApi.getCoas());
+
+      const [expRes, projRes, coasRes] = await Promise.all(promises);
+
+      const sortedExpenses = (expRes.data || []).sort((a: Expense, b: Expense) => {
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
       setExpenses(sortedExpenses);
-      setProjects(projRes.data);
-      const sortedCoas = coasRes.data.sort((a: COA, b: COA) => a.account_code.localeCompare(b.account_code));
-      setCoas(sortedCoas);
+
+      if (projRes) {
+        setProjects(projRes.data || []);
+        try { sessionStorage.setItem('ansa_projects_cache', JSON.stringify(projRes.data)); } catch (_) {}
+      }
+      if (coasRes) {
+        const sortedCoas = (coasRes.data || []).sort((a: COA, b: COA) => a.account_code.localeCompare(b.account_code));
+        setCoas(sortedCoas);
+        try { sessionStorage.setItem('ansa_coas_cache', JSON.stringify(sortedCoas)); } catch (_) {}
+      }
+
+      try {
+        sessionStorage.setItem(`ansa_exp_${selectedMonth}`, JSON.stringify(sortedExpenses));
+      } catch (_) {}
     } catch (error) {
       console.error('Failed to fetch data:', error);
       addToast('error', 'Connection Error', 'Failed to fetch expense data.');
@@ -316,6 +367,7 @@ export function ExpensePage() {
           columns={columns}
           data={expenses}
           searchPlaceholder="Search description or expense no..."
+          isLoading={isLoading}
           onAdd={handleAdd}
           onView={handleViewClick}
           onEdit={handleEditClick}

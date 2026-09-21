@@ -34,6 +34,7 @@ interface DataTableProps<T> {
   searchPlaceholder?: string;
   groupBy?: (row: T) => string;
   isActionDisabled?: (row: T, action: 'edit' | 'delete') => { disabled: boolean; message?: string } | boolean;
+  isLoading?: boolean;
 }
 
 export function DataTable<T extends { id: string | number }>({ 
@@ -47,7 +48,8 @@ export function DataTable<T extends { id: string | number }>({
   onView,
   searchPlaceholder = "Search...",
   groupBy,
-  isActionDisabled
+  isActionDisabled,
+  isLoading = false
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showSort, setShowSort] = useState(false);
@@ -428,6 +430,16 @@ export function DataTable<T extends { id: string | number }>({
                   </React.Fragment>
                 );
               })
+            ) : isLoading ? (
+              <tr>
+                <td colSpan={columns.length + (onView || onEdit || onDelete ? 1 : 0)} className="px-6 py-16 text-center text-textSecondary">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm font-medium text-textPrimary animate-pulse">Memuat data real-time...</p>
+                    <p className="text-xs text-textSecondary">Mengambil data terbaru dari server</p>
+                  </div>
+                </td>
+              </tr>
             ) : (
               <tr>
                 <td colSpan={columns.length + (onView || onEdit || onDelete ? 1 : 0)} className="px-6 py-12 text-center text-textSecondary">

@@ -40,11 +40,41 @@ interface Project {
 }
 
 export function JournalPage() {
-  const [journals, setJournals] = useState<Journal[]>([]);
-  const [coas, setCoas] = useState<COA[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [journals, setJournals] = useState<Journal[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('ansa_all_journals_cache');
+      if (cached) {
+        return JSON.parse(cached).sort((a: Journal, b: Journal) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
+  const [coas, setCoas] = useState<COA[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('ansa_coas_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [projects, setProjects] = useState<Project[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('ansa_projects_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [rabItemsByProject, setRabItemsByProject] = useState<Record<string, any[]>>({});
-  const [_isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      return !sessionStorage.getItem('ansa_all_journals_cache');
+    } catch {
+      return true;
+    }
+  });
   const [_isSaving, setIsSaving] = useState(false);
   const addToast = useToastStore((state) => state.addToast);
   
@@ -81,7 +111,9 @@ export function JournalPage() {
 
   const fetchData = async () => {
     try {
-      setIsLoading(true);
+      if (!sessionStorage.getItem('ansa_all_journals_cache')) {
+        setIsLoading(true);
+      }
       const [journalsRes, coasRes, projectsRes] = await Promise.all([
         financeApi.getJournals(),
         financialsApi.getCoas(),
@@ -98,6 +130,12 @@ export function JournalPage() {
       });
       setCoas(sortedCoas);
       setProjects(projectsRes.data);
+
+      try {
+        sessionStorage.setItem('ansa_all_journals_cache', JSON.stringify(journalsRes.data));
+        sessionStorage.setItem('ansa_coas_cache', JSON.stringify(sortedCoas));
+        sessionStorage.setItem('ansa_projects_cache', JSON.stringify(projectsRes.data));
+      } catch (_) {}
     } catch (error) {
       console.error('Failed to fetch data:', error);
       addToast('error', 'Connection Error', 'Failed to fetch journals.');
@@ -379,6 +417,7 @@ export function JournalPage() {
           columns={columns}
           data={journals}
           searchPlaceholder="Search journal..."
+          isLoading={isLoading}
           onAdd={handleAdd}
           onEdit={handleEditClick}
           onView={handleViewClick}

@@ -73,7 +73,7 @@ else:
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL, 
         poolclass=NullPool,
-        pool_pre_ping=True,
+        pool_pre_ping=False,
         connect_args=_connect_args
     )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

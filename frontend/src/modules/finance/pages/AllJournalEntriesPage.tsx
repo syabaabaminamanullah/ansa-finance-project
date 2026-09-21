@@ -3,10 +3,10 @@ import { DataTable } from '../../../components/ui/DataTable';
 import { DatePicker } from '../../../components/ui/DatePicker';
 import { ArrowLeft, Filter, Download, Paperclip, Upload, Eye, X, FileText, Image, MapPin, Building2, Save, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { financeApi, financialsApi, projectsApi } from '../../../services/api';
+import { api, financeApi, financialsApi, projectsApi } from '../../../services/api';
 import { useToastStore } from '../../../store/toastStore';
 
-const API_BASE = 'http://localhost:8000/api/v1/finance';
+const API_BASE = (api.defaults.baseURL || '/api/v1') + '/finance';
 
 interface COA {
   id: string;
@@ -279,20 +279,49 @@ function AttachmentModal({
 }
 
 export function AllJournalEntriesPage() {
-  const [journals, setJournals] = useState<Journal[]>([]);
-  const [coas, setCoas] = useState<COA[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [journals, setJournals] = useState<Journal[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('ansa_all_journals_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [coas, setCoas] = useState<COA[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('ansa_coas_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [projects, setProjects] = useState<Project[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('ansa_projects_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedAttachmentEntry, setSelectedAttachmentEntry] = useState<FlatEntry | null>(null);
 
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
-  const [_isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      return !sessionStorage.getItem('ansa_all_journals_cache');
+    } catch {
+      return true;
+    }
+  });
   const addToast = useToastStore((state) => state.addToast);
 
   const fetchData = async () => {
     try {
-      setIsLoading(true);
+      if (!sessionStorage.getItem('ansa_all_journals_cache')) {
+        setIsLoading(true);
+      }
       const [journalsRes, coasRes, projectsRes] = await Promise.all([
         financeApi.getJournals(),
         financialsApi.getCoas(),
@@ -306,6 +335,12 @@ export function AllJournalEntriesPage() {
         return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
       });
       setCoas(sortedCoas);
+
+      try {
+        sessionStorage.setItem('ansa_all_journals_cache', JSON.stringify(journalsRes.data));
+        sessionStorage.setItem('ansa_coas_cache', JSON.stringify(sortedCoas));
+        sessionStorage.setItem('ansa_projects_cache', JSON.stringify(projectsRes.data));
+      } catch (_) {}
     } catch (error) {
       console.error('Failed to fetch data:', error);
       addToast('error', 'Connection Error', 'Failed to fetch journal data.');
@@ -591,6 +626,7 @@ export function AllJournalEntriesPage() {
           data={flatEntries}
           searchPlaceholder="Search journal no, account, description..."
           groupBy={(row) => row.date}
+          isLoading={isLoading}
         />
       </div>
 

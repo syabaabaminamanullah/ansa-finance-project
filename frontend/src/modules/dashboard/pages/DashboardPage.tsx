@@ -91,22 +91,32 @@ const ALL_EQUIPMENT_DATA = [
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const [cashFlowData, setCashFlowData] = useState<any[]>([]);
-  const [budgetData, setBudgetData] = useState<any[]>([]);
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [projectSummaries, setProjectSummaries] = useState<any[]>([]);
-  const [allProjectsList, setAllProjectsList] = useState<any[]>([]);
-  const [summary, setSummary] = useState<any>({});
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const getInitialDashboardCache = () => {
+    try {
+      const cached = sessionStorage.getItem('ansa_dashboard_cache');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  };
+  const initCache = getInitialDashboardCache();
+
+  const [cashFlowData, setCashFlowData] = useState<any[]>(() => initCache?.cashFlowData || []);
+  const [budgetData, setBudgetData] = useState<any[]>(() => initCache?.budgetData || []);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>(() => initCache?.recentTransactions || []);
+  const [projectSummaries, setProjectSummaries] = useState<any[]>(() => initCache?.projectSummaries || []);
+  const [allProjectsList, setAllProjectsList] = useState<any[]>(() => initCache?.allProjectsList || []);
+  const [summary, setSummary] = useState<any>(() => initCache?.summary || {});
+  const [isLoading, setIsLoading] = useState<boolean>(() => !initCache?.summary || Object.keys(initCache?.summary).length === 0);
   
   // Real-time Treasury & Expense Breakdown State
-  const [treasuryData, setTreasuryData] = useState<any>({
+  const [treasuryData, setTreasuryData] = useState<any>(() => initCache?.treasuryData || {
     total_cash: 0,
     total_cash_formatted: 'Rp 0',
     total_accounts_count: 0,
     accounts: []
   });
-  const [expenseBreakdown, setExpenseBreakdown] = useState<any>({
+  const [expenseBreakdown, setExpenseBreakdown] = useState<any>(() => initCache?.expenseBreakdown || {
     total_expense: 0,
     total_expense_formatted: 'Rp 0',
     categories: []
@@ -124,65 +134,44 @@ export function DashboardPage() {
   const [forecastHorizon, setForecastHorizon] = useState<HorizonType>('1_month');
   const [forecastProject, setForecastProject] = useState<string>('ALL');
 
-  // Load cached dashboard data immediately on mount for 0-second instant display
-  useEffect(() => {
-    try {
-      const cached = sessionStorage.getItem('ansa_dashboard_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.summary) setSummary(parsed.summary);
-        if (parsed.treasuryData) setTreasuryData(parsed.treasuryData);
-        if (parsed.allProjectsList) setAllProjectsList(parsed.allProjectsList);
-        if (parsed.expenseBreakdown) setExpenseBreakdown(parsed.expenseBreakdown);
-        if (parsed.cashFlowData) setCashFlowData(parsed.cashFlowData);
-        if (parsed.budgetData) setBudgetData(parsed.budgetData);
-        if (parsed.projectSummaries) setProjectSummaries(parsed.projectSummaries);
-      }
-    } catch (_) {}
-  }, []);
-
   // Master Data & Filtered Fetch Function
   const fetchDashboardData = useCallback(async (projId: string, period: string, interval: 'week' | 'month' | 'year' = 'month') => {
-    // Only show spinner if no data is present yet
-    if (!summary || Object.keys(summary).length === 0) {
-      setIsLoading(true);
-    }
     try {
       const projParam = projId === 'ALL' ? '' : `project_id=${projId}`;
       const periodParam = `period=${period}`;
-      const queryParams = [projParam, periodParam].filter(Boolean).join('&');
+      const intParam = `interval=${interval}`;
+      const queryParams = [projParam, periodParam, intParam].filter(Boolean).join('&');
       const urlQuery = queryParams ? `?${queryParams}` : '';
 
-      const cfQuery = [projId !== 'ALL' ? `project_id=${projId}` : '', `interval=${interval}`].filter(Boolean).join('&');
+      // 1. Fetch Consolidated Overview in ONE single fast request (<250ms)
+      const overviewRes = await api.get(`/dashboard/overview${urlQuery}`);
+      const overview = overviewRes.data;
 
-      // 1. Fetch Core Dashboard visual data concurrently (ultra-fast)
-      const [projRes, expRes, apRes, arRes, summaryRes, treasuryRes, expBreakdownRes, cfRes] = await Promise.all([
-        projectsApi.getProjects(),
+      const projects = overview.projects || [];
+      setAllProjectsList(projects);
+      setSummary(overview.summary || {});
+      setTreasuryData(overview.treasury || {});
+      setExpenseBreakdown(overview.breakdown || {});
+      setCashFlowData(overview.cashflow || []);
+      if (overview.recent_transactions && overview.recent_transactions.length > 0) {
+        setRecentTransactions(overview.recent_transactions);
+      }
+      setIsLoading(false);
+
+      // 2. Fetch supplementary detailed tables and forecast in background without blocking
+      financialsApi.getCoas().then(res => setCoas(res.data || [])).catch(() => {});
+      financeApi.getJournals().then(res => setJournals(res.data || [])).catch(() => {});
+
+      const [expRes, apRes, arRes] = await Promise.all([
         financeApi.getExpenses(),
         financeApi.getApInvoices(),
-        financeApi.getArInvoices(),
-        api.get(`/dashboard/summary${urlQuery}`),
-        api.get(`/dashboard/treasury`),
-        api.get(`/dashboard/expense-breakdown${urlQuery}`),
-        api.get(`/dashboard/cashflow-monthly?${cfQuery}`)
+        financeApi.getArInvoices()
       ]);
 
-      const projects = projRes.data || [];
       const expenses = expRes.data || [];
       const apInvoices = apRes.data || [];
       const arInvoices = arRes.data || [];
-
-      setAllProjectsList(projects);
-      setSummary(summaryRes.data);
-      setTreasuryData(treasuryRes.data);
-      setExpenseBreakdown(expBreakdownRes.data);
-      setCashFlowData(cfRes.data);
       setArInvoicesList(arInvoices);
-      setIsLoading(false);
-
-      // 2. Fetch heavy forecast data in background without blocking dashboard view
-      financialsApi.getCoas().then(res => setCoas(res.data || [])).catch(() => {});
-      financeApi.getJournals().then(res => setJournals(res.data || [])).catch(() => {});
 
       // 1. Budget vs Actual
       const targetProjects = projId === 'ALL' 

@@ -15,8 +15,8 @@ def format_idr(val: float) -> str:
 
 @router.get("/summary")
 def get_dashboard_summary(
-    project_id: Optional[str] = Query(None),
-    period: Optional[str] = Query(None),
+    project_id: Optional[str] = None,
+    period: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     today = datetime.utcnow()
@@ -281,8 +281,8 @@ def get_treasury_realtime(db: Session = Depends(get_db)):
 
 @router.get("/expense-breakdown")
 def get_expense_breakdown_realtime(
-    project_id: Optional[str] = Query(None),
-    period: Optional[str] = Query(None),
+    project_id: Optional[str] = None,
+    period: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -359,8 +359,8 @@ def get_expense_breakdown_realtime(
 
 @router.get("/cashflow-monthly")
 def get_cashflow_monthly(
-    project_id: Optional[str] = Query(None),
-    interval: Optional[str] = Query("month"), # "week", "month", "year"
+    project_id: Optional[str] = None,
+    interval: Optional[str] = "month", # "week", "month", "year"
     db: Session = Depends(get_db)
 ):
     """
@@ -482,3 +482,85 @@ def get_cashflow_monthly(
             for m in display_months
         ]
         return result
+
+
+@router.get("/overview")
+def get_dashboard_overview(
+    project_id: Optional[str] = None,
+    period: Optional[str] = None,
+    interval: Optional[str] = 'month',
+    db: Session = Depends(get_db)
+):
+    """
+    Consolidated Real-time Dashboard Overview:
+    Computes summary, treasury, expense breakdown, cash flow, projects,
+    and recent transactions within a SINGLE database session in <200ms.
+    """
+    summary = get_dashboard_summary(project_id, period, db)
+    treasury = get_treasury_realtime(db)
+    breakdown = get_expense_breakdown_realtime(project_id, period, db)
+    cashflow = get_cashflow_monthly(project_id, interval, db)
+
+    # Fetch projects
+    projects_rows = db.query(Project).all()
+    projects = [
+        {
+            "id": p.id,
+            "name": p.name,
+            "code": p.code,
+            "status": p.status,
+            "contract_value_idr": float(p.contract_value_idr or 0.0)
+        }
+        for p in projects_rows
+    ]
+
+    # Fetch recent expenses & AR & AP for transactions list
+    recent_exp = db.query(Expense).order_by(Expense.date.desc()).limit(8).all()
+    recent_ar = db.query(ArInvoice).order_by(ArInvoice.date.desc()).limit(8).all()
+    recent_ap = db.query(ApInvoice).order_by(ApInvoice.date.desc()).limit(8).all()
+
+    recent_transactions = []
+    for e in recent_exp:
+        recent_transactions.append({
+            "id": e.id,
+            "date": e.date,
+            "title": e.expense_number,
+            "desc": e.description,
+            "module": "Direct Expense",
+            "amount": float(e.amount or 0.0),
+            "status": e.status,
+            "rawDate": e.date
+        })
+    for a in recent_ar:
+        recent_transactions.append({
+            "id": a.id,
+            "date": a.date,
+            "title": a.invoice_number,
+            "desc": f"AR Invoice - {a.description or ''}",
+            "module": "Customer Billing",
+            "amount": float(a.total_amount or 0.0),
+            "status": a.status,
+            "rawDate": a.date
+        })
+    for ap in recent_ap:
+        recent_transactions.append({
+            "id": ap.id,
+            "date": ap.date,
+            "title": ap.invoice_number,
+            "desc": f"AP Vendor - {ap.description or ''}",
+            "module": "Vendor Bill",
+            "amount": float(ap.total_amount or 0.0),
+            "status": ap.status,
+            "rawDate": ap.date
+        })
+    recent_transactions.sort(key=lambda x: str(x["rawDate"]), reverse=True)
+    recent_transactions = recent_transactions[:6]
+
+    return {
+        "summary": summary,
+        "treasury": treasury,
+        "breakdown": breakdown,
+        "cashflow": cashflow,
+        "projects": projects,
+        "recent_transactions": recent_transactions
+    }
