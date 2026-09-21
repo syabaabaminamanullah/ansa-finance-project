@@ -41,8 +41,8 @@ def ensure_database_synced(engine, Base, group: str = "all", force: bool = False
         inserted_counts = {}
         errors = {}
 
-        # Insert tables in forward FK order (Parent -> Child)
-        with engine.begin() as conn:
+        # Insert tables in forward FK order (Parent -> Child) with independent transactions
+        with engine.connect() as conn:
             for pg_table in Base.metadata.sorted_tables:
                 t_name = pg_table.name
                 rows = seed_data.get(t_name, [])
@@ -69,9 +69,9 @@ def ensure_database_synced(engine, Base, group: str = "all", force: bool = False
 
                 if data_to_insert:
                     try:
-                        # True single-query multi-row insert with conflict handling
-                        stmt = pg_insert(pg_table).values(data_to_insert).on_conflict_do_nothing()
-                        conn.execute(stmt)
+                        with conn.begin():
+                            stmt = pg_insert(pg_table).values(data_to_insert).on_conflict_do_nothing()
+                            conn.execute(stmt)
                         inserted_counts[t_name] = len(data_to_insert)
                     except Exception as err:
                         errors[t_name] = str(err)
