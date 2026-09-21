@@ -1,7 +1,7 @@
 import sys
 import os
 import traceback
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 # Determine base paths
@@ -40,6 +40,12 @@ except Exception as e:
     app = FastAPI(title="Diagnostic App")
 
 # Diagnostic & health endpoints attached to app
+@app.get("/ping")
+@app.get("/api/ping")
+def ping(request: Request):
+    return {"status": "ok", "received_path": request.url.path}
+
+@app.get("/debug")
 @app.get("/api/debug")
 def debug():
     backend_exists = os.path.exists(BACKEND_DIR)
@@ -51,6 +57,7 @@ def debug():
         "sys_path": sys.path[:6]
     }
 
+@app.get("/health")
 @app.get("/api/health")
 def health():
     if import_error:
@@ -59,9 +66,3 @@ def health():
             "import_error": import_error
         })
     return {"status": "healthy"}
-
-try:
-    from mangum import Mangum
-    handler = Mangum(app)
-except Exception:
-    handler = app
