@@ -14,8 +14,11 @@ DEFAULT_SQLITE_URL = f"sqlite:///{DB_PATH.replace(os.sep, '/')}"
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 SQLALCHEMY_DATABASE_URL = os.getenv(
-    "POSTGRES_URL",
-    os.getenv("DATABASE_URL", DEFAULT_SQLITE_URL)
+    "SB_POSTGRES_URL",
+    os.getenv(
+        "POSTGRES_URL",
+        os.getenv("DATABASE_URL", DEFAULT_SQLITE_URL)
+    )
 )
 
 # Automatic IPv4 Supabase Pooler Conversion for Serverless (AWS Lambda / Vercel is IPv4-only)
