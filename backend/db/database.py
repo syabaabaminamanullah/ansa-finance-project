@@ -41,17 +41,16 @@ elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "+" not in SQLALCHE
     except ImportError:
         pass
 
-# pg8000 does not support sslmode query param — strip it safely with urllib.parse
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+# pg8000 does not support query params (sslmode, supa, etc) — strip them all
+from urllib.parse import urlparse, urlunparse
 _use_ssl = False
-if "sslmode" in SQLALCHEMY_DATABASE_URL:
+if "pg8000" in SQLALCHEMY_DATABASE_URL or not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     _parsed = urlparse(SQLALCHEMY_DATABASE_URL)
-    _params = parse_qs(_parsed.query)
-    _ssl_val = _params.pop("sslmode", [None])
-    if _ssl_val and _ssl_val[0] in ("require", "verify-ca", "verify-full"):
-        _use_ssl = True
-    _new_query = urlencode(_params, doseq=True)
-    SQLALCHEMY_DATABASE_URL = urlunparse(_parsed._replace(query=_new_query))
+    if _parsed.query:
+        if "sslmode=require" in _parsed.query or "sslmode=verify" in _parsed.query:
+            _use_ssl = True
+        # Remove ALL query params — pg8000 doesn't handle them
+        SQLALCHEMY_DATABASE_URL = urlunparse(_parsed._replace(query=""))
 
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
