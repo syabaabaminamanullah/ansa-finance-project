@@ -18,9 +18,15 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
     DEFAULT_SQLITE_URL
 )
 
-# Handle postgres:// vs postgresql:// for SQLAlchemy 2.0+
+# Prefer pure-Python pg8000 driver for serverless environments (avoids libpq binary crashes)
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
-    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
+elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "+" not in SQLALCHEMY_DATABASE_URL.split("://")[0]:
+    try:
+        import pg8000
+        SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+    except ImportError:
+        pass
 
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
