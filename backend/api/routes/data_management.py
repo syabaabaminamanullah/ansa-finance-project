@@ -19,8 +19,11 @@ DB_FILE_PATH = "./ansa_erp.db"
 UPLOAD_DIR = "./uploads"
 BACKUP_METADATA_FILE = "./uploads/backup_metadata.json"
 
-# Create upload directory if not exists
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Create upload directory if not exists (safe in read-only serverless environments)
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except Exception:
+    pass
 
 @router.get("/status")
 def get_data_management_status(db: Session = Depends(get_db)):

@@ -55,3 +55,10 @@ except Exception as e:
             "error": "FastAPI failed to initialize",
             "traceback": error_details.splitlines()[-20:]
         })
+
+# Export both ASGI app and AWS Lambda/Vercel serverless handler via Mangum
+try:
+    from mangum import Mangum
+    handler = Mangum(app)
+except Exception:
+    handler = app

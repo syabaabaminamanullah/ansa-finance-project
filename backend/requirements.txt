@@ -10,3 +10,4 @@ python-multipart
 alembic
 requests
 python-dotenv
+mangum
