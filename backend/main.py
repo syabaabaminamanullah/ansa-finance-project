@@ -56,8 +56,8 @@ def health_check():
     return {"status": "healthy"}
 
 @app.get("/api/v1/sync-db")
-def sync_database():
+def sync_database(force: bool = False):
     from db.auto_sync import ensure_database_synced
-    return ensure_database_synced(engine, Base)
+    return ensure_database_synced(engine, Base, force=force)
 
 

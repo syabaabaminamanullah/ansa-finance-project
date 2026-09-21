@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from typing import List, Optional
 
 from db.database import get_db
@@ -159,7 +159,7 @@ def create_journal(journal: JournalCreate, db: Session = Depends(get_db)):
 
 @router.get("/journals", response_model=List[JournalResponse])
 def get_journals(skip: int = 0, limit: int = 10000, db: Session = Depends(get_db)):
-    return db.query(Journal).order_by(Journal.date.asc(), Journal.created_at.asc()).offset(skip).limit(limit).all()
+    return db.query(Journal).options(selectinload(Journal.lines)).order_by(Journal.date.asc(), Journal.created_at.asc()).offset(skip).limit(limit).all()
 
 @router.get("/journals/{journal_id}", response_model=JournalResponse)
 def get_journal(journal_id: str, db: Session = Depends(get_db)):

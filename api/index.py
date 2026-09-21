@@ -114,12 +114,27 @@ def debug():
     }
 
 
+@app.get("/api/v1/db-status")
+def db_status():
+    from db.database import engine
+    from sqlalchemy import text
+    tables = ["journals", "journal_lines", "chart_of_accounts", "projects", "expenses", "ar_invoices", "ap_invoices"]
+    counts = {}
+    with engine.connect() as conn:
+        for t in tables:
+            try:
+                counts[t] = conn.execute(text(f'SELECT count(*) FROM "{t}"')).scalar()
+            except Exception as e:
+                counts[t] = f"error: {e}"
+    return counts
+
+
 @app.get("/api/v1/sync-db")
-def sync_database():
+def sync_database(force: bool = False):
     try:
         from db.database import engine, Base
         from db.auto_sync import ensure_database_synced
-        return ensure_database_synced(engine, Base)
+        return ensure_database_synced(engine, Base, force=force)
     except Exception as e:
         import traceback
         return {"error": str(e), "traceback": traceback.format_exc()}

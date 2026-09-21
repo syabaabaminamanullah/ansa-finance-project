@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from sqlalchemy import text
 
-def ensure_database_synced(engine, Base):
+def ensure_database_synced(engine, Base, force: bool = False):
     """
     Fast batch migration in a single transaction to prevent Vercel 10s serverless timeout.
     """
@@ -12,14 +12,20 @@ def ensure_database_synced(engine, Base):
         if url_str.startswith("sqlite"):
             return {"status": "sqlite_local", "message": "Using local SQLite database"}
 
-        # 1. Check if database already has journals populated
-        with engine.connect() as conn:
-            try:
-                count = conn.execute(text('SELECT count(*) FROM "journals"')).scalar()
-                if count and count > 0:
-                    return {"status": "already_populated", "journals_count": count}
-            except Exception:
-                pass
+        # 1. Check if database already has journal_lines populated (not just journals)
+        if not force:
+            with engine.connect() as conn:
+                try:
+                    lines_count = conn.execute(text('SELECT count(*) FROM "journal_lines"')).scalar()
+                    if lines_count and lines_count > 0:
+                        journals_count = conn.execute(text('SELECT count(*) FROM "journals"')).scalar()
+                        return {
+                            "status": "already_populated",
+                            "journals_count": journals_count,
+                            "journal_lines_count": lines_count
+                        }
+                except Exception:
+                    pass
 
         # 2. Locate initial_seed.json
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -58,7 +64,7 @@ def ensure_database_synced(engine, Base):
                     data_to_insert.append(row_dict)
 
                 if data_to_insert:
-                    # Clean existing rows if any then bulk insert
+                    # Clean existing rows then bulk insert
                     try:
                         conn.execute(pg_table.delete())
                     except Exception:
