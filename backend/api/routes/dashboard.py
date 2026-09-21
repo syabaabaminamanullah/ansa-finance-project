@@ -139,21 +139,20 @@ def get_dashboard_summary(
     gross_profit = total_revenue - total_cogs
     net_profit = gross_profit - total_expense
 
-    # Cash Position: Akun Kas Tunai & Bank (111xx, 112xx)
-    kas_bank_accounts = db.query(ChartOfAccount).filter(
+    # Cash Position: Akun Kas Tunai & Bank (111xx, 112xx) - Optimized Single SQL Aggregate
+    cash_position = db.query(
+        func.coalesce(func.sum(JournalLine.debit - JournalLine.credit), 0.0)
+    ).join(
+        Journal, Journal.id == JournalLine.journal_id
+    ).join(
+        ChartOfAccount, ChartOfAccount.id == JournalLine.account_id
+    ).filter(
         or_(
             ChartOfAccount.account_code.like('111%'),
             ChartOfAccount.account_code.like('112%')
-        )
-    ).all()
-    kas_bank_ids = [a.id for a in kas_bank_accounts]
-    cash_lines = db.query(JournalLine).join(Journal, Journal.id == JournalLine.journal_id).filter(
-        JournalLine.account_id.in_(kas_bank_ids),
+        ),
         Journal.status == 'Posted'
-    ).all()
-    total_cash_debit = sum(l.debit or 0 for l in cash_lines)
-    total_cash_credit = sum(l.credit or 0 for l in cash_lines)
-    cash_position = total_cash_debit - total_cash_credit
+    ).scalar() or 0.0
 
     # Outstanding AR & AP
     ar_invoices = db.query(ArInvoice).filter(ArInvoice.date.startswith(current_year)).all()
@@ -223,17 +222,26 @@ def get_treasury_realtime(db: Session = Depends(get_db)):
         '11220': '#D4AF37'
     }
 
+    # Single batch aggregation query for all kas & bank accounts
+    account_ids = [a.id for a in accounts]
+    balance_rows = db.query(
+        JournalLine.account_id,
+        func.coalesce(func.sum(JournalLine.debit), 0.0).label('total_debit'),
+        func.coalesce(func.sum(JournalLine.credit), 0.0).label('total_credit')
+    ).join(
+        Journal, Journal.id == JournalLine.journal_id
+    ).filter(
+        JournalLine.account_id.in_(account_ids),
+        Journal.status == 'Posted'
+    ).group_by(JournalLine.account_id).all()
+
+    balance_map = {r[0]: (float(r[1]) - float(r[2])) for r in balance_rows}
+
     treasury_accounts = []
     total_cash = 0.0
 
     for a in accounts:
-        lines = db.query(JournalLine).join(Journal, Journal.id == JournalLine.journal_id).filter(
-            JournalLine.account_id == a.id,
-            Journal.status == 'Posted'
-        ).all()
-        deb = sum(l.debit or 0.0 for l in lines)
-        cred = sum(l.credit or 0.0 for l in lines)
-        bal = deb - cred
+        bal = balance_map.get(a.id, 0.0)
 
         # Find linked bank
         linked_bank = bank_by_coa_id.get(a.id)
@@ -371,8 +379,12 @@ def get_cashflow_monthly(
     ).all()
     cash_account_ids = [c[0] for c in cash_accounts]
 
-    # Ambil journal lines
-    line_q = db.query(JournalLine).join(
+    # Ambil data cash lines beserta tanggal jurnal secara langsung (Tanpa N+1 query)
+    line_q = db.query(
+        JournalLine.debit,
+        JournalLine.credit,
+        Journal.date
+    ).join(
         Journal, Journal.id == JournalLine.journal_id
     ).filter(
         JournalLine.account_id.in_(cash_account_ids),
@@ -393,16 +405,16 @@ def get_cashflow_monthly(
         import collections
         from datetime import timedelta
         weeks_map = collections.defaultdict(lambda: {'in': 0.0, 'out': 0.0, 'monday': None, 'wk_num': 0})
-        for line in lines:
+        for deb, cred, jdate in lines:
             try:
-                d = datetime.strptime(str(line.journal.date)[:10], "%Y-%m-%d")
+                d = datetime.strptime(str(jdate)[:10], "%Y-%m-%d")
             except Exception:
                 continue
             iso_year, iso_week, _ = d.isocalendar()
             monday = d - timedelta(days=d.weekday())
             wk_key = (iso_year, iso_week)
-            weeks_map[wk_key]['in'] += (line.debit or 0.0)
-            weeks_map[wk_key]['out'] += (line.credit or 0.0)
+            weeks_map[wk_key]['in'] += (deb or 0.0)
+            weeks_map[wk_key]['out'] += (cred or 0.0)
             weeks_map[wk_key]['monday'] = monday
             weeks_map[wk_key]['wk_num'] = iso_week
 
@@ -420,13 +432,13 @@ def get_cashflow_monthly(
     elif interval == "year":
         import collections
         years_map = collections.defaultdict(lambda: {'in': 0.0, 'out': 0.0})
-        for line in lines:
+        for deb, cred, jdate in lines:
             try:
-                yr = str(line.journal.date)[:4]
+                yr = str(jdate)[:4]
             except Exception:
                 continue
-            years_map[yr]['in'] += (line.debit or 0.0)
-            years_map[yr]['out'] += (line.credit or 0.0)
+            years_map[yr]['in'] += (deb or 0.0)
+            years_map[yr]['out'] += (cred or 0.0)
 
         for y in ['2024', '2025', '2026']:
             if y not in years_map:
@@ -449,14 +461,14 @@ def get_cashflow_monthly(
                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         monthly_data = {m: {'in': 0.0, 'out': 0.0} for m in months}
 
-        for line in lines:
+        for deb, cred, jdate in lines:
             try:
-                d = datetime.strptime(str(line.journal.date)[:10], "%Y-%m-%d")
+                d = datetime.strptime(str(jdate)[:10], "%Y-%m-%d")
             except Exception:
                 continue
             m = months[d.month - 1]
-            monthly_data[m]['in'] += (line.debit or 0.0)
-            monthly_data[m]['out'] += (line.credit or 0.0)
+            monthly_data[m]['in'] += (deb or 0.0)
+            monthly_data[m]['out'] += (cred or 0.0)
 
         current_month_idx = today.month
         display_months = months[:min(current_month_idx + 1, 12)]

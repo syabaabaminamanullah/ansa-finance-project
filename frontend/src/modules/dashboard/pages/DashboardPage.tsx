@@ -124,9 +124,29 @@ export function DashboardPage() {
   const [forecastHorizon, setForecastHorizon] = useState<HorizonType>('1_month');
   const [forecastProject, setForecastProject] = useState<string>('ALL');
 
+  // Load cached dashboard data immediately on mount for 0-second instant display
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('ansa_dashboard_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.summary) setSummary(parsed.summary);
+        if (parsed.treasuryData) setTreasuryData(parsed.treasuryData);
+        if (parsed.allProjectsList) setAllProjectsList(parsed.allProjectsList);
+        if (parsed.expenseBreakdown) setExpenseBreakdown(parsed.expenseBreakdown);
+        if (parsed.cashFlowData) setCashFlowData(parsed.cashFlowData);
+        if (parsed.budgetData) setBudgetData(parsed.budgetData);
+        if (parsed.projectSummaries) setProjectSummaries(parsed.projectSummaries);
+      }
+    } catch (_) {}
+  }, []);
+
   // Master Data & Filtered Fetch Function
   const fetchDashboardData = useCallback(async (projId: string, period: string, interval: 'week' | 'month' | 'year' = 'month') => {
-    setIsLoading(true);
+    // Only show spinner if no data is present yet
+    if (!summary || Object.keys(summary).length === 0) {
+      setIsLoading(true);
+    }
     try {
       const projParam = projId === 'ALL' ? '' : `project_id=${projId}`;
       const periodParam = `period=${period}`;
@@ -135,7 +155,8 @@ export function DashboardPage() {
 
       const cfQuery = [projId !== 'ALL' ? `project_id=${projId}` : '', `interval=${interval}`].filter(Boolean).join('&');
 
-      const [projRes, expRes, apRes, arRes, summaryRes, treasuryRes, expBreakdownRes, cfRes, coasRes, jourRes] = await Promise.all([
+      // 1. Fetch Core Dashboard visual data concurrently (ultra-fast)
+      const [projRes, expRes, apRes, arRes, summaryRes, treasuryRes, expBreakdownRes, cfRes] = await Promise.all([
         projectsApi.getProjects(),
         financeApi.getExpenses(),
         financeApi.getApInvoices(),
@@ -143,24 +164,25 @@ export function DashboardPage() {
         api.get(`/dashboard/summary${urlQuery}`),
         api.get(`/dashboard/treasury`),
         api.get(`/dashboard/expense-breakdown${urlQuery}`),
-        api.get(`/dashboard/cashflow-monthly?${cfQuery}`),
-        financialsApi.getCoas(),
-        financeApi.getJournals()
+        api.get(`/dashboard/cashflow-monthly?${cfQuery}`)
       ]);
 
-      const projects = projRes.data;
-      const expenses = expRes.data;
-      const apInvoices = apRes.data;
-      const arInvoices = arRes.data;
+      const projects = projRes.data || [];
+      const expenses = expRes.data || [];
+      const apInvoices = apRes.data || [];
+      const arInvoices = arRes.data || [];
 
       setAllProjectsList(projects);
       setSummary(summaryRes.data);
       setTreasuryData(treasuryRes.data);
       setExpenseBreakdown(expBreakdownRes.data);
       setCashFlowData(cfRes.data);
-      setCoas(coasRes.data || []);
-      setJournals(jourRes.data || []);
-      setArInvoicesList(arRes.data || []);
+      setArInvoicesList(arInvoices);
+      setIsLoading(false);
+
+      // 2. Fetch heavy forecast data in background without blocking dashboard view
+      financialsApi.getCoas().then(res => setCoas(res.data || [])).catch(() => {});
+      financeApi.getJournals().then(res => setJournals(res.data || [])).catch(() => {});
 
       // 1. Budget vs Actual
       const targetProjects = projId === 'ALL' 
@@ -265,6 +287,19 @@ export function DashboardPage() {
 
       allTransactions.sort((a, b) => b.rawDate - a.rawDate);
       setRecentTransactions(allTransactions.slice(0, 6));
+
+      // Save cache for instantaneous 0-second reloads
+      try {
+        sessionStorage.setItem('ansa_dashboard_cache', JSON.stringify({
+          summary: summaryRes.data,
+          treasuryData: treasuryRes.data,
+          allProjectsList: projects,
+          expenseBreakdown: expBreakdownRes.data,
+          cashFlowData: cfRes.data,
+          budgetData: computedBudgets,
+          projectSummaries: projSums
+        }));
+      } catch (_) {}
 
     } catch (err) {
       console.error("Failed to load dashboard data", err);
