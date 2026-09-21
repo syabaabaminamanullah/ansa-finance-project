@@ -3,8 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.routes import organization, financials, finance, projects, stakeholders, hr, inventory, project_ops, reports, project_rabs, assets, financial_statements, procurement, data_management, billing_schedule
 from db.database import engine, Base
 
-# Create tables (for dev only, in prod use Alembic)
-Base.metadata.create_all(bind=engine)
+# Create tables (safely ignore if connection delays or already migrated)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Database initialization notice: {e}")
+
 
 app = FastAPI(
     title="ANSA ERP API",
@@ -45,9 +49,12 @@ app.include_router(equipment.router, prefix="/api/v1/equipment", tags=["Equipmen
 app.include_router(profile.router, prefix="/api/v1/profile", tags=["User Profile"])
 
 @app.get("/")
+@app.get("/api")
 def read_root():
     return {"message": "Welcome to ANSA ERP API", "status": "active"}
 
 @app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {"status": "healthy"}
+
