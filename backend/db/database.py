@@ -41,6 +41,10 @@ elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "+" not in SQLALCHE
     except ImportError:
         pass
 
+# Use session pooler port 5432 instead of transaction pooler 6543 for full PostgreSQL statement support
+if ":6543" in SQLALCHEMY_DATABASE_URL:
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace(":6543", ":5432")
+
 # pg8000 does not support query params (sslmode, supa, etc) — strip them all
 from urllib.parse import urlparse, urlunparse
 _use_ssl = False
