@@ -165,7 +165,7 @@ async def restore_database(file: UploadFile = File(...), db: Session = Depends(g
     if not file.filename.endswith(('.db', '.sql')):
         raise HTTPException(status_code=400, detail="Invalid file type. Only .db or .sql files allowed.")
     
-    # If SQLite on disk
+    # 1. If SQLite on disk (local development)
     local_path = _resolve_local_db_path()
     if SQLALCHEMY_DATABASE_URL.startswith("sqlite") and local_path:
         engine.dispose()
@@ -176,7 +176,7 @@ async def restore_database(file: UploadFile = File(...), db: Session = Depends(g
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to restore database: {str(e)}")
 
-    # If PostgreSQL on cloud: restore from uploaded SQLite db
+    # 2. If PostgreSQL on cloud (Vercel / Supabase): restore from uploaded SQLite backup
     import tempfile
     tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
     tmp_path = tmp.name
@@ -185,19 +185,99 @@ async def restore_database(file: UploadFile = File(...), db: Session = Depends(g
         tmp.close()
         
         src_engine = create_engine(f"sqlite:///{tmp_path.replace(os.sep, '/')}")
+
+        # Step A: Empty existing tables safely
+        table_names = [f'"{t.name}"' for t in Base.metadata.sorted_tables]
+        try:
+            db.execute(text(f"TRUNCATE TABLE {', '.join(table_names)} CASCADE;"))
+            db.commit()
+        except Exception:
+            db.rollback()
+            try:
+                db.execute(text('UPDATE "employees" SET "crew_id" = NULL;'))
+                db.execute(text('UPDATE "crews" SET "leader_id" = NULL;'))
+                db.commit()
+            except Exception:
+                db.rollback()
+            for t in reversed(Base.metadata.sorted_tables):
+                try:
+                    db.execute(t.delete())
+                    db.commit()
+                except Exception:
+                    db.rollback()
+
+        # Step B: Insert tables with foreign key handling
+        use_replica_role = False
+        try:
+            db.execute(text("SET session_replication_role = 'replica';"))
+            db.commit()
+            use_replica_role = True
+        except Exception:
+            db.rollback()
+
+        deferred_updates = []
+        restored_total = 0
+
         with src_engine.connect() as src_conn:
             for table in Base.metadata.sorted_tables:
                 try:
                     src_rows = src_conn.execute(table.select()).mappings().all()
-                    if src_rows:
-                        # Clear target table and re-insert
-                        db.execute(table.delete())
-                        db.execute(table.insert(), [dict(r) for r in src_rows])
+                    if not src_rows:
+                        continue
+
+                    clean_rows = []
+                    for row in src_rows:
+                        d = dict(row)
+                        for k, v in list(d.items()):
+                            if v == "":
+                                col = table.columns.get(k)
+                                if col is not None:
+                                    if col.foreign_keys or str(col.type).lower().startswith(('uuid', 'int', 'float', 'num', 'date', 'bool')):
+                                        d[k] = None
+                                    elif k.endswith('_id'):
+                                        d[k] = None
+
+                        if not use_replica_role:
+                            if table.name == "employees" and d.get("crew_id"):
+                                deferred_updates.append(("employees", "crew_id", d["id"], d["crew_id"]))
+                                d["crew_id"] = None
+                            elif table.name == "crews" and d.get("leader_id"):
+                                deferred_updates.append(("crews", "leader_id", d["id"], d["leader_id"]))
+                                d["leader_id"] = None
+
+                        clean_rows.append(d)
+
+                    if clean_rows:
+                        for i in range(0, len(clean_rows), 500):
+                            chunk = clean_rows[i:i+500]
+                            db.execute(table.insert(), chunk)
+                        db.commit()
+                        restored_total += len(clean_rows)
+
                 except Exception as ex:
+                    db.rollback()
                     print(f"Error restoring table {table.name}: {ex}")
+
+            # Re-apply deferred circular foreign keys
+            for tbl_name, col_name, row_id, val in deferred_updates:
+                try:
+                    db.execute(
+                        text(f'UPDATE "{tbl_name}" SET "{col_name}" = :val WHERE "id" = :rid'),
+                        {"val": val, "rid": row_id}
+                    )
+                except Exception as ex:
+                    print(f"Error re-linking {tbl_name}.{col_name}: {ex}")
             db.commit()
+
+        if use_replica_role:
+            try:
+                db.execute(text("SET session_replication_role = 'DEFAULT';"))
+                db.commit()
+            except Exception:
+                db.rollback()
+
         src_engine.dispose()
-        return {"message": "Database restored successfully"}
+        return {"message": f"Database restored successfully ({restored_total} records restored)"}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to restore database: {str(e)}")

@@ -154,7 +154,9 @@ export function DataManagementSettings() {
       if (uploadType === 'db_restore') {
         addToast('success', 'Restoring Database', 'Uploading and restoring database file...');
         await dataManagementApi.restore(file);
+        try { sessionStorage.clear(); } catch (_) {}
         addToast('success', 'Restore Successful', 'Database has been restored successfully. Refresh to see changes.');
+        await fetchStatus();
       } else if (uploadType === 'excel_import') {
         addToast('success', 'Importing Data', 'Processing master data CSV import...');
         const res = await dataManagementApi.importMaster(file);
