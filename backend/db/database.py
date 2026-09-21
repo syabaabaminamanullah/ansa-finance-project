@@ -41,6 +41,15 @@ elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "+" not in SQLALCHE
     except ImportError:
         pass
 
+# pg8000 does not support sslmode query param — strip it and use ssl context instead
+import re as _re
+_use_ssl = False
+if "sslmode" in SQLALCHEMY_DATABASE_URL:
+    _use_ssl = "sslmode=require" in SQLALCHEMY_DATABASE_URL or "sslmode=verify" in SQLALCHEMY_DATABASE_URL
+    SQLALCHEMY_DATABASE_URL = _re.sub(r'[?&]sslmode=[^&]*', '', SQLALCHEMY_DATABASE_URL)
+    # Clean up leftover ? or &
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.rstrip('?').rstrip('&')
+
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL, 
@@ -48,10 +57,18 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
         pool_pre_ping=True
     )
 else:
+    _connect_args = {}
+    if _use_ssl or "pg8000" in SQLALCHEMY_DATABASE_URL:
+        import ssl as _ssl
+        _ctx = _ssl.create_default_context()
+        _ctx.check_hostname = False
+        _ctx.verify_mode = _ssl.CERT_NONE
+        _connect_args["ssl_context"] = _ctx
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL, 
         poolclass=NullPool,
-        pool_pre_ping=True
+        pool_pre_ping=True,
+        connect_args=_connect_args
     )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
