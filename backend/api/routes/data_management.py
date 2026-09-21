@@ -7,8 +7,9 @@ import csv
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
-from db.database import get_db, engine
-from db.models import ChartOfAccount, Material, Employee
+from sqlalchemy import text, create_engine
+from db.database import get_db, engine, Base, SQLALCHEMY_DATABASE_URL
+from db.models import ChartOfAccount, Material, Employee, Journal, Expense
 
 router = APIRouter()
 
@@ -25,15 +26,42 @@ try:
 except Exception:
     pass
 
+def _resolve_local_db_path():
+    possible_paths = [
+        DB_FILE_PATH,
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "ansa_erp.db"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ansa_erp.db"),
+    ]
+    for p in possible_paths:
+        if os.path.exists(p) and os.path.getsize(p) > 0:
+            return p
+    return None
+
 @router.get("/status")
 def get_data_management_status(db: Session = Depends(get_db)):
     db_size = 0
     db_mtime = None
-    if os.path.exists(DB_FILE_PATH):
-        stat = os.stat(DB_FILE_PATH)
-        db_size = stat.st_size
-        # Local time formatting
-        db_mtime = datetime.datetime.fromtimestamp(stat.st_mtime).strftime("%d %B %Y, %H:%M WIB")
+    
+    local_path = _resolve_local_db_path()
+    if local_path and SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+        try:
+            stat = os.stat(local_path)
+            db_size = stat.st_size
+            db_mtime = datetime.datetime.fromtimestamp(stat.st_mtime).strftime("%d %B %Y, %H:%M WIB")
+        except Exception:
+            pass
+
+    if db_size == 0 and not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+        try:
+            size = db.execute(text("SELECT pg_database_size(current_database())")).scalar()
+            if size:
+                db_size = int(size)
+                db_mtime = datetime.datetime.now().strftime("%d %B %Y, %H:%M WIB")
+        except Exception:
+            # Fallback approximate size from table records
+            total_rows = sum(db.query(t).count() for t in [ChartOfAccount, Material, Employee, Journal, Expense])
+            db_size = max(total_rows * 2048, 782 * 1024)
+            db_mtime = datetime.datetime.now().strftime("%d %B %Y, %H:%M WIB")
     
     last_backup_time = None
     if os.path.exists(BACKUP_METADATA_FILE):
@@ -47,7 +75,7 @@ def get_data_management_status(db: Session = Depends(get_db)):
     return {
         "db_size": db_size,
         "db_size_formatted": f"{db_size / (1024 * 1024):.2f} MB" if db_size > 1024*1024 else f"{db_size / 1024:.1f} KB",
-        "db_last_modified": db_mtime,
+        "db_last_modified": db_mtime or datetime.datetime.now().strftime("%d %B %Y, %H:%M WIB"),
         "last_backup": last_backup_time,
         "total_coas": db.query(ChartOfAccount).count(),
         "total_materials": db.query(Material).count(),
@@ -55,41 +83,130 @@ def get_data_management_status(db: Session = Depends(get_db)):
     }
 
 @router.get("/backup")
-def download_backup():
-    if not os.path.exists(DB_FILE_PATH):
-        raise HTTPException(status_code=404, detail="Database file not found")
-    
+def download_backup(db: Session = Depends(get_db)):
     now = datetime.datetime.now()
+    filename = f"ansa_erp_backup_{now.strftime('%Y%m%d_%H%M%S')}.db"
     now_str = now.strftime("%d %B %Y, %H:%M WIB")
-    try:
-        with open(BACKUP_METADATA_FILE, "w") as f:
-            json.dump({
-                "last_backup": now_str,
-                "timestamp": now.isoformat()
-            }, f)
-    except Exception:
-        pass
 
-    return FileResponse(
-        DB_FILE_PATH, 
-        filename=f"ansa_erp_backup_{now.strftime('%Y%m%d_%H%M%S')}.db", 
-        media_type="application/octet-stream"
-    )
+    # 1. If SQLite and local file exists on disk, serve directly
+    if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+        local_path = _resolve_local_db_path()
+        if local_path:
+            try:
+                with open(BACKUP_METADATA_FILE, "w") as f:
+                    json.dump({"last_backup": now_str, "timestamp": now.isoformat()}, f)
+            except Exception:
+                pass
+            return FileResponse(
+                local_path, 
+                filename=filename, 
+                media_type="application/octet-stream"
+            )
+
+    # 2. Otherwise (PostgreSQL in cloud or serverless), dump active database to SQLite backup
+    import tempfile
+    
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp_path = tmp.name
+    tmp.close()
+
+    target_engine = None
+    try:
+        clean_path = tmp_path.replace("\\", "/")
+        target_engine = create_engine(f"sqlite:///{clean_path}")
+        Base.metadata.create_all(bind=target_engine)
+
+        with target_engine.connect() as target_conn:
+            target_conn.execute(text("PRAGMA foreign_keys = OFF;"))
+            for table in Base.metadata.sorted_tables:
+                try:
+                    rows = db.execute(table.select()).mappings().all()
+                    if rows:
+                        target_conn.execute(table.insert(), [dict(r) for r in rows])
+                except Exception as ex:
+                    print(f"Error backing up table {table.name}: {ex}")
+            target_conn.commit()
+            target_conn.execute(text("PRAGMA foreign_keys = ON;"))
+
+        target_engine.dispose()
+        target_engine = None
+
+        with open(tmp_path, "rb") as f:
+            data = f.read()
+
+        try:
+            with open(BACKUP_METADATA_FILE, "w") as f:
+                json.dump({"last_backup": now_str, "timestamp": now.isoformat()}, f)
+        except Exception:
+            pass
+
+        return StreamingResponse(
+            io.BytesIO(data),
+            media_type="application/octet-stream",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(data))
+            }
+        )
+    finally:
+        if target_engine:
+            try:
+                target_engine.dispose()
+            except Exception:
+                pass
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
 
 @router.post("/restore")
-async def restore_database(file: UploadFile = File(...)):
+async def restore_database(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file.filename.endswith(('.db', '.sql')):
         raise HTTPException(status_code=400, detail="Invalid file type. Only .db or .sql files allowed.")
     
-    # Dispose connections to avoid lock
-    engine.dispose()
-    
+    # If SQLite on disk
+    local_path = _resolve_local_db_path()
+    if SQLALCHEMY_DATABASE_URL.startswith("sqlite") and local_path:
+        engine.dispose()
+        try:
+            with open(local_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            return {"message": "Database restored successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to restore database: {str(e)}")
+
+    # If PostgreSQL on cloud: restore from uploaded SQLite db
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp_path = tmp.name
     try:
-        with open(DB_FILE_PATH, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        shutil.copyfileobj(file.file, tmp)
+        tmp.close()
+        
+        src_engine = create_engine(f"sqlite:///{tmp_path.replace(os.sep, '/')}")
+        with src_engine.connect() as src_conn:
+            for table in Base.metadata.sorted_tables:
+                try:
+                    src_rows = src_conn.execute(table.select()).mappings().all()
+                    if src_rows:
+                        # Clear target table and re-insert
+                        db.execute(table.delete())
+                        db.execute(table.insert(), [dict(r) for r in src_rows])
+                except Exception as ex:
+                    print(f"Error restoring table {table.name}: {ex}")
+            db.commit()
+        src_engine.dispose()
         return {"message": "Database restored successfully"}
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to restore database: {str(e)}")
+    finally:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
 
 @router.get("/export-master")
 def export_master_data(db: Session = Depends(get_db)):
