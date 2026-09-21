@@ -130,11 +130,11 @@ def db_status():
 
 
 @app.get("/api/v1/sync-db")
-def sync_database(group: str = "all", force: bool = False):
+def sync_database(table: str = None, force: bool = False):
     try:
         from db.database import engine, Base
         from db.auto_sync import ensure_database_synced
-        return ensure_database_synced(engine, Base, group=group, force=force)
+        return ensure_database_synced(engine, Base, table_name=table, force=force)
     except Exception as e:
         import traceback
         return {"error": str(e), "traceback": traceback.format_exc()}

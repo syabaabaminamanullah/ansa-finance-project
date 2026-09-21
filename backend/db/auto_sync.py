@@ -4,10 +4,19 @@ from datetime import datetime
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-def ensure_database_synced(engine, Base, group: str = "all", force: bool = False):
+EXPLICIT_ORDER = [
+    "companies", "branches", "cost_centers", "currencies", "tax_codes",
+    "user_profiles", "shifts", "chart_of_accounts", "banks", "customers",
+    "vendors", "employees", "warehouses", "projects", "areas", "work_packages",
+    "activities", "project_rabs", "project_resources", "purchase_orders",
+    "purchase_order_items", "ap_invoices", "ar_invoices", "billing_schedules",
+    "billing_terms", "journals", "journal_lines", "expenses"
+]
+
+def ensure_database_synced(engine, Base, table_name: str = None, force: bool = False):
     """
-    True multi-row VALUES batch insertion with ON CONFLICT DO NOTHING.
-    Executes in < 2 seconds for all 28 tables.
+    Syncs SQLite seed data into Supabase PostgreSQL using explicit FK-safe order.
+    Can sync a single table or all 28 tables.
     """
     try:
         url_str = str(engine.url)
@@ -15,7 +24,7 @@ def ensure_database_synced(engine, Base, group: str = "all", force: bool = False
             return {"status": "sqlite_local", "message": "Using local SQLite database"}
 
         # Quick check if already fully populated
-        if not force:
+        if not force and not table_name:
             with engine.connect() as conn:
                 try:
                     jl = conn.execute(text('SELECT count(*) FROM "journal_lines"')).scalar()
@@ -38,13 +47,23 @@ def ensure_database_synced(engine, Base, group: str = "all", force: bool = False
         with open(seed_path, "r", encoding="utf-8") as f:
             seed_data = json.load(f)
 
+        tables_map = {t.name: t for t in Base.metadata.sorted_tables}
+
+        # Determine tables to process
+        if table_name:
+            target_tables = [table_name] if table_name in tables_map else []
+        else:
+            target_tables = [t for t in EXPLICIT_ORDER if t in tables_map]
+
         inserted_counts = {}
         errors = {}
 
-        # Insert tables in forward FK order (Parent -> Child) with independent transactions
         with engine.connect() as conn:
-            for pg_table in Base.metadata.sorted_tables:
-                t_name = pg_table.name
+            for t_name in target_tables:
+                pg_table = tables_map.get(t_name)
+                if pg_table is None:
+                    continue
+
                 rows = seed_data.get(t_name, [])
                 if not rows:
                     continue
@@ -78,7 +97,6 @@ def ensure_database_synced(engine, Base, group: str = "all", force: bool = False
 
         return {
             "status": "success",
-            "message": "Instant multi-row seed completed",
             "inserted_tables": inserted_counts,
             "errors": errors if errors else None
         }
