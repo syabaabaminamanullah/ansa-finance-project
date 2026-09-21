@@ -1,8 +1,5 @@
 import sys
 import os
-import traceback
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 
 # Determine base paths
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,57 +9,99 @@ BACKEND_DIR = os.path.join(BASE_DIR, "backend")
 # Ensure backend directory is in sys.path
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
-
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-import_error = None
+# Change working directory so relative paths in backend work
 try:
-    # Handle namespace collision between root api/ and backend/api/
-    if "api" in sys.modules and hasattr(sys.modules["api"], "__path__"):
-        backend_api_dir = os.path.join(BACKEND_DIR, "api")
-        if os.path.exists(backend_api_dir) and backend_api_dir not in sys.modules["api"].__path__:
-            sys.modules["api"].__path__.append(backend_api_dir)
+    os.chdir(BACKEND_DIR)
+except Exception:
+    pass
 
-    # Change working directory so relative paths in backend work
-    if os.path.exists(BACKEND_DIR):
-        try:
-            os.chdir(BACKEND_DIR)
-        except Exception:
-            pass
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-    from main import app as backend_app
-    app = backend_app
+app = FastAPI(
+    title="ANSA ERP API",
+    description="Enterprise Resource Planning API for Soil Drilling / Geotechnical Company",
+    version="1.0.0"
+)
 
-except Exception as e:
-    import_error = traceback.format_exc()
-    print("BACKEND IMPORT ERROR:", import_error)
-    app = FastAPI(title="Diagnostic App")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Diagnostic & health endpoints attached to app
-@app.get("/ping")
-@app.get("/api/ping")
-def ping(request: Request):
-    return {"status": "ok", "received_path": request.url.path}
+# Import and register all routers
+try:
+    from api.routes import (
+        organization, financials, finance, projects, stakeholders,
+        hr, inventory, project_ops, reports, project_rabs, assets,
+        financial_statements, procurement, data_management, billing_schedule,
+        dashboard, equipment, profile
+    )
+    from db.database import engine, Base
 
-@app.get("/debug")
-@app.get("/api/debug")
-def debug():
-    backend_exists = os.path.exists(BACKEND_DIR)
-    return {
-        "import_error": import_error,
-        "cwd": os.getcwd(),
-        "backend_exists": backend_exists,
-        "files_cwd": os.listdir(os.getcwd()) if os.path.exists(os.getcwd()) else [],
-        "sys_path": sys.path[:6]
-    }
+    app.include_router(organization.router, prefix="/api/v1/master-data/organization", tags=["Organization"])
+    app.include_router(financials.router, prefix="/api/v1/master-data/financials", tags=["Financial Master Data"])
+    app.include_router(finance.router, prefix="/api/v1/finance", tags=["Finance & Accounting"])
+    app.include_router(reports.router, prefix="/api/v1/finance", tags=["Financial Reports"])
+    app.include_router(projects.router, prefix="/api/v1/master-data/project-structure", tags=["Project Structure"])
+    app.include_router(stakeholders.router, prefix="/api/v1/master-data/stakeholders", tags=["Stakeholders"])
+    app.include_router(hr.router, prefix="/api/v1/master-data/hr", tags=["Human Resources"])
+    app.include_router(inventory.router, prefix="/api/v1/master-data/inventory", tags=["Asset & Inventory"])
+    app.include_router(project_ops.router, prefix="/api/v1/project-ops", tags=["Project Operations"])
+    app.include_router(project_rabs.router, prefix="/api/v1", tags=["Project RAB"])
+    app.include_router(assets.router, prefix="/api/v1/assets", tags=["Fixed Assets"])
+    app.include_router(financial_statements.router, prefix="/api/v1", tags=["Standard Financial Statements"])
+    app.include_router(procurement.router, prefix="/api/v1/procurement", tags=["Procurement"])
+    app.include_router(data_management.router, prefix="/api/v1/data-management", tags=["Data Management"])
+    app.include_router(billing_schedule.router, prefix="/api/v1/finance", tags=["Billing Schedule"])
+    app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
+    app.include_router(equipment.router, prefix="/api/v1/equipment", tags=["Equipment"])
+    app.include_router(profile.router, prefix="/api/v1/profile", tags=["User Profile"])
+
+    _routers_loaded = True
+    _router_error = None
+except Exception as _e:
+    import traceback
+    _router_error = traceback.format_exc()
+    _routers_loaded = False
+    print("ROUTER IMPORT ERROR:", _router_error)
+
+
+@app.get("/")
+@app.get("/api")
+def read_root():
+    return {"message": "Welcome to ANSA ERP API", "status": "active"}
+
 
 @app.get("/health")
 @app.get("/api/health")
-def health():
-    if import_error:
-        return JSONResponse(status_code=500, content={
-            "status": "error",
-            "import_error": import_error
-        })
-    return {"status": "healthy"}
+def health_check():
+    return {"status": "healthy", "routers_loaded": _routers_loaded}
+
+
+@app.get("/api/debug")
+def debug():
+    return {
+        "routers_loaded": _routers_loaded,
+        "router_error": _router_error,
+        "cwd": os.getcwd(),
+        "backend_dir": BACKEND_DIR,
+        "sys_path": sys.path[:6],
+    }
+
+
+@app.get("/api/v1/sync-db")
+def sync_database():
+    try:
+        from db.database import engine, Base
+        from db.auto_sync import ensure_database_synced
+        return ensure_database_synced(engine, Base)
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
