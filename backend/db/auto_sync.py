@@ -75,6 +75,9 @@ def ensure_database_synced(engine, Base, table_name: str = None, force: bool = F
                     for col_name, val in r.items():
                         if col_name not in pg_columns:
                             continue
+                        # Sanitize empty string foreign keys to None (NULL)
+                        if col_name.endswith('_id') and isinstance(val, str) and not val.strip():
+                            val = None
                         col_type = str(pg_table.columns[col_name].type).upper()
                         if "BOOL" in col_type and val is not None:
                             val = bool(val)
