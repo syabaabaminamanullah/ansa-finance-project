@@ -4,59 +4,62 @@ import traceback
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-# Resolve base directories
+# Determine base paths
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(CURRENT_DIR)
 BACKEND_DIR = os.path.join(BASE_DIR, "backend")
 
-# Ensure backend directory is at the front of sys.path
+# Ensure backend directory is in sys.path
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-# If 'api' is already registered in sys.modules pointing to root api/,
-# extend its __path__ so Python can locate backend/api/routes submodules
-if "api" in sys.modules:
-    backend_api_dir = os.path.join(BACKEND_DIR, "api")
-    if os.path.exists(backend_api_dir) and hasattr(sys.modules["api"], "__path__"):
-        if backend_api_dir not in sys.modules["api"].__path__:
+import_error = None
+try:
+    # Handle namespace collision between root api/ and backend/api/
+    if "api" in sys.modules and hasattr(sys.modules["api"], "__path__"):
+        backend_api_dir = os.path.join(BACKEND_DIR, "api")
+        if os.path.exists(backend_api_dir) and backend_api_dir not in sys.modules["api"].__path__:
             sys.modules["api"].__path__.append(backend_api_dir)
 
-try:
+    # Change working directory so relative paths in backend work
     if os.path.exists(BACKEND_DIR):
-        os.chdir(BACKEND_DIR)
-except Exception:
-    pass
+        try:
+            os.chdir(BACKEND_DIR)
+        except Exception:
+            pass
 
-error_details = None
+    from main import app as backend_app
+    app = backend_app
 
-try:
-    from main import app
 except Exception as e:
-    error_details = traceback.format_exc()
-    print("Failed to import main app:", error_details)
-    
-    # Fallback app so serverless function does not crash with FUNCTION_INVOCATION_FAILED
-    app = FastAPI(title="Error Diagnostic App")
-    
-    @app.get("/api/health")
-    @app.get("/health")
-    def health():
-        return JSONResponse(status_code=500, content={
-            "status": "initialization_failed",
-            "traceback": error_details.splitlines()[-15:]
-        })
-        
-    @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-    def catch_all(path: str):
-        return JSONResponse(status_code=500, content={
-            "error": "FastAPI failed to initialize",
-            "traceback": error_details.splitlines()[-20:]
-        })
+    import_error = traceback.format_exc()
+    print("BACKEND IMPORT ERROR:", import_error)
+    app = FastAPI(title="Diagnostic App")
 
-# Export both ASGI app and AWS Lambda/Vercel serverless handler via Mangum
+# Diagnostic & health endpoints attached to app
+@app.get("/api/debug")
+def debug():
+    backend_exists = os.path.exists(BACKEND_DIR)
+    return {
+        "import_error": import_error,
+        "cwd": os.getcwd(),
+        "backend_exists": backend_exists,
+        "files_cwd": os.listdir(os.getcwd()) if os.path.exists(os.getcwd()) else [],
+        "sys_path": sys.path[:6]
+    }
+
+@app.get("/api/health")
+def health():
+    if import_error:
+        return JSONResponse(status_code=500, content={
+            "status": "error",
+            "import_error": import_error
+        })
+    return {"status": "healthy"}
+
 try:
     from mangum import Mangum
     handler = Mangum(app)
