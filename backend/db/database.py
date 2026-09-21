@@ -2,11 +2,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+from dotenv import load_dotenv
 
 # Resolve absolute path to ansa_erp.db in backend folder
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "ansa_erp.db")
 DEFAULT_SQLITE_URL = f"sqlite:///{DB_PATH.replace(os.sep, '/')}"
+
+# Load .env if present
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL", 
