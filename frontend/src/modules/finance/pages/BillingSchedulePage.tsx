@@ -12,7 +12,8 @@ import { generateBillingInvoicePDF, generateExactCoreterraInvoicePDF } from '../
 import { generateFormat2InvoicePDF } from '../utils/invoiceFormat2PDF';
 import { generatePaymentReceiptPDF } from '../utils/paymentReceiptPDF';
 
-const API_BASE = 'http://localhost:8000/api/v1/finance';
+const API_ROOT = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://127.0.0.1:8000/api/v1');
+const API_BASE = `${API_ROOT}/finance`;
 
 // ---- Types ----
 interface BillingTerm {
@@ -1473,7 +1474,7 @@ export function BillingSchedulePage() {
         fetch(`${API_BASE}/billing-schedules`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
         projectsApi.getProjects(),
         stakeholdersApi.getCustomers(),
-        fetch('http://localhost:8000/api/v1/master-data/financials/coas', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+        fetch(`${API_ROOT}/master-data/financials/coas`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
       ]);
       setSchedules(Array.isArray(schedRes) ? schedRes : []);
       setProjects(projRes.data || []);

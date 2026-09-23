@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './api';
 
-const API_URL = 'http://localhost:8000/api/v1/project-ops';
+const API_URL = `${API_BASE_URL}/project-ops`;
 
 // Resources
 export interface ProjectResource {

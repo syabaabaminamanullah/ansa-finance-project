@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useToastStore } from '../../../store/toastStore';
 import { generateSingleReportPDF, generateConsolidatedReportPDF } from '../utils/pdfGenerator';
 import { DatePicker } from '../../../components/ui/DatePicker';
+import { api } from '../../../services/api';
 
 
 const getWeekLabel = (dateStr: string) => {
@@ -123,10 +124,20 @@ const HierarchicalCashFlowTable = ({ details }: { details: any[] }) => {
   );
 };
 
+const getLocalDateString = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function FinancialReportsPage() {
   const [activeTab, setActiveTab] = useState<'income' | 'balance' | 'cashflow' | 'equity' | 'calk'>('income');
-  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]); // Start of month
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]); // Today
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    return getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+  });
+  const [endDate, setEndDate] = useState(() => getLocalDateString(new Date()));
   const [isDetailedMode, setIsDetailedMode] = useState(true);
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   
@@ -144,7 +155,6 @@ export function FinancialReportsPage() {
     fetchReportData();
   }, [activeTab, startDate, endDate]);
 
-
   const fetchReportData = async () => {
     try {
       setIsLoading(true);
@@ -153,33 +163,41 @@ export function FinancialReportsPage() {
       
       switch(activeTab) {
         case 'income':
-          endpoint = `/api/v1/financial-statements/income-statement?start_date=${startDate}&end_date=${endDate}`;
+          endpoint = `/financial-statements/income-statement?start_date=${startDate}&end_date=${endDate}`;
           break;
         case 'balance':
-          endpoint = `/api/v1/financial-statements/balance-sheet?as_of_date=${endDate}`;
+          endpoint = `/financial-statements/balance-sheet?as_of_date=${endDate}`;
           break;
         case 'cashflow':
-          endpoint = `/api/v1/financial-statements/cash-flow?start_date=${startDate}&end_date=${endDate}`;
+          endpoint = `/financial-statements/cash-flow?start_date=${startDate}&end_date=${endDate}`;
           break;
         case 'equity':
-          endpoint = `/api/v1/financial-statements/equity-changes?start_date=${startDate}&end_date=${endDate}`;
+          endpoint = `/financial-statements/equity-changes?start_date=${startDate}&end_date=${endDate}`;
           break;
         case 'trialbalance':
-          endpoint = `/api/v1/financial-statements/trial-balance?start_date=${startDate}&end_date=${endDate}`;
+          endpoint = `/financial-statements/trial-balance?start_date=${startDate}&end_date=${endDate}`;
           break;
         case 'calk':
-          endpoint = `/api/v1/financial-statements/calk-notes?start_date=${startDate}&end_date=${endDate}`;
+          endpoint = `/financial-statements/calk-notes?start_date=${startDate}&end_date=${endDate}`;
           break;
       }
       
-      const response = await fetch(`http://localhost:8000${endpoint}`, {
+      const API_BASE = (api.defaults.baseURL || '/api/v1').replace(/\/$/, '');
+      const response = await fetch(`${API_BASE}${endpoint}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      if (!response.ok) throw new Error('Failed to fetch data');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
       
       const result = await response.json();
-      setReportData(result);
+      if (result && !result.error) {
+        setReportData(result);
+      } else {
+        throw new Error(result?.error || 'Format data respons tidak valid');
+      }
     } catch (error) {
       console.error('Error fetching report:', error);
       addToast('error', 'Fetch Error', 'Gagal menarik data laporan keuangan dari server.');

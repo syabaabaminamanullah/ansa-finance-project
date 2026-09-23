@@ -1269,13 +1269,15 @@ export const generateConsolidatedReportPDF = async (startDate: string, endDate: 
     if (!token) throw new Error('No token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
+    const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://127.0.0.1:8000/api/v1');
+
     const [incRes, balRes, tbRes, cfRes, eqRes, calkRes] = await Promise.all([
-      fetch(`http://localhost:8000/api/v1/financial-statements/income-statement?start_date=${startDate}&end_date=${endDate}`, { headers }),
-      fetch(`http://localhost:8000/api/v1/financial-statements/balance-sheet?as_of_date=${endDate}`, { headers }),
-      fetch(`http://localhost:8000/api/v1/financial-statements/trial-balance?start_date=${startDate}&end_date=${endDate}`, { headers }),
-      fetch(`http://localhost:8000/api/v1/financial-statements/cash-flow?start_date=${startDate}&end_date=${endDate}`, { headers }),
-      fetch(`http://localhost:8000/api/v1/financial-statements/equity-changes?start_date=${startDate}&end_date=${endDate}`, { headers }),
-      fetch(`http://localhost:8000/api/v1/financial-statements/calk-notes?start_date=${startDate}&end_date=${endDate}`, { headers })
+      fetch(`${API_BASE}/financial-statements/income-statement?start_date=${startDate}&end_date=${endDate}`, { headers }),
+      fetch(`${API_BASE}/financial-statements/balance-sheet?as_of_date=${endDate}`, { headers }),
+      fetch(`${API_BASE}/financial-statements/trial-balance?start_date=${startDate}&end_date=${endDate}`, { headers }),
+      fetch(`${API_BASE}/financial-statements/cash-flow?start_date=${startDate}&end_date=${endDate}`, { headers }),
+      fetch(`${API_BASE}/financial-statements/equity-changes?start_date=${startDate}&end_date=${endDate}`, { headers }),
+      fetch(`${API_BASE}/financial-statements/calk-notes?start_date=${startDate}&end_date=${endDate}`, { headers })
     ]);
 
     const income = await incRes.json();

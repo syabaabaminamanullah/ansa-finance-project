@@ -36,9 +36,9 @@ export function AssetDepreciationReport() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      // Fallback in case endpoint is not fully registered in frontend api yet
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/finance/reports/asset-depreciation?as_of_date=${asOfDate}`, {
+      const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://127.0.0.1:8000/api/v1');
+      const response = await fetch(`${API_BASE}/finance/reports/asset-depreciation?as_of_date=${asOfDate}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();

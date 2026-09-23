@@ -35,7 +35,8 @@ export function ArAgingReport() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/finance/reports/ar-aging?as_of_date=${asOfDate}`, {
+      const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://127.0.0.1:8000/api/v1');
+      const response = await fetch(`${API_BASE}/finance/reports/ar-aging?as_of_date=${asOfDate}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();

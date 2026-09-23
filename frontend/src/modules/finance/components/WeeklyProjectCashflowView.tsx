@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { generateWeeklyCashflowPDF } from '../utils/pdfGenerator';
 
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://127.0.0.1:8000/api/v1');
+
 interface WeeklyProjectCashflowViewProps {
   projectId?: string;
   initialTab?: 'weekly_project' | 'copy1';
@@ -68,7 +70,7 @@ function WeeklyTransactionDetailModal({
     try {
       setIsLoadingPreview(true);
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:8000/api/v1/journals/${journalId}/attachment`, {
+      const res = await fetch(`${API_BASE}/journals/${journalId}/attachment`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return;
@@ -390,7 +392,7 @@ export function WeeklyProjectCashflowView({
       setIsWeeklyLoading(true);
       const token = localStorage.getItem('token');
       const param = projectId ? `?project_id=${projectId}` : '';
-      const res = await fetch(`http://localhost:8000/api/v1/financial-statements/project-weekly-cashflow${param}`, {
+      const res = await fetch(`${API_BASE}/financial-statements/project-weekly-cashflow${param}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch weekly project cashflow');
@@ -408,7 +410,7 @@ export function WeeklyProjectCashflowView({
       setIsCopy1Loading(true);
       const token = localStorage.getItem('token');
       const param = projectId ? `&project_id=${projectId}` : '';
-      const res = await fetch(`http://localhost:8000/api/v1/financial-statements/project-weekly-cashflow?version=copy1${param}`, {
+      const res = await fetch(`${API_BASE}/financial-statements/project-weekly-cashflow?version=copy1${param}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch Copy 1 project cashflow');

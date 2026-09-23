@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { ArrowLeft, Briefcase, TrendingUp, TrendingDown, DollarSign, PieChart as PieChartIcon, Download, Eye, Paperclip, Upload, X, FileText, BookOpen, Save, Loader2, ShieldCheck, CheckCircle2, Coins, Receipt, Activity, Wallet, Building2, Sparkles, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { financeApi, financialsApi, projectsApi, stakeholdersApi, rabApi } from '../../../services/api';
+import { api, financeApi, financialsApi, projectsApi, stakeholdersApi, rabApi } from '../../../services/api';
 import { useToastStore } from '../../../store/toastStore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { DataTable } from '../../../components/ui/DataTable';
@@ -9,7 +9,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { WeeklyProjectCashflowView } from '../components/WeeklyProjectCashflowView';
 
-const API_BASE = 'http://localhost:8000/api/v1/finance';
+const API_BASE = (api.defaults.baseURL || '/api/v1') + '/finance';
 
 interface Project {
   id: string;
