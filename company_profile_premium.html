@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Profile PT Coreterra Geo Engineering</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
+    <style>
+        :root {
+            --primary: #0F2043; /* Deep Corporate Blue */
+            --primary-light: #1A3668;
+            --accent: #D45D2D;  /* Rich Terracotta */
+            --surface: #FFFFFF;
+            --background: #F0F4F8;
+            --text-main: #2D3748;
+            --text-muted: #718096;
+            --border: #E2E8F0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            background-color: #CBD5E1;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+            color: var(--primary);
+            line-height: 1.3;
+        }
+
+        /* A4 Landscape Page Formatting */
+        .page {
+            width: 297mm;
+            height: 210mm; /* A4 Landscape */
+            background: var(--surface);
+            margin: 20px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media print {
+            body { background: none; margin: 0; }
+            .page {
+                margin: 0;
+                box-shadow: none;
+                width: 100%;
+                height: 100vh;
+                page-break-after: always;
+            }
+            @page { size: A4 landscape; margin: 0; }
+        }
+
+        /* Layout Utilities */
+        .container { 
+            padding: 40px 60px; 
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+        .material-symbols-outlined { vertical-align: middle; }
+
+        /* ======== SLIDE 1: COVER ======== */
+        .cover {
+            background: linear-gradient(135deg, var(--primary) 0%, #081226 100%);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .cover-logo { width: 220px; margin-bottom: 50px; background: white; padding: 15px 30px; border-radius: 8px;}
+        .cover-title { font-size: 56px; font-weight: 800; color: white; margin-bottom: 20px; line-height: 1.1; letter-spacing: -1px;}
+        .cover-tagline { color: var(--accent); font-size: 24px; font-weight: 300; margin-bottom: 60px;}
+        .cover-footer { position: absolute; bottom: 40px; left: 0; right: 0; font-size: 14px; color: #94A3B8; }
+
+        /* ======== INNER SLIDES ======== */
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 30px;
+        }
+        .slide-title { font-size: 32px; font-weight: 800; color: var(--primary); }
+        .slide-logo { height: 40px; }
+
+        .slide-content { flex: 1; }
+        p { margin-bottom: 20px; font-size: 16px; text-align: justify; }
+
+        /* Boxes & Cards */
+        .highlight-box {
+            background: var(--primary);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 10px 20px rgba(15,32,67,0.1);
+        }
+        .highlight-box h4 { color: var(--accent); margin-bottom: 10px; font-size: 18px;}
+        .highlight-box p { color: white; margin: 0; font-size: 16px;}
+
+        .card {
+            background: var(--background);
+            border-left: 4px solid var(--accent);
+            padding: 25px;
+            border-radius: 0 12px 12px 0;
+        }
+        .card .icon { color: var(--primary); font-size: 32px; margin-bottom: 15px; }
+        .card h4 { font-size: 18px; margin-bottom: 10px; }
+        .card p { font-size: 14px; margin: 0; color: var(--text-muted); line-height: 1.6;}
+
+        /* IKPT Special Layout */
+        .ikpt-hero {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 12px;
+            padding: 30px;
+            color: white;
+            margin-bottom: 25px;
+        }
+        .ikpt-hero h2 { color: var(--accent); font-size: 28px; margin-bottom: 15px; display: flex; align-items: center; gap:10px;}
+        .ikpt-stats { display: flex; gap: 40px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px;}
+        .ikpt-stats div h5 { color: #94A3B8; font-size: 12px; margin-bottom: 5px; }
+        .ikpt-stats div p { color: white; font-size: 20px; font-weight: 700; margin: 0; font-family: 'Poppins';}
+        
+        .photo-space {
+            border: 2px dashed #94A3B8;
+            border-radius: 12px;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #94A3B8;
+            background: #F8FAFC;
+        }
+
+        /* Footer */
+        .slide-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .slide-number {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        /* Table */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .data-table th, .data-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 15px;}
+        .data-table th { background: var(--background); color: var(--primary); font-weight: 700;}
+        .data-table td b { color: var(--primary); font-size: 18px;}
+
+        /* Lists */
+        ul { margin-left: 20px; margin-bottom: 20px;}
+        li { margin-bottom: 10px; font-size: 16px;}
+    </style>
+</head>
+<body>
+
+    <!-- HALAMAN 1: COVER -->
+    <div class="page cover">
+        <img src="logo_coreterra.png" alt="Coreterra" class="cover-logo" onerror="this.style.display='none'">
+        <h1 class="cover-title">COMPANY PROFILE &<br>STRATEGIC OVERVIEW 2026</h1>
+        <p class="cover-tagline">Menembus Batas Bumi, Membangun Kepastian Eksekusi.</p>
+        
+        <div class="cover-footer">
+            <strong>PT CORETERRA GEO ENGINEERING</strong><br>
+            Ciputat, Tangerang Selatan, Banten, Indonesia 15411<br>
+            Terintegrasi Sistem ERP CoreTerra (NIB Tersertifikasi)
+        </div>
+    </div>
+
+    <!-- HALAMAN 2: EXECUTIVE SUMMARY -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">Executive Summary</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <p>PT Coreterra Geo Engineering adalah ujung tombak di sektor rekayasa geoteknik, pengeboran (*core drilling*), dan survei geofisika. Kami hadir untuk mendisrupsi industri infrastruktur dan eksplorasi sumber daya alam melalui presisi data bawah permukaan yang tak tertandingi.</p>
+                <p>Selama ini, pasar terjebak pada layanan geoteknik konvensional yang lambat, rentan *cost-overrun*, dan memiliki visibilitas data yang minim. Akibatnya, banyak mega-proyek mengalami keterlambatan fatal akibat salah perhitungan kondisi tanah. Coreterra memecahkan masalah ini dengan pendekatan *hybrid*: memadukan eksekusi lapangan yang presisi—seperti mobilisasi 5 *drilling rig* secara serentak—dengan kontrol manajemen proyek terintegrasi Cloud ERP, memberikan transparansi biaya dan progres secara *real-time* kepada *stakeholder*.</p>
+                <p>Traksi bisnis kami saat ini membuktikan validitas solusi kami. Sepanjang Kuartal III 2026, kami mencatatkan total *inflow revenue* sebesar Rp 1,47 Miliar dengan *backlog pipeline* berjalan senilai Rp 2,07 Miliar, serta mempertahankan tingkat gagal bayar di angka absolut 0,0%.</p>
+                
+                <div class="grid-2">
+                    <div class="highlight-box" style="margin:0;">
+                        <h4><span class="material-symbols-outlined">track_changes</span> Mission Statement</h4>
+                        <p>Menyediakan intelijen geoteknik dan eksekusi pengeboran berstandar global untuk meminimalkan risiko infrastruktur secara presisi, aman, dan efisien.</p>
+                    </div>
+                    <div class="highlight-box" style="margin:0; background:var(--accent);">
+                        <h4 style="color:white;"><span class="material-symbols-outlined">diamond</span> Unique Value Proposition</h4>
+                        <p>Zero-Default Financial Integrity dipadukan dengan Agile Rig Mobilization. Kami memberikan data sub-permukaan tercepat dengan struktur biaya paling transparan.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>PT Coreterra Geo Engineering | 2026</span>
+                <span class="slide-number">02</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 3: ABOUT US, CORPORATE VALUES & LEGALITY -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">About Us & Corporate Values</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <div class="grid-2">
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: var(--accent);">Sejarah & Visi 10 Tahun</h3>
+                        <p>Berawal dari eksekusi survei geolistrik berskala menengah, PT Coreterra Geo Engineering telah bertransformasi menjadi kontraktor geoteknik *full-stack* yang dipercaya menangani pengeboran fondasi dalam dan eksplorasi *limestone*.</p>
+                        <p>Visi 10 tahun kami adalah berevolusi dari kontraktor spesialis menjadi <b>"Data-Driven Geo-Intelligence Company"</b> yang memiliki pemetaan prediktif sub-permukaan terlengkap di Indonesia.</p>
+
+                        <h3 style="margin-top: 30px; margin-bottom: 15px; color: var(--accent);">Kredibilitas & Legalitas</h3>
+                        <ul style="list-style-type: none; margin-left:0;">
+                            <li style="display:flex; gap:10px;"><span class="material-symbols-outlined text-primary">verified</span> <b>Entitas Legal:</b> Perseroan Terbatas (PT) dengan NIB Tersertifikasi.</li>
+                            <li style="display:flex; gap:10px;"><span class="material-symbols-outlined text-primary">account_balance</span> <b>Audit Finansial:</b> Terintegrasi Cloud ERP CoreTerra (Perfect Match Mutasi Bank Mandiri & CIMB Niaga).</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; gap:20px;">
+                        <div class="card">
+                            <span class="material-symbols-outlined icon">architecture</span>
+                            <h4>1. Precision Without Compromise</h4>
+                            <p>Keakuratan data log bor dan survei geofisika (magnetik/geolistrik) adalah nyawa layanan kami. Kami tidak mentolerir deviasi data.</p>
+                        </div>
+                        <div class="card">
+                            <span class="material-symbols-outlined icon">speed</span>
+                            <h4>2. Lean & Agile Execution</h4>
+                            <p>OPEX kami hanya 1,3% dari total revenue. Kami fokus 98,7% pada eksekusi lapangan (COGS). Tanpa birokrasi, rig bergerak lebih cepat.</p>
+                        </div>
+                        <div class="card">
+                            <span class="material-symbols-outlined icon">shield_lock</span>
+                            <h4>3. Safety & Absolute Solvency</h4>
+                            <p>Integritas struktural untuk klien dan integritas finansial (zero bank debt) untuk perusahaan. Keamanan kru dan kebebasan utang adalah fundamental.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>PT Coreterra Geo Engineering | 2026</span>
+                <span class="slide-number">03</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 4: THE INDUSTRY PROBLEM -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">The Industry Pain Points</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <p style="font-size: 18px; margin-bottom: 40px;">Industri konstruksi dan pertambangan di Indonesia kehilangan triliunan rupiah setiap tahunnya akibat kegagalan eksekusi sub-kontraktor di tahap awal (fondasi & survei). Terdapat tiga akar masalah utama:</p>
+
+                <div class="grid-3">
+                    <div class="card" style="border-left:none; border-top: 4px solid var(--accent); border-radius: 12px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                        <span class="material-symbols-outlined icon" style="color:var(--accent); font-size:40px;">visibility_off</span>
+                        <h4 style="font-size: 16px;">1. Kebutaan Data Sub-Permukaan</h4>
+                        <p style="margin-bottom: 15px;">Banyak proyek mengandalkan data geologi minim atau usang, menyebabkan desain *borpile* *over-engineered* atau rentan gagal struktur.</p>
+                        <p style="font-weight: 600; color:var(--primary); font-size: 13px; background:var(--background); padding:10px; border-radius:6px;">Bukti Data: Menyumbang >35% cost overrun di mega proyek infrastruktur sipil.</p>
+                    </div>
+
+                    <div class="card" style="border-left:none; border-top: 4px solid var(--accent); border-radius: 12px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                        <span class="material-symbols-outlined icon" style="color:var(--accent); font-size:40px;">hourglass_disabled</span>
+                        <h4 style="font-size: 16px;">2. Inefisiensi Mobilisasi Alat</h4>
+                        <p style="margin-bottom: 15px;">Pasar didominasi pemain lama yang lamban mengirim *drilling rig* ke pelosok, memicu *downtime* berminggu-minggu.</p>
+                        <p style="font-weight: 600; color:var(--primary); font-size: 13px; background:var(--background); padding:10px; border-radius:6px;">Bukti Data: Memakan biaya burn-rate raksasa bagi Main-Con dan penalti liquidated damages.</p>
+                    </div>
+
+                    <div class="card" style="border-left:none; border-top: 4px solid var(--accent); border-radius: 12px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                        <span class="material-symbols-outlined icon" style="color:var(--accent); font-size:40px;">account_balance_wallet</span>
+                        <h4 style="font-size: 16px;">3. Cash-Flow Bottlenecks</h4>
+                        <p style="margin-bottom: 15px;">Ekosistem sangat rentan *cash-flow mismatch*. Vendor sering kehabisan napas membiayai operasi sebelum *invoice* termin awal cair.</p>
+                        <p style="font-weight: 600; color:var(--primary); font-size: 13px; background:var(--background); padding:10px; border-radius:6px;">Bukti Data: Kematian proyek di Fase Awal dan hilangnya kepercayaan klien.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>PT Coreterra Geo Engineering | 2026</span>
+                <span class="slide-number">04</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 5: OUR SOLUTION -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">Our Solution & Value Proposition</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <p style="font-size: 18px; margin-bottom: 30px;">Kami tidak sekadar menyediakan alat bor; kami memberikan <b>"Kepastian Rekayasa"</b>. Coreterra menghadirkan ekosistem terpadu untuk memangkas hambatan klien di lapangan.</p>
+
+                <div style="display:flex; flex-direction:column; gap:25px;">
+                    <div style="display:flex; gap:25px; align-items:flex-start;">
+                        <div style="background:var(--primary); color:white; padding:15px; border-radius:12px;"><span class="material-symbols-outlined" style="font-size:32px;">rv_hookup</span></div>
+                        <div>
+                            <h3 style="color:var(--primary); margin-bottom:8px;">1. Pengeboran Geoteknik & Struktur Borpile (Agile Drilling)</h3>
+                            <p style="margin-bottom:5px;"><b>Metodologi:</b> Pengerahan formasi *Multi-Rig* secara serentak (contoh nyata: mobilisasi 5 rig simultan) didukung suplai logistik rebar terpusat tanpa utang.</p>
+                            <p style="color:var(--accent); font-weight:600;">Manfaat Klien: Memangkas timeline pekerjaan fondasi secara masif dan mempercepat serah terima fase pertama proyek hingga 40%.</p>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:25px; align-items:flex-start;">
+                        <div style="background:var(--primary); color:white; padding:15px; border-radius:12px;"><span class="material-symbols-outlined" style="font-size:32px;">radar</span></div>
+                        <div>
+                            <h3 style="color:var(--primary); margin-bottom:8px;">2. Eksplorasi Geofisika Presisi Tinggi (Geolistrik & Magnetik)</h3>
+                            <p style="margin-bottom:5px;"><b>Metodologi:</b> Pemetaan bawah permukaan non-destruktif menggunakan magnetometer mutakhir untuk menghasilkan model litologi 2D/3D yang sangat akurat.</p>
+                            <p style="color:var(--accent); font-weight:600;">Manfaat Klien: Menghindari titik bor buta, menghemat miliaran rupiah dari potensi kesalahan desain tambang atau fondasi bendungan.</p>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:25px; align-items:flex-start;">
+                        <div style="background:var(--primary); color:white; padding:15px; border-radius:12px;"><span class="material-symbols-outlined" style="font-size:32px;">devices</span></div>
+                        <div>
+                            <h3 style="color:var(--primary); margin-bottom:8px;">3. ERP-Powered Project Management</h3>
+                            <p style="margin-bottom:5px;"><b>Metodologi:</b> Seluruh pengeluaran (BBM, material, upah) dan progres titik bor dilaporkan harian (*Daily Progress Report*) via Cloud ERP CoreTerra.</p>
+                            <p style="color:var(--accent); font-weight:600;">Manfaat Klien: Visibilitas 100%, memangkas proses approval dan invoicing termin penagihan hingga 30% lebih cepat tanpa sengketa (*dispute-free*).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>PT Coreterra Geo Engineering | 2026</span>
+                <span class="slide-number">05</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 6: MARKET SIZE -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">Market Size & Opportunity</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <p style="font-size: 18px; margin-bottom: 40px;">Pasar layanan geoteknik dan pengeboran di Indonesia berada pada fase <b>hyper-growth</b>, didorong oleh masifnya mega-proyek bendungan, hilirisasi tambang nikel/emas, infrastruktur jalan tol, dan pembangkit listrik energi terbarukan (PLTM/PLTA).</p>
+
+                <div class="grid-3" style="text-align: center;">
+                    <div style="background:var(--background); padding:40px 30px; border-radius:200px 200px 10px 10px; border-bottom: 8px solid #cbd5e1;">
+                        <h4 style="color:var(--text-muted); font-size:16px;">Total Addressable Market (TAM)</h4>
+                        <h2 style="font-size: 36px; color:var(--primary); margin: 15px 0;">Rp 45 Triliun+</h2>
+                        <p style="font-size: 14px; text-align:center;">Total pengeluaran nasional tahunan untuk *ground engineering*, konstruksi fondasi, dan pemetaan sumber daya alam di seluruh Indonesia.</p>
+                    </div>
+
+                    <div style="background:var(--background); padding:40px 30px; border-radius:200px 200px 10px 10px; border-bottom: 8px solid var(--primary-light);">
+                        <h4 style="color:var(--text-muted); font-size:16px;">Serviceable Addressable Market (SAM)</h4>
+                        <h2 style="font-size: 36px; color:var(--primary); margin: 15px 0;">Rp 8,5 Triliun</h2>
+                        <p style="font-size: 14px; text-align:center;">Porsi spesifik pengeboran tambang, survei geofisika, dan borpile skala menengah-besar di wilayah Sumatera & Jawa.</p>
+                    </div>
+
+                    <div style="background:var(--primary); color:white; padding:40px 30px; border-radius:200px 200px 10px 10px; border-bottom: 8px solid var(--accent); box-shadow: 0 10px 20px rgba(212, 93, 45, 0.3);">
+                        <h4 style="color:#cbd5e1; font-size:16px;">Serviceable Obtainable Market (SOM)</h4>
+                        <h2 style="font-size: 36px; color:var(--accent); margin: 15px 0;">Rp 150 Miliar</h2>
+                        <p style="font-size: 14px; text-align:center; color:white;">Target penguasaan kontrak riil PT Coreterra Geo Engineering secara realistis dalam 36 bulan (3 Tahun) ke depan.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>PT Coreterra Geo Engineering | 2026</span>
+                <span class="slide-number">06</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 7: TRACTION & IKPT DETAILED -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">Traction & Proven Execution</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <div class="grid-2">
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: var(--accent);">Portofolio & Metrik Q3 2026</h3>
+                        <ul style="list-style:none; margin-left:0;">
+                            <li style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:10px;">
+                                <span>Retensi Klien B2B</span> <b style="color:var(--primary);">Sangat Tinggi</b>
+                            </li>
+                            <li style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:10px;">
+                                <span>Tingkat Piutang Macet (Bad Debt)</span> <b style="color:var(--primary);">0,0% (Nihil)</b>
+                            </li>
+                            <li style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:10px;">
+                                <span>Total Portofolio Realized Q3</span> <b style="color:var(--primary);">Rp 1.470.289.340,-</b>
+                            </li>
+                        </ul>
+                        
+                        <h3 style="margin-top: 30px; margin-bottom: 15px; color: var(--accent);">Portofolio Strategis</h3>
+                        <ul style="font-size:14px;">
+                            <li><b>PT Citatah:</b> Limestone Drilling. Lunas. Eksekusi sukses menekan arus keluar kas dan mencetak surplus margin <b>+23,0%</b>.</li>
+                            <li><b>PT Volta Indo Tech:</b> Geolistrik PLTM Pongkor. Lunas 100% dengan margin efisiensi ekstrim <b>+43,8%</b>.</li>
+                            <li><b>LSI Engineering:</b> Survei Magnetik Bukit Besi. Menunggu Termin.</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- IKPT DETAILED BOX -->
+                    <div class="ikpt-hero" style="margin-bottom: 0;">
+                        <h2><span class="material-symbols-outlined" style="font-size: 32px;">construction</span> MEGA PROJECT: IKPT SOLOK</h2>
+                        <div class="ikpt-stats" style="margin-bottom: 15px; padding-bottom: 15px;">
+                            <div><h5>KLIEN</h5><p style="font-size: 16px;">PT Solusi Monitoring Indonesia</p></div>
+                            <div><h5>BACKLOG AKTIF</h5><p style="font-size: 24px; color:var(--accent);">Rp 2,07 Miliar</p></div>
+                        </div>
+                        
+                        <p style="font-size: 14px; margin-bottom: 15px;">Proyek fondasi *borpile* IKPT adalah demonstrasi sempurna kekuatan manuver <i>Agile Drilling</i> kami. Dalam mengejar tenggat waktu yang sangat agresif, kami mengeksekusi strategi logistik tingkat tinggi:</p>
+                        
+                        <ul style="font-size: 13px; margin-bottom: 20px;">
+                            <li><b>Mobilisasi 5 Rig Simultan:</b> Menurunkan 5 armada alat bor secara serentak ke lokasi untuk memangkas *timeline* fase awal secara masif.</li>
+                            <li><b>Mandiri Rantai Pasok Rebar:</b> Menggunakan bantalan kas internal (+Rp 177,6 Jt), kami mengamankan logistik besi *rebar* puluhan juta rupiah tanpa mengandalkan utang bank.</li>
+                            <li><b>Kepatuhan HSE & MCU:</b> 100% kru lapangan lolos <i>Medical Check-Up</i> lengkap dan ter-<i>cover</i> BPJS TK, menihilkan *downtime* akibat malfungsi tenaga kerja.</li>
+                        </ul>
+
+                        <div class="grid-2" style="gap:15px; margin:0;">
+                            <div class="photo-space">
+                                <span class="material-symbols-outlined" style="font-size: 36px; margin-bottom: 10px;">add_a_photo</span>
+                                <span style="font-size: 12px; font-weight:600;">[ Insert Foto Rig Solok ]</span>
+                            </div>
+                            <div class="photo-space">
+                                <span class="material-symbols-outlined" style="font-size: 36px; margin-bottom: 10px;">add_a_photo</span>
+                                <span style="font-size: 12px; font-weight:600;">[ Insert Foto Kru / Rebar ]</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>PT Coreterra Geo Engineering | 2026</span>
+                <span class="slide-number">07</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 8: BUSINESS MODEL & MOAT -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">Business Model & Supply Chain Moat</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <div class="grid-2">
+                    <div>
+                        <h2 style="font-size: 22px; margin-bottom: 20px; display:flex; align-items:center; gap:10px;"><span class="material-symbols-outlined" style="color:var(--accent);">account_balance_wallet</span> Revenue Streams</h2>
+                        <p>Model bisnis Coreterra dirancang sangat <i>resilient</i> dengan perputaran kas (*Cash Conversion Cycle*) yang terstruktur melalui 3 pilar pendapatan:</p>
+                        
+                        <div class="card" style="margin-bottom: 15px; padding: 15px;">
+                            <h4 style="margin-bottom: 5px; color:var(--primary);">1. Kontrak Borpile & Struktur</h4>
+                            <p>B2B Project-Based dengan skema termin (*progress billing*). Memberikan aliran kas bervolume raksasa yang dieksekusi mengandalkan surplus modal kerja awal.</p>
+                        </div>
+                        <div class="card" style="margin-bottom: 15px; padding: 15px;">
+                            <h4 style="margin-bottom: 5px; color:var(--primary);">2. Jasa Survei Geofisika Dasar</h4>
+                            <p>Siklus proyek amat pendek yang memberikan margin keuntungan bersih amat tinggi (hingga +43%) karena rendahnya risiko belanja material pakai-habis (*consumables*).</p>
+                        </div>
+                        <div class="card" style="margin-bottom: 15px; padding: 15px;">
+                            <h4 style="margin-bottom: 5px; color:var(--primary);">3. Core Drilling Eksplorasi</h4>
+                            <p>Kontrak borongan meteran yang menjamin setiap penetrasi mata bor ke bumi terkonversi mutlak menjadi <i>revenue</i>.</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h2 style="font-size: 22px; margin-bottom: 20px; display:flex; align-items:center; gap:10px;"><span class="material-symbols-outlined" style="color:var(--accent);">shield</span> Supply Chain Moat</h2>
+                        <p>Kami tidak sekadar beroperasi; kami mengendalikan efisiensi rantai pasok secara total, menciptakan benteng bisnis (*Moat*) yang mustahil ditiru pemain konvensional.</p>
+                        
+                        <div style="background:var(--primary); color:white; padding:25px; border-radius:12px; margin-top:20px;">
+                            <h4 style="color:var(--accent); font-size:18px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;">The Efficiency Matrix</h4>
+                            <ul style="margin:0; font-size:15px; list-style:none;">
+                                <li style="margin-bottom: 15px; display:flex; gap:10px;">
+                                    <span class="material-symbols-outlined text-accent">check_circle</span> 
+                                    <div><b>OPEX Terkendali Ekstrim (1,3%):</b> Pengeluaran *overhead* kantor hanya memakan Rp 19,69 Jt, membuktikan struktur organisasi yang <i>ultra-lean</i>.</div>
+                                </li>
+                                <li style="margin-bottom: 15px; display:flex; gap:10px;">
+                                    <span class="material-symbols-outlined text-accent">check_circle</span> 
+                                    <div><b>Fokus Eksekusi 98,7% (COGS):</b> Setiap rupiah perusahaan dialokasikan sepenuhnya pada mobilisasi rig, upah kru, dan logistik lapangan. Harga kami tak terkalahkan.</div>
+                                </li>
+                                <li style="display:flex; gap:10px;">
+                                    <span class="material-symbols-outlined text-accent">check_circle</span> 
+                                    <div><b>Disiplin Vendor & Zero Debt:</b> Ketiadaan beban cicilan bunga bank menjamin pembayaran vendor (*AP Rebar*) selalu mutlak tepat waktu.</div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>PT Coreterra Geo Engineering | 2026</span>
+                <span class="slide-number">08</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 9: COMPETITIVE LANDSCAPE -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">Competitive Landscape & Advantage</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <p style="font-size: 18px; margin-bottom: 30px;">Pasar geoteknik Indonesia terjebak pada ekstremitas. Coreterra memecah kebuntuan tersebut dengan mendefinisikan standar kelincahan baru (The Hybrid Approach).</p>
+
+                <div class="grid-2" style="margin-bottom: 40px;">
+                    <div class="card" style="border-left-color: #94A3B8;">
+                        <h4 style="color: #64748B;">Kompetitor Tipe A (Kontraktor Raksasa BUMN/Swasta)</h4>
+                        <p>Memiliki armada raksasa, namun lumpuh oleh birokrasi berjenjang. Mereka membebankan komponen <i>overhead</i> (OPEX) kantor pusat yang amat besar ke dalam harga tender (RAB). Sangat lamban memobilisasi alat dan kemahalan untuk proyek siklus menengah.</p>
+                    </div>
+                    <div class="card" style="border-left-color: #94A3B8;">
+                        <h4 style="color: #64748B;">Kompetitor Tipe B (Vendor Alat Bor Skala Kecil/Pribadi)</h4>
+                        <p>Menawarkan harga *dumping* yang murah, namun mengorbankan segalanya: nihil kepatuhan manajemen K3 (HSE), log pelaporan geologi berantakan, dan modal kerja sangat tipis sehingga proyek sering diterbengkalaikan jika penagihan termin sedikit macet.</p>
+                    </div>
+                </div>
+
+                <div class="highlight-box" style="margin-top: 0; background: linear-gradient(90deg, var(--primary) 0%, #1a3668 100%);">
+                    <h3 style="color: white; margin-bottom: 20px; font-size: 24px;">Keunggulan Mutlak PT Coreterra Geo Engineering</h3>
+                    <div class="grid-3" style="gap:20px; margin:0;">
+                        <div>
+                            <h4 style="font-size: 16px; margin-bottom: 8px;">1. Cloud ERP Technology</h4>
+                            <p style="font-size: 14px; color:#cbd5e1;">Kami satu dari segelintir kontraktor yang berlari di atas ERP proprietari independen. Klien menerima jaminan transparansi pengeluaran (*cost*) dan *daily progress* secara absolut.</p>
+                        </div>
+                        <div>
+                            <h4 style="font-size: 16px; margin-bottom: 8px;">2. Likuiditas Bintang Lima</h4>
+                            <p style="font-size: 14px; color:#cbd5e1;">Bantalan surplus kas positif dan *Zero Bank Debt* memastikan alat berat, kru bor, dan suplai besi terbayar lunas tepat waktu. Kami tidak pernah mogok di tengah pengeboran.</p>
+                        </div>
+                        <div>
+                            <h4 style="font-size: 16px; margin-bottom: 8px;">3. The Hybrid Equilibrium</h4>
+                            <p style="font-size: 14px; color:#cbd5e1;">Menawarkan kelincahan eksekusi alat dan harga seefisien vendor lokal, namun dipadukan dengan presisi tata kelola dan validitas pelaporan setara firma konsultan internasional.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>PT Coreterra Geo Engineering | 2026</span>
+                <span class="slide-number">09</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 10: FINANCIAL HIGHLIGHTS -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">Financial Highlights & Projections</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <p style="font-size: 18px; margin-bottom: 30px;">Kesehatan finansial Coreterra menunjukkan fundamental luar biasa dengan fokus mutlak pada perputaran kas organik yang positif tanpa menggunakan instrumen utang perbankan (*Zero Leverage*).</p>
+
+                <div class="grid-2">
+                    <div>
+                        <h3 style="margin-bottom: 20px; color: var(--accent);">Kinerja Historis (Q3 2026 Snapshot)</h3>
+                        <table class="data-table">
+                            <tr>
+                                <th>Indikator</th>
+                                <th>Capaian</th>
+                            </tr>
+                            <tr>
+                                <td>Revenue Generation (YTD)</td>
+                                <td><b>Rp 1.470.289.340</b></td>
+                            </tr>
+                            <tr>
+                                <td>Net Cash Margin (Surplus)</td>
+                                <td><b style="color:#10b981;">+ Rp 77.680.322</b></td>
+                            </tr>
+                            <tr>
+                                <td>Rasio Beban Operasional (OPEX)</td>
+                                <td><b>1,3%</b> <i>(Sangat Efisien)</i></td>
+                            </tr>
+                            <tr>
+                                <td>Tingkat Piutang Macet (Bad Debt)</td>
+                                <td><b>0,0%</b> <i>(Zero Default)</i></td>
+                            </tr>
+                            <tr>
+                                <td>Current Backlog Pipeline</td>
+                                <td><b>Rp 2.070.000.000</b></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div style="background: var(--background); padding: 30px; border-radius: 12px; border: 1px solid var(--border);">
+                        <h3 style="margin-bottom: 20px; color: var(--primary);">Proyeksi Realistis 3-5 Tahun (Forecast)</h3>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--accent); margin-bottom: 5px; font-size: 16px;">Tahun 1-2: Skalabilitas Agresif</h4>
+                            <p style="font-size: 14px; margin: 0;">Memproyeksikan pertumbuhan pendapatan agregat sebesar <b>300% (YoY)</b> seiring manuver strategis transisi kapasitas operasional dari armada 5 unit rig menjadi 15 unit rig pengeboran aktif simultan.</p>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--accent); margin-bottom: 5px; font-size: 16px;">Stabilisasi EBITDA (25% - 35%)</h4>
+                            <p style="font-size: 14px; margin: 0;">Menargetkan ekuilibrium margin profitabilitas tinggi secara berkesinambungan yang didorong oleh ekspansi layanan survei geofisika murni (rendah *consumables*).</p>
+                        </div>
+                        
+                        <div>
+                            <h4 style="color: var(--accent); margin-bottom: 5px; font-size: 16px;">Break-Even & Pemulihan Ekuitas</h4>
+                            <p style="font-size: 14px; margin: 0;">Struktur disiplin modal kerja ERP menjamin <i>payback period</i> investasi dalam siklus 18-24 bulan berkat perputaran termin tagihan infrastruktur yang sistematis dan terlindungi.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>INVESTOR ONLY DOCUMENT</span>
+                <span class="slide-number">10</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 11: FUTURE EXPANSION & THE ASK -->
+    <div class="page">
+        <div class="container">
+            <div class="slide-header">
+                <h1 class="slide-title">Future Expansion & Strategic Funding</h1>
+                <img src="logo_coreterra.png" class="slide-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="slide-content">
+                <div class="grid-2">
+                    <div>
+                        <h3 style="margin-bottom: 20px; color: var(--accent);">Peta Jalan Ekspansi (3-Year Roadmap)</h3>
+                        
+                        <div style="display:flex; gap:15px; margin-bottom: 20px;">
+                            <div style="background:var(--primary); color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">1</div>
+                            <div>
+                                <h4 style="color:var(--primary); font-size:16px;">Aggressive Capacity Scale-Up</h4>
+                                <p style="font-size:14px; margin:0;">Akuisisi aset 10 unit mesin <i>drilling rig</i> spesifikasi <i>medium-deep</i> (200-500m) & <i>mud pump</i> untuk mendominasi hilirisasi nikel/emas di Sulawesi & Maluku.</p>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:15px; margin-bottom: 20px;">
+                            <div style="background:var(--primary); color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">2</div>
+                            <div>
+                                <h4 style="color:var(--primary); font-size:16px;">Geophysical Tech Advancement</h4>
+                                <p style="font-size:14px; margin:0;">Injeksi modal pada instrumen georadar (GPR) dan <i>downhole logger</i> berspesifikasi mutakhir guna memperluas penetrasi ke sektor BUMN Migas.</p>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:15px;">
+                            <div style="background:var(--primary); color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">3</div>
+                            <div>
+                                <h4 style="color:var(--primary); font-size:16px;">Geo-Data as a Service (GDaaS)</h4>
+                                <p style="font-size:14px; margin:0;">Komersialisasi lisensi data turunan geologi (Big Data) dari <i>database</i> pengeboran historis kepada pihak ketiga (*developer* & perencana tata kota).</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="highlight-box" style="margin-top:0;">
+                            <h3 style="color: white; margin-bottom: 10px; font-size: 22px;">The Ask: Strategic Partnership</h3>
+                            <p style="font-size: 15px; margin-bottom: 20px; color:#cbd5e1;">Untuk mengamankan monopoli <i>market share</i> dan mengeksekusi backlog kontrak yang membengkak, Coreterra mengundang investasi ekuitas strategis (*Private Equity / VC*).</p>
+                            
+                            <h4 style="color: var(--accent); margin-bottom: 15px; font-size: 15px;">Alokasi Injeksi Pendanaan (Fund Allocation)</h4>
+                            
+                            <div style="margin-bottom:15px; background:rgba(255,255,255,0.1); padding:15px; border-radius:8px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                    <span style="font-weight:600;">60% — Scaling Up Capex Alat Berat</span>
+                                </div>
+                                <p style="font-size:12px; margin:0; color:#94A3B8;">Akuisisi <i>Heavy Machinery</i> (Rig & Magnetometer) guna melenyapkan ketergantungan sewa pada sub-vendor, mendongkrak margin profit bersih tambahan hingga 15%.</p>
+                            </div>
+
+                            <div style="margin-bottom:15px; background:rgba(255,255,255,0.1); padding:15px; border-radius:8px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                    <span style="font-weight:600;">25% — Working Capital (Bantalan Kas)</span>
+                                </div>
+                                <p style="font-size:12px; margin:0; color:#94A3B8;">Likuiditas operasional mutlak untuk membiayai *upah bor* dan mobilisasi 3 proyek raksasa serentak tanpa tersandera keterlambatan pencairan termin dari Main-Con.</p>
+                            </div>
+
+                            <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:8px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                    <span style="font-weight:600;">15% — R&D Sistem & Penetrasi B2B</span>
+                                </div>
+                                <p style="font-size:12px; margin:0; color:#94A3B8;">Peningkatan kapabilitas lisensi <i>Enterprise ERP</i>, sertifikasi ahli K3 Geoteknik nasional, dan alokasi lobi tender EPC skala mega-proyek.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>INVESTOR ONLY DOCUMENT</span>
+                <span class="slide-number">11</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 12: CLOSING -->
+    <div class="page cover" style="background: linear-gradient(135deg, var(--primary) 0%, #1a3668 100%);">
+        
+        <div style="max-width: 800px; margin: 0 auto; z-index: 2;">
+            <span class="material-symbols-outlined" style="font-size: 64px; color: var(--accent); margin-bottom: 20px;">handshake</span>
+            
+            <h1 style="font-size: 42px; color: white; margin-bottom: 25px; line-height: 1.2;">Jangan Percayakan Fondasi Bisnis Anda Pada Perkiraan di Atas Kertas.</h1>
+            
+            <p style="font-size: 20px; color: #cbd5e1; margin-bottom: 40px; font-weight: 300;">Risiko kegagalan fondasi dan melesetnya akurasi eksplorasi bernilai triliunan rupiah. Bermitralah dengan PT Coreterra Geo Engineering; tempat di mana sains geologi, disiplin eksekusi operasional, dan data presisi menyatu menjadi kepastian.</p>
+
+            <h3 style="font-size: 24px; color: var(--accent); margin-bottom: 50px; font-weight: 600; font-style: italic;">"Presisi di Setiap Lapisan. Kepastian di Setiap Keputusan."</h3>
+
+            <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
+                <p style="font-size: 16px; font-weight: 600; margin-bottom: 20px; color: white; text-transform: uppercase; letter-spacing: 1px;">Jadwalkan Pertemuan Teknis & Pitching Eksklusif:</p>
+                <div style="display: flex; justify-content: center; gap: 30px; font-size: 15px; color: #cbd5e1;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="material-symbols-outlined text-accent">call</span> 0812-1494-1641
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="material-symbols-outlined text-accent">mail</span> admin.cge@coreterra-geo.com
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="material-symbols-outlined text-accent">language</span> lode.annsa.site
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cover-footer" style="text-align: center;">
+            <strong>PT CORETERRA GEO ENGINEERING</strong><br>
+            Ciputat, Tangerang Selatan, Banten, Indonesia 15411
+        </div>
+    </div>
+
+</body>
+</html>

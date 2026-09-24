@@ -98,6 +98,14 @@ function App() {
     } else {
       root.classList.add(theme);
     }
+
+    // Check for readonly mode in URL from portfolio
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('mode') === 'readonly') {
+      sessionStorage.setItem('isReadOnly', 'true');
+      // Clean up URL so it doesn't look messy
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, [theme]);
 
   return (

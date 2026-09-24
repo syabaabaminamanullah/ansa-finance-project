@@ -9,6 +9,15 @@ export const api = axios.create({
   },
 });
 
+api.interceptors.request.use((config) => {
+  const isReadOnly = sessionStorage.getItem('isReadOnly') === 'true';
+  // Allow only GET and OPTIONS requests if read-only
+  if (isReadOnly && config.method && !['get', 'options'].includes(config.method.toLowerCase())) {
+    return Promise.reject(new Error('Mode Read-Only Aktif: Perubahan data tidak diizinkan di versi demo.'));
+  }
+  return config;
+});
+
 // Organization APIs
 export const organizationApi = {
   // Company

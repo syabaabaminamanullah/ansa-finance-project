@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Keuangan Komparatif & Profil Korporasi 2026 - PT CoreTerra Geo Engineering</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-body: #060913;
+      --card-bg: #0b1120;
+      --card-inner: #0f172a;
+      --card-border: #1e293b;
+      --border-focus: #334155;
+      
+      /* CoreTerra Brand Palette */
+      --ct-terracotta: #92673b;
+      --ct-gold: #c88a58;
+      --ct-gold-light: #e0a370;
+      --ct-glow: rgba(200, 138, 88, 0.12);
+      
+      --text-main: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.12);
+      --red: #f43f5e;
+      --cyan: #0ea5e9;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 30px 20px 80px;
+    }
+
+    /* ACTION BAR */
+    .top-action-bar {
+      position: sticky;
+      top: 16px;
+      z-index: 1000;
+      background: rgba(11, 17, 32, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--ct-gold);
+      border-radius: 60px;
+      padding: 10px 28px;
+      margin-bottom: 35px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    }
+
+    .brand-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-pill img {
+      height: 28px;
+      object-fit: contain;
+    }
+
+    .brand-pill-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ct-gold-light);
+      letter-spacing: 0.5px;
+    }
+
+    .btn-pdf {
+      background: linear-gradient(135deg, var(--ct-terracotta) 0%, var(--ct-gold) 100%);
+      color: #ffffff;
+      border: none;
+      padding: 8px 22px;
+      font-weight: 700;
+      font-size: 13px;
+      border-radius: 40px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 14px rgba(146, 103, 59, 0.35);
+    }
+
+    .btn-pdf:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(200, 138, 88, 0.5);
+    }
+
+    /* SLIDE CARD / PAGE */
+    .slide-page {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 48px 56px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+      min-height: 640px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    /* OFFICIAL WATERMARK IN BACKGROUND */
+    .slide-page::after {
+      content: '';
+      position: absolute;
+      top: 52%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 520px;
+      height: 380px;
+      background-image: url('./logo-transparent.png');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+      opacity: 0.038;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Top Accent Line */
+    .slide-page::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--ct-terracotta) 0%, var(--ct-gold) 50%, var(--cyan) 100%);
+      z-index: 2;
+    }
+
+    .slide-body {
+      position: relative;
+      z-index: 3;
+      flex: 1;
+    }
+
+    /* SLIDE HEADER */
+    .slide-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: 18px;
+      margin-bottom: 26px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .slide-meta-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ct-gold-light);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .slide-heading {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-top: 4px;
+      letter-spacing: -0.5px;
+    }
+
+    .slide-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--ct-glow);
+      color: var(--ct-gold-light);
+      border: 1px solid rgba(200, 138, 88, 0.35);
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* SLIDE FOOTER */
+    .slide-ftr {
+      position: relative;
+      z-index: 3;
+      margin-top: 30px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .ftr-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .ftr-brand img {
+      height: 16px;
+    }
+
+    /* COVER PAGE */
+    .cover-page {
+      background: radial-gradient(circle at 85% 15%, rgba(146, 103, 59, 0.15) 0%, transparent 55%), #090e1a;
+      border: 1px solid rgba(200, 138, 88, 0.3);
+      padding: 70px 70px;
+    }
+
+    .cover-page::after {
+      width: 620px;
+      height: 440px;
+      opacity: 0.055;
+    }
+
+    .cover-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .cover-logo-img {
+      height: 52px;
+      object-fit: contain;
+    }
+
+    .cover-title-main {
+      font-family: 'Cinzel', serif;
+      font-size: 42px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: #ffffff;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .cover-title-main span {
+      background: linear-gradient(135deg, #ffffff 0%, var(--ct-gold-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .cover-desc {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 740px;
+      margin-bottom: 36px;
+      line-height: 1.6;
+    }
+
+    .cover-metric-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 22px;
+      margin-top: 15px;
+    }
+
+    .metric-item-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--ct-gold-light);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .metric-item-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    /* TABLES (EXECUTIVE COMPARATIVE MATRIX) */
+    .table-box {
+      background: rgba(15, 23, 42, 0.45);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    table.financial-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      text-align: left;
+    }
+
+    table.financial-table th {
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--ct-gold-light);
+      font-weight: 700;
+      padding: 12px 14px;
+      text-transform: uppercase;
+      font-size: 10.5px;
+      letter-spacing: 0.75px;
+      border-bottom: 1px solid var(--border-focus);
+    }
+
+    table.financial-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+    }
+
+    table.financial-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    table.financial-table tr.row-highlight {
+      background: rgba(200, 138, 88, 0.06);
+      font-weight: 700;
+    }
+
+    table.financial-table tr.row-total {
+      background: rgba(16, 185, 129, 0.08);
+      font-weight: 700;
+      border-top: 1px solid var(--emerald);
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .text-emerald { color: var(--emerald) !important; font-weight: 700; }
+    .text-red { color: var(--red) !important; font-weight: 700; }
+    .text-gold { color: var(--ct-gold-light) !important; font-weight: 700; }
+    .text-white { color: #ffffff !important; font-weight: 700; }
+
+    /* GRID & CARDS */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .card-panel {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 22px;
+    }
+
+    .card-panel.highlight-gold {
+      border: 1px solid rgba(200, 138, 88, 0.4);
+      background: linear-gradient(180deg, rgba(200, 138, 88, 0.06) 0%, rgba(15, 23, 42, 0.4) 100%);
+    }
+
+    .card-panel.highlight-green {
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, rgba(15, 23, 42, 0.4) 100%);
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .tag-lancar { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .tag-settled { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+    .tag-wait { background: rgba(200, 138, 88, 0.2); color: #f6ad55; }
+
+    /* AUDIT SIGNATURE STAMP */
+    .sign-box {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    .sign-inner {
+      text-align: center;
+      position: relative;
+      padding: 10px 30px;
+    }
+
+    .sign-stamp-img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-60%, -50%) rotate(-8deg);
+      height: 90px;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .sign-ttd-img {
+      height: 55px;
+      margin: 4px auto;
+      display: block;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* PRINT ADAPTATION */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+      }
+      .top-action-bar { display: none; }
+      .slide-page {
+        page-break-after: always;
+        break-after: page;
+        min-height: 100vh;
+        border: none !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        padding: 40px !important;
+      }
+      .cover-page {
+        background: #ffffff !important;
+      }
+      .slide-page::before { display: none; }
+      .slide-page::after {
+        opacity: 0.055 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .slide-heading, .cover-title-main, .panel-title, .metric-item-num {
+        color: #0f172a !important;
+      }
+      .cover-title-main span {
+        -webkit-text-fill-color: #0f172a !important;
+      }
+      .card-panel, .table-box, .cover-metric-row {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      table.financial-table th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+      }
+      table.financial-table td {
+        color: #1e293b !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+      }
+      .text-emerald { color: #047857 !important; }
+      .text-red { color: #b91c1c !important; }
+      .text-gold { color: #92673b !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- FLOATING TOP BAR -->
+    <div class="top-action-bar">
+      <div class="brand-pill">
+        <img src="./logo-transparent.png" alt="CoreTerra Logo">
+        <div class="brand-pill-text">PT CORETERRA GEO ENGINEERING — FINANCIAL AUDIT & COMPARATIVE REPORT 2026</div>
+      </div>
+      <button class="btn-pdf" onclick="window.print()">
+        <span>🖨️</span> Cetak / Simpan PDF
+      </button>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 1: OFFICIAL CORPORATE COVER
+         ========================================== -->
+    <div class="slide-page cover-page">
+      <div class="slide-body">
+        <div class="cover-top">
+          <img src="./logo-transparent.png" alt="Logo CoreTerra" class="cover-logo-img">
+          <div class="slide-badge">Official Audit & Executive Review</div>
+        </div>
+
+        <h1 class="cover-title-main">
+          PT CORETERRA<br>
+          <span>GEO ENGINEERING</span>
+        </h1>
+        <p class="cover-desc">
+          Laporan Kinerja Keuangan Komparatif (Bulan ke Bulan), Neraca Likuiditas Riil, serta Portofolio Operasional Geoteknik & Pengeboran Eksplorasi Mineral Tahun Fiskal 2026.
+        </p>
+
+        <div class="cover-metric-row">
+          <div>
+            <div class="metric-item-title">Total Kontrak Pipeline</div>
+            <div class="metric-item-num text-gold">Rp 5,43 M</div>
+          </div>
+          <div>
+            <div class="metric-item-title">Realisasi Inflow (YTD)</div>
+            <div class="metric-item-num text-white">Rp 1,47 M</div>
+          </div>
+          <div>
+            <div class="metric-item-title">Kas Likuid Berjalan</div>
+            <div class="metric-item-num text-emerald">Rp 40,40 Jt</div>
+          </div>
+          <div>
+            <div class="metric-item-title">Kolektibilitas Piutang</div>
+            <div class="metric-item-num text-emerald">0,0% Default</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-ftr">
+        <div class="ftr-brand">
+          <img src="./logo-transparent.png" alt="CoreTerra">
+          <span>PT CoreTerra Geo Engineering • Ciputat, Tangerang Selatan</span>
+        </div>
+        <span>Sistem Cloud ERP Terpadu: lode.annsa.site</span>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 2: COMPARATIVE INCOME STATEMENT (PERBANDINGAN BULAN 1, 2, 3)
+         ========================================== -->
+    <div class="slide-page">
+      <div class="slide-body">
+        <div class="slide-hdr">
+          <div>
+            <div class="slide-meta-tag">LAPORAN LABA RUGI KOMPARATIF // INCOME STATEMENT</div>
+            <h2 class="slide-heading">Perbandingan Kinerja Keuangan: Bulan 1, 2, dan 3</h2>
+          </div>
+          <div class="slide-badge">Audit Database Riil</div>
+        </div>
+
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+          Tabel di bawah ini menyajikan data pembukuan riil yang diekstraksi dari jurnal transaksi umum PT CoreTerra Geo Engineering per bulan:
+        </p>
+
+        <div class="table-box">
+          <table class="financial-table">
+            <thead>
+              <tr>
+                <th style="width: 32%;">Komponen Keuangan (Akun ERP)</th>
+                <th class="text-right" style="width: 17%;">Bulan 1 (Juli 2026)</th>
+                <th class="text-right" style="width: 17%;">Bulan 2 (Agustus 2026)</th>
+                <th class="text-right" style="width: 17%;">Bulan 3 (September 2026)</th>
+                <th class="text-right" style="width: 17%;">Total Q3 (YTD Kumulatif)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Revenue Section -->
+              <tr class="row-highlight">
+                <td colspan="5"><strong style="color: var(--ct-gold-light);">1. PENDAPATAN OPERASIONAL (REVENUE - KEPALA 4)</strong></td>
+              </tr>
+              <tr>
+                <td>• Proyek Borpile & Struktur IKPT Solok</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono text-white">800.000.000,00</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono text-white">800.000.000,00</td>
+              </tr>
+              <tr>
+                <td>• Proyek Limestone Exploration Citatah (DP)</td>
+                <td class="text-right mono text-white">457.622.620,00</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono text-white">457.622.620,00</td>
+              </tr>
+              <tr>
+                <td>• Proyek Magnetik Bukit Besi (LSI)</td>
+                <td class="text-right mono text-white">107.666.720,00</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono text-white">107.666.720,00</td>
+              </tr>
+              <tr>
+                <td>• Proyek Geolistrik PLTM Pongkor (Volta)</td>
+                <td class="text-right mono text-white">63.000.000,00</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono text-white">42.000.000,00</td>
+                <td class="text-right mono text-white">105.000.000,00</td>
+              </tr>
+              <tr style="border-top: 1px solid var(--border-focus); font-weight: 700;">
+                <td style="color: var(--ct-gold-light);">TOTAL PENDAPATAN (GROSS REVENUE)</td>
+                <td class="text-right mono text-gold">628.289.340,00</td>
+                <td class="text-right mono text-gold">800.000.000,00</td>
+                <td class="text-right mono text-gold">42.000.000,00</td>
+                <td class="text-right mono text-gold" style="font-size: 13.5px;">1.470.289.340,00</td>
+              </tr>
+
+              <!-- COGS Section -->
+              <tr class="row-highlight">
+                <td colspan="5"><strong style="color: var(--ct-gold-light);">2. BEBAN POKOK PROYEK (COGS / DIRECT COSTS - KEPALA 5)</strong></td>
+              </tr>
+              <tr>
+                <td>• Biaya Jasa Subkontraktor & Pekerja Khusus</td>
+                <td class="text-right mono">390.627.491,00</td>
+                <td class="text-right mono">813.017.806,00</td>
+                <td class="text-right mono">117.822.581,00</td>
+                <td class="text-right mono">1.321.467.878,00</td>
+              </tr>
+              <tr>
+                <td>• Pengadaan Material Proyek (Rebar/Besi/Semen)</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono">8.413.000,00</td>
+                <td class="text-right mono">66.180.000,00</td>
+                <td class="text-right mono">74.593.000,00</td>
+              </tr>
+              <tr>
+                <td>• Mobilisasi Mesin, Rig Lapangan & Logistik</td>
+                <td class="text-right mono">28.491.448,00</td>
+                <td class="text-right mono">5.282.052,00</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono">33.773.500,00</td>
+              </tr>
+              <tr>
+                <td>• Gaji, Upah Bor & Tunjangan Crew Lapangan</td>
+                <td class="text-right mono">17.008.800,00</td>
+                <td class="text-right mono">11.539.588,00</td>
+                <td class="text-right mono">15.000.000,00</td>
+                <td class="text-right mono">43.548.388,00</td>
+              </tr>
+              <tr>
+                <td>• Biaya Koordinasi Site & MCU Kesehatan K3</td>
+                <td class="text-right mono">2.991.200,00</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono">-</td>
+                <td class="text-right mono">2.991.200,00</td>
+              </tr>
+              <tr style="border-top: 1px solid var(--border-focus); font-weight: 700;">
+                <td style="color: #fca5a5;">TOTAL BEBAN POKOK PROYEK (COGS)</td>
+                <td class="text-right mono" style="color: #fca5a5;">439.118.939,00</td>
+                <td class="text-right mono" style="color: #fca5a5;">838.252.446,00</td>
+                <td class="text-right mono" style="color: #fca5a5;">199.002.581,00</td>
+                <td class="text-right mono" style="color: #fca5a5; font-size: 13.5px;">1.476.373.966,00</td>
+              </tr>
+
+              <!-- Gross Profit -->
+              <tr style="background: rgba(255, 255, 255, 0.03); font-weight: 700;">
+                <td>LABA KOTOR (GROSS PROFIT)</td>
+                <td class="text-right mono text-emerald">+ 189.170.401,00</td>
+                <td class="text-right mono text-red">- 38.252.446,00</td>
+                <td class="text-right mono text-red">- 157.002.581,00</td>
+                <td class="text-right mono text-red">- 6.084.626,00</td>
+              </tr>
+
+              <!-- OPEX -->
+              <tr class="row-highlight">
+                <td colspan="5"><strong style="color: var(--ct-gold-light);">3. BEBAN UMUM & OPERASIONAL KANTOR (OPEX - KEPALA 6 & 7)</strong></td>
+              </tr>
+              <tr>
+                <td>• Beban Operasional Manajemen, Gaji Kantor, IT & Pajak</td>
+                <td class="text-right mono">11.553.432,45</td>
+                <td class="text-right mono">3.620.726,00</td>
+                <td class="text-right mono">4.519.000,00</td>
+                <td class="text-right mono">19.693.158,45</td>
+              </tr>
+
+              <!-- Net Income -->
+              <tr class="row-total">
+                <td>LABA BERSIH OPERASIONAL (NET OPERATING PROFIT)</td>
+                <td class="text-right mono text-emerald" style="font-size: 13px;">+ 177.616.968,55</td>
+                <td class="text-right mono text-red">- 41.873.172,00</td>
+                <td class="text-right mono text-red">- 161.521.581,00</td>
+                <td class="text-right mono text-red" style="font-size: 13px;">- 25.777.784,45</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 12px; font-size: 11.5px; color: var(--text-muted); line-height: 1.5;">
+          ℹ️ <em>Penjelasan Manajerial</em>: Pada Bulan 1 (Juli), perusahaan menghasilkan <strong>laba bersih kas sangat tinggi Rp 177,6 Juta (Margin 28,3%)</strong>. Pada Bulan 2 & 3, terjadi konsentrasi belanja modal kerja untuk proyek besar Solok (mobilisasi rig dan pengadaan besi rebar) yang saat ini dalam proses sertifikasi penagihan termin berikutnya senilai ratusan juta rupiah.
+        </div>
+      </div>
+
+      <div class="slide-ftr">
+        <div class="ftr-brand">
+          <img src="./logo-transparent.png" alt="CoreTerra">
+          <span>PT CoreTerra Geo Engineering</span>
+        </div>
+        <span>Halaman 2 / Laporan Keuangan Komparatif</span>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 3: COMPARATIVE BALANCE SHEET (NERACA LIKUIDITAS BULANAN)
+         ========================================== -->
+    <div class="slide-page">
+      <div class="slide-body">
+        <div class="slide-hdr">
+          <div>
+            <div class="slide-meta-tag">NERACA KEUANGAN KOMPARATIF // BALANCE SHEET</div>
+            <h2 class="slide-heading">Posisi Neraca Likuiditas Akhir Bulan (Juli, Agt, Sept)</h2>
+          </div>
+          <div class="slide-badge">Solvabilitas Kuat</div>
+        </div>
+
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+          Posisi kumulatif saldo riil rekening perbankan, piutang usaha, dan liabilitas perusahaan pada setiap akhir periode:
+        </p>
+
+        <div class="table-box">
+          <table class="financial-table">
+            <thead>
+              <tr>
+                <th style="width: 35%;">Akun Neraca (Balance Sheet Accounts)</th>
+                <th class="text-right" style="width: 21%;">Akhir Bulan 1 (31 Juli 2026)</th>
+                <th class="text-right" style="width: 21%;">Akhir Bulan 2 (31 Agu 2026)</th>
+                <th class="text-right" style="width: 23%;">Posisi Berjalan (Sept 2026)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- ASET LANCAR -->
+              <tr class="row-highlight">
+                <td colspan="4"><strong style="color: var(--ct-gold-light);">ASET LANCAR (CURRENT ASSETS)</strong></td>
+              </tr>
+              <tr>
+                <td>• Bank Mandiri IDR (103-00-1332575-4 a.n. CoreTerra)</td>
+                <td class="text-right mono text-white">177.555.207,55</td>
+                <td class="text-right mono text-white">130.682.035,55</td>
+                <td class="text-right mono text-emerald">35.340.454,55</td>
+              </tr>
+              <tr>
+                <td>• Bank CIMB Niaga IDR</td>
+                <td class="text-right mono text-white">61.761,00</td>
+                <td class="text-right mono text-white">5.061.761,00</td>
+                <td class="text-right mono text-emerald">5.061.761,00</td>
+              </tr>
+              <tr style="border-top: 1px solid var(--border-focus); font-weight: 700;">
+                <td style="color: var(--ct-gold-light);">TOTAL KAS DAN SETARA KAS</td>
+                <td class="text-right mono text-gold" style="font-size: 13px;">177.616.968,55</td>
+                <td class="text-right mono text-gold" style="font-size: 13px;">135.743.796,55</td>
+                <td class="text-right mono text-emerald" style="font-size: 14px;">40.402.215,55</td>
+              </tr>
+              <tr>
+                <td>• Piutang Usaha Macet (Bad Debt Receivables)</td>
+                <td class="text-right mono text-emerald">0,00</td>
+                <td class="text-right mono text-emerald">0,00</td>
+                <td class="text-right mono text-emerald">0,00 (NIL)</td>
+              </tr>
+              <tr class="row-total">
+                <td>TOTAL ASET LANCAR LIKUID</td>
+                <td class="text-right mono text-white">177.616.968,55</td>
+                <td class="text-right mono text-white">135.743.796,55</td>
+                <td class="text-right mono text-emerald">40.402.215,55</td>
+              </tr>
+
+              <!-- KEWAJIBAN -->
+              <tr class="row-highlight">
+                <td colspan="4"><strong style="color: var(--ct-gold-light);">KEWAJIBAN JANGKA PENDEK (LIABILITIES)</strong></td>
+              </tr>
+              <tr>
+                <td>• Hutang Usaha Dagang (AP Vendor Material Rebar)</td>
+                <td class="text-right mono text-emerald">0,00</td>
+                <td class="text-right mono text-emerald">0,00</td>
+                <td class="text-right mono text-gold">66.180.000,00</td>
+              </tr>
+              <tr>
+                <td>• Pinjaman Bank / Lembaga Finansial Berbunga</td>
+                <td class="text-right mono text-emerald">0,00 (NIL)</td>
+                <td class="text-right mono text-emerald">0,00 (NIL)</td>
+                <td class="text-right mono text-emerald">0,00 (NIL)</td>
+              </tr>
+              <tr style="border-top: 1px solid var(--border-focus); font-weight: 700;">
+                <td style="color: #fca5a5;">TOTAL LIABILITAS USAHA</td>
+                <td class="text-right mono text-emerald">0,00</td>
+                <td class="text-right mono text-emerald">0,00</td>
+                <td class="text-right mono" style="color: #fca5a5; font-size: 13.5px;">66.180.000,00</td>
+              </tr>
+
+              <!-- RASIO KESEHATAN -->
+              <tr class="row-highlight">
+                <td colspan="4"><strong style="color: var(--ct-gold-light);">INDIKATOR KESEHATAN FINANSIAL</strong></td>
+              </tr>
+              <tr>
+                <td>• Rasio Beban Hutang Finansial (Debt-to-Asset)</td>
+                <td class="text-right text-emerald">0,0%</td>
+                <td class="text-right text-emerald">0,0%</td>
+                <td class="text-right text-emerald">0,0% (Bebas Pinjaman)</td>
+              </tr>
+              <tr>
+                <td>• Status Kepemilikan Armada Mesin Bor</td>
+                <td class="text-right text-emerald">100% Milik Sendiri</td>
+                <td class="text-right text-emerald">100% Milik Sendiri</td>
+                <td class="text-right text-emerald">Bebas Agunan Bank</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid-2" style="margin-top: 16px;">
+          <div class="card-panel highlight-gold">
+            <div class="panel-title">🛡️ Disiplin Arus Kas (Zero Default AR)</div>
+            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.6;">
+              Tidak ada piutang macet yang mengendap. Seluruh tagihan kepada pihak IKPT, Citatah, LSI, dan Volta dibayarkan tepat waktu sesuai milestone kontrak kerja.
+            </p>
+          </div>
+          <div class="card-panel highlight-green">
+            <div class="panel-title">⚡ Struktur Liabilitas Terkendali</div>
+            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.6;">
+              Hutang lancar Rp 66,18 Juta hanya terkait 1 PO material rebar besi kepada PT Usaha Anugerah Pratama, yang pembayarannya telah diselaraskan dengan termin penagihan klien Solok.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-ftr">
+        <div class="ftr-brand">
+          <img src="./logo-transparent.png" alt="CoreTerra">
+          <span>PT CoreTerra Geo Engineering</span>
+        </div>
+        <span>Halaman 3 / Neraca Likuiditas Komparatif</span>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 4: CASH FLOW BREAKDOWN PER PROYEK PER BULAN
+         ========================================== -->
+    <div class="slide-page">
+      <div class="slide-body">
+        <div class="slide-hdr">
+          <div>
+            <div class="slide-meta-tag">ANALISIS ARUS KAS PROYEK // CASH FLOW AUDIT</div>
+            <h2 class="slide-heading">Arus Kas Masuk vs Pengeluaran per Proyek Tiap Bulan</h2>
+          </div>
+          <div class="slide-badge">Project Cost Accounting</div>
+        </div>
+
+        <div class="table-box">
+          <table class="financial-table">
+            <thead>
+              <tr>
+                <th>Proyek & Mitra Klien</th>
+                <th class="text-right">Bulan 1 (Juli)</th>
+                <th class="text-right">Bulan 2 (Agustus)</th>
+                <th class="text-right">Bulan 3 (September)</th>
+                <th class="text-right">Total Realisasi Kas</th>
+                <th class="text-center">Status Komersial</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- CITATAH -->
+              <tr>
+                <td>
+                  <strong style="color: #ffffff;">003_CITATAH (Limestone Diamond Drilling)</strong><br>
+                  <small style="color: var(--text-muted)">Klien: Bathwal Corporation / PT Citatah</small>
+                </td>
+                <td class="text-right mono text-emerald">+ 136.180.129,00<br><small style="color: var(--text-muted)">DP 457M - Exp 321M</small></td>
+                <td class="text-right mono text-red">- 30.810.000,00<br><small style="color: var(--text-muted)">Demob & Finalisasi</small></td>
+                <td class="text-right mono text-muted">-</td>
+                <td class="text-right mono text-emerald" style="font-size: 13px;"><strong>+ 105.370.129,00</strong><br><small style="color: var(--emerald);">Margin Bersih +23.0%</small></td>
+                <td class="text-center"><span class="status-tag tag-settled">Fase 1 Lunas</span></td>
+              </tr>
+
+              <!-- SOLOK -->
+              <tr>
+                <td>
+                  <strong style="color: #ffffff;">004_IKPT-SOLOK (Borpile & Struktur Fondasi)</strong><br>
+                  <small style="color: var(--text-muted)">Klien: PT Solusi Monitoring Indonesia / IKPT</small>
+                </td>
+                <td class="text-right mono text-red">- 6.900.969,00<br><small style="color: var(--text-muted)">Persiapan Site Awal</small></td>
+                <td class="text-right mono text-emerald">+ 139.458.523,00<br><small style="color: var(--text-muted)">Inflow 800M - Exp 660M</small></td>
+                <td class="text-right mono text-red">- 117.822.581,00<br><small style="color: var(--text-muted)">Operasional Lanjutan</small></td>
+                <td class="text-right mono text-emerald" style="font-size: 13px;"><strong>+ 14.734.973,00</strong><br><small style="color: var(--ct-gold-light);">Sisa Backlog Rp 2,07 M</small></td>
+                <td class="text-center"><span class="status-tag tag-lancar">Progres Aktif</span></td>
+              </tr>
+
+              <!-- VITECH PONGKOR -->
+              <tr>
+                <td>
+                  <strong style="color: #ffffff;">002_VITECH (Geolistrik Multichannel PLTM)</strong><br>
+                  <small style="color: var(--text-muted)">Klien: PT Volta Indo Technology</small>
+                </td>
+                <td class="text-right mono text-emerald">+ 18.957.500,00<br><small style="color: var(--text-muted)">Inflow 63M - Exp 44M</small></td>
+                <td class="text-right mono text-muted">-</td>
+                <td class="text-right mono text-emerald">+ 27.000.000,00<br><small style="color: var(--text-muted)">Pelunasan 42M - Exp 15M</small></td>
+                <td class="text-right mono text-emerald" style="font-size: 13px;"><strong>+ 45.957.500,00</strong><br><small style="color: var(--emerald);">Margin Bersih +43.8%</small></td>
+                <td class="text-center"><span class="status-tag tag-settled">Lunas 100%</span></td>
+              </tr>
+
+              <!-- LSI BUKIT BESI -->
+              <tr>
+                <td>
+                  <strong style="color: #ffffff;">001_LSI (Survei Magnetik Tambang Bukit Besi)</strong><br>
+                  <small style="color: var(--text-muted)">Klien: LSI Engineering & Consultants Ltd</small>
+                </td>
+                <td class="text-right mono text-emerald">+ 57.266.720,00<br><small style="color: var(--text-muted)">Inflow 107M - Exp 50M</small></td>
+                <td class="text-right mono text-red">- 145.650.000,00<br><small style="color: var(--text-muted)">Subkon RecsaLOG</small></td>
+                <td class="text-right mono text-muted">-</td>
+                <td class="text-right mono text-red" style="font-size: 13px;"><strong>- 88.383.280,00</strong><br><small style="color: var(--ct-gold-light);">Sisa Kontrak Rp 259 M</small></td>
+                <td class="text-center"><span class="status-tag tag-wait">Menunggu Termin</span></td>
+              </tr>
+
+              <!-- TOTAL ROW -->
+              <tr class="row-total">
+                <td><strong>TOTAL KONSOLIDASI ARUS KAS MASUK VS KELUAR</strong></td>
+                <td class="text-right mono text-emerald">+ 205.503.380,00</td>
+                <td class="text-right mono text-red">- 37.001.477,00</td>
+                <td class="text-right mono text-red">- 90.822.581,00</td>
+                <td class="text-right mono text-emerald" style="font-size: 14px;"><strong>+ 77.680.322,00</strong></td>
+                <td class="text-center"><span class="status-tag tag-lancar">Surplus Kas</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SPECIAL CITATAH EXPLANATION -->
+        <div class="card-panel highlight-gold" style="margin-top: 16px;">
+          <div class="panel-title">
+            <span>💎</span> Penjelasan Spesifik Proyek Citatah untuk Investor
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.65;">
+            Proyek Citatah diakui sebagai <strong>kontrak dengan keberhasilan finansial tinggi (Margin Laba Bersih 23,0%)</strong>. Pembayaran Termin Awal sebesar <strong>Rp 457,6 Juta</strong> diterima penuh di Bulan 1 (Juli). Seluruh biaya mobilisasi dan pengeboran tahap awal diselesaikan dengan biaya riil <strong>Rp 352,2 Juta</strong>, sehingga perusahaan berhasil mengamankan <strong>laba bersih kas Rp 105,37 Juta</strong>. Keputusan penghentian lanjutan murni atas pertimbangan evaluasi desain tambang klien secara damai (zero dispute), dan armada rig langsung siap dialokasikan ke kontrak baru.
+          </p>
+        </div>
+      </div>
+
+      <div class="slide-ftr">
+        <div class="ftr-brand">
+          <img src="./logo-transparent.png" alt="CoreTerra">
+          <span>PT CoreTerra Geo Engineering</span>
+        </div>
+        <span>Halaman 4 / Analisis Arus Kas per Proyek</span>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 5: VALIDASI MANAJEMEN & PENGESAHAN DOKUMEN
+         ========================================== -->
+    <div class="slide-page">
+      <div class="slide-body">
+        <div class="slide-hdr">
+          <div>
+            <div class="slide-meta-tag">PENGESAHAN LAPORAN // CORPORATE GOVERNANCE</div>
+            <h2 class="slide-heading">Validasi Direksi & Pernyataan Keterbukaan</h2>
+          </div>
+          <div class="slide-badge">Dokumen Resmi</div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 24px;">
+          <div class="card-panel">
+            <div class="panel-title">📑 Pernyataan Tanggung Jawab Keuangan</div>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7;">
+              Seluruh data laporan komparatif bulanan, saldo kas perbankan, dan pengeluaran proyek yang tercantum dalam dokumen ini disajikan berdasarkan pencatatan transaksi riil pada buku besar (*general ledger*) sistem ERP terintegrasi PT CoreTerra Geo Engineering. Tidak ada manipulasi, rekayasa, atau penyesuaian fiktif dalam penyajian laporan ini.
+            </p>
+          </div>
+
+          <div class="card-panel">
+            <div class="panel-title">🎯 Kesiapan Penyerapan Modal Investor</div>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7;">
+              Dengan dukungan permodalan investor baru, perusahaan siap mempercepat pengadaan 2 unit armada rig hidrolik baru guna menyerap peluang kontrak geoteknik dan eksplorasi mineral di semester II 2026 dengan estimasi nilai pekerjaan di atas <strong>Rp 15 Miliar</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- TTD & CAP RESMI -->
+        <div class="sign-box">
+          <div class="sign-inner">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Tangerang Selatan, September 2026</div>
+            <div style="font-size: 13px; font-weight: 700; color: #ffffff;">PT CORETERRA GEO ENGINEERING</div>
+            
+            <div style="position: relative; height: 85px; margin: 6px 0;">
+              <!-- Cap Stempel Resmi -->
+              <img src="./cap-transparent.png" alt="Cap Stempel CoreTerra" class="sign-stamp-img">
+              <!-- Tanda Tangan Resmi Pak Setyo Mardani -->
+              <img src="./ttd-transparent.png" alt="Tanda Tangan Direksi" class="sign-ttd-img">
+            </div>
+
+            <div style="font-size: 14px; font-weight: 800; color: var(--ct-gold-light); text-decoration: underline;">
+              SETYO MARDANI
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">
+              Direksi / Manajemen Keuangan
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-ftr">
+        <div class="ftr-brand">
+          <img src="./logo-transparent.png" alt="CoreTerra">
+          <span>PT CoreTerra Geo Engineering</span>
+        </div>
+        <span>Halaman 5 / Lembar Pengesahan Resmi</span>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

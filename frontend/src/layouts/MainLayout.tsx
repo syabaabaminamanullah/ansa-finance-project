@@ -7,11 +7,17 @@ import { FloatingCalculator } from '../components/ui/FloatingCalculator';
 export function MainLayout() {
   const location = useLocation();
   const isFullBleed = location.pathname === '/documents';
+  const isReadOnly = sessionStorage.getItem('isReadOnly') === 'true';
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background font-sans text-textPrimary">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {isReadOnly && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-center text-amber-600 dark:text-amber-400 text-sm font-medium z-50">
+            👀 PENGUNJUNG PORTOFOLIO: Mode Hanya Baca (Read-Only) Aktif. Fitur menambah/mengubah data dinonaktifkan.
+          </div>
+        )}
         <Header />
         <main className={`flex-1 overflow-y-auto overflow-x-hidden ${isFullBleed ? '' : 'p-4 sm:p-6'}`}>
           <div key={location.pathname} className="w-full h-full min-w-0 animate-in fade-in zoom-in-98 duration-150 ease-out">
