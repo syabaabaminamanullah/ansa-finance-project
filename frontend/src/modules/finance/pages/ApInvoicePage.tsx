@@ -73,8 +73,8 @@ export function ApInvoicePage() {
     amount_paid: 0
   });
 
-  const [formData, setFormData] = useState<Omit<ApInvoice, 'id' | 'created_at'>>({
-    invoice_number: '', vendor_id: '', project_id: '', project_rab_id: '', date: '', due_date: '', description: '', amount: 0, tax_amount: 0, total_amount: 0, status: 'Unpaid'
+  const [formData, setFormData] = useState<Omit<ApInvoice, 'id' | 'created_at'> & {amount_paid?: number}>({
+    invoice_number: '', vendor_id: '', project_id: '', project_rab_id: '', date: '', due_date: '', description: '', amount: 0, tax_amount: 0, total_amount: 0, status: 'Unpaid', amount_paid: 0
   });
 
   const fetchData = async () => {
@@ -211,11 +211,6 @@ export function ApInvoicePage() {
   };
 
   const handleEdit = (row: ApInvoice) => {
-    if (row.status === 'Paid') {
-      addToast('warning', 'Action Denied', 'Cannot edit a paid bill.');
-      return;
-    }
-    
     // Calculate effective tax rate
     let effectiveRate = 0;
     if (row.amount > 0) {
@@ -240,6 +235,7 @@ export function ApInvoicePage() {
       tax_amount: row.tax_amount, 
       total_amount: row.total_amount, 
       status: row.status,
+      amount_paid: row.amount_paid || 0,
       expense_account_id: row.expense_account_id || '',
       tax_account_id: row.tax_account_id || ''
     });
@@ -582,7 +578,14 @@ export function ApInvoicePage() {
 
           <div className="space-y-1.5 w-1/2">
             <label className="text-sm font-medium text-textPrimary">Payment Status</label>
-            <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
+            <select value={formData.status} onChange={e => {
+              const newStatus = e.target.value;
+              setFormData({
+                ...formData, 
+                status: newStatus,
+                amount_paid: newStatus === 'Unpaid' ? 0 : newStatus === 'Paid' ? formData.total_amount : formData.amount_paid
+              });
+            }} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
               <option value="Unpaid">Unpaid</option>
               <option value="Partial">Partial</option>
               <option value="Paid">Paid</option>
