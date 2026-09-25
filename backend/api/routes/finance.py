@@ -388,6 +388,13 @@ def update_ap_invoice(invoice_id: str, invoice_update: ApInvoiceUpdate, db: Sess
         for line in j.lines:
             line.project_id = db_invoice.project_id
 
+    # If resetting to Unpaid, delete the Payment Journals
+    if db_invoice.status == "Unpaid":
+        payment_journals = db.query(Journal).filter(Journal.ref_type == 'AP_Invoice_Payment', Journal.ref_id == invoice_id).all()
+        for pj in payment_journals:
+            db.query(JournalLine).filter(JournalLine.journal_id == pj.id).delete()
+            db.delete(pj)
+
     db.commit()
     db.refresh(db_invoice)
     return _enrich_ap_invoice(db_invoice, db)
