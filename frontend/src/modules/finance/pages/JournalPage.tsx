@@ -3,7 +3,7 @@ import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { CoaSelect } from '../../../components/ui/CoaSelect';
 import { DatePicker } from '../../../components/ui/DatePicker';
-import { ArrowLeft, Save, Plus, Trash2, ArrowRight, MapPin, Building2, FileText, Download, CheckCircle, Upload } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, ArrowRight, MapPin, Building2, FileText, Download, CheckCircle, Upload, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { financeApi, financialsApi, projectsApi, rabApi } from '../../../services/api';
 import { useToastStore } from '../../../store/toastStore';
@@ -24,6 +24,7 @@ interface Journal {
   date: string;
   description: string;
   status: string;
+  attachment_path?: string;
   lines?: JournalLine[];
 }
 
@@ -87,11 +88,13 @@ export function JournalPage() {
     journal_number: string;
     date: string;
     description: string;
+    attachment_path?: string;
     lines: JournalLine[];
   }>({
     journal_number: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
+    attachment_path: '',
     lines: [
       { account_id: '', project_id: '', project_rab_id: '', description: '', debit: 0, credit: 0 },
       { account_id: '', project_id: '', project_rab_id: '', description: '', debit: 0, credit: 0 }
@@ -275,6 +278,22 @@ export function JournalPage() {
   const totalDebit = formData.lines.reduce((sum, line) => sum + Number(line.debit || 0), 0);
   const totalCredit = formData.lines.reduce((sum, line) => sum + Number(line.credit || 0), 0);
   const isBalanced = totalDebit === totalCredit && totalDebit > 0;
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    setIsUploading(true);
+    try {
+      const res = await financeApi.uploadFile(e.target.files[0]);
+      setFormData(prev => ({ ...prev, attachment_path: res.data.url }));
+      addToast('success', 'Upload Success', 'File attached successfully.');
+    } catch (err: any) {
+      addToast('error', 'Upload Failed', err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -472,6 +491,25 @@ export function JournalPage() {
               <label className="text-sm font-medium text-textPrimary">Description</label>
               <input type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="Brief description..."/>
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-textPrimary">Bukti PDF / Attachment <span className="text-xs text-textSecondary">(Opsional)</span></label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="file" 
+                accept=".pdf,image/*" 
+                onChange={handleFileUpload} 
+                disabled={isUploading}
+                className="block w-full md:w-1/3 text-sm text-textSecondary file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+              />
+              {isUploading && <span className="text-xs text-textSecondary animate-pulse">Uploading...</span>}
+            </div>
+            {formData.attachment_path && (
+              <div className="text-xs text-success bg-success/10 px-2 py-1 rounded border border-success/20 inline-block mt-1">
+                File terlampir: {formData.attachment_path.split('/').pop()}
+              </div>
+            )}
           </div>
 
           <div className="border border-border rounded-lg shadow-sm">
@@ -733,6 +771,33 @@ export function JournalPage() {
                 </div>
               </div>
             </div>
+
+            {editingItem.attachment_path && (
+              <div className="bg-background border border-border rounded-lg mt-4 overflow-hidden">
+                <div className="flex items-center justify-between p-3 border-b border-border bg-muted/20">
+                  <div className="flex items-center gap-2 text-danger font-medium text-sm">
+                    <FileText className="w-5 h-5" />
+                    <span>Dokumen PDF</span>
+                  </div>
+                  <a 
+                    href={`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000')}${editingItem.attachment_path}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-primary hover:text-primary/80 text-sm font-medium transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>Lihat Penuh</span>
+                  </a>
+                </div>
+                <div className="h-[400px] w-full bg-muted/10">
+                  <iframe 
+                    src={`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000')}${editingItem.attachment_path}`} 
+                    className="w-full h-full border-0" 
+                    title="PDF Viewer"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end pt-4 mt-6">
               <button type="button" onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Close</button>

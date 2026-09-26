@@ -184,6 +184,13 @@ export const inventoryApi = {
 
 // Finance APIs
 export const financeApi = {
+  uploadFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/finance/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
   // Billing Schedules
   getBillingSchedules: () => api.get('/finance/billing-schedules'),
   getBillingSchedule: (id: string) => api.get(`/finance/billing-schedules/${id}`),

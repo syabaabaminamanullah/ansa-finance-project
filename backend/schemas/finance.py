@@ -167,6 +167,7 @@ class ExpenseBase(BaseModel):
     status: str = "Draft"
     admin_fee_amount: float = 0.0
     admin_fee_account_id: Optional[str] = None
+    attachment_path: Optional[str] = None
 
 class ExpenseCreate(ExpenseBase):
     pass
@@ -184,6 +185,7 @@ class ExpenseUpdate(BaseModel):
     status: Optional[str] = None
     admin_fee_amount: Optional[float] = None
     admin_fee_account_id: Optional[str] = None
+    attachment_path: Optional[str] = None
 
 class ExpenseResponse(ExpenseBase):
     id: str

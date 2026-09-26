@@ -913,3 +913,16 @@ def delete_expense(expense_id: str, db: Session = Depends(get_db)):
     db.delete(db_expense)
     db.commit()
     return {"ok": True}
+import shutil, os, uuid
+@router.post("/upload")
+def upload_file(file: UploadFile = File(...)):
+    try:
+        os.makedirs("uploads", exist_ok=True)
+        ext = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join("uploads", filename)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return {"url": f"/uploads/{filename}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

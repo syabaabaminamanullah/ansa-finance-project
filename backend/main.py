@@ -22,6 +22,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import os
+from fastapi.staticfiles import StaticFiles
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # Include Routers
 app.include_router(organization.router, prefix="/api/v1/master-data/organization", tags=["Organization"])
 app.include_router(financials.router, prefix="/api/v1/master-data/financials", tags=["Financial Master Data"])
