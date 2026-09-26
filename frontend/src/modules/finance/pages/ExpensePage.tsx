@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { CoaSelect } from '../../../components/ui/CoaSelect';
@@ -225,6 +225,7 @@ export function ExpensePage() {
 
   const handleViewClick = (row: Expense) => {
     setEditingItem(row);
+    setPreviewPdf(null);
     setIsViewOpen(true);
   };
 
@@ -487,7 +488,7 @@ export function ExpensePage() {
               <label className="text-sm font-medium text-textPrimary">Alokasi RAB / Pos Anggaran <span className="text-xs text-textSecondary">(Opsional)</span></label>
               <select value={formData.project_rab_id} onChange={e => setFormData({...formData, project_rab_id: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
                 <option value="">-- Biaya Proyek Umum (tanpa alokasi RAB) --</option>
-                {rabItems.map(r => <option key={r.id} value={r.id}>{r.category} → {r.description}</option>)}
+                {rabItems.map(r => <option key={r.id} value={r.id}>{r.category} â†’ {r.description}</option>)}
               </select>
               <p className="text-[11px] text-textSecondary">Pilih pos RAB agar biaya ini tercatat pada anggaran spesifik proyek.</p>
             </div>
@@ -628,7 +629,7 @@ export function ExpensePage() {
       </Modal>
 
       {/* View Modal */}
-      <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Expense Details" maxWidth="max-w-xl">
+      <Modal isOpen={isViewOpen} onClose={() => { setIsViewOpen(false); setPreviewPdf(null); }} title="Expense Details" maxWidth="max-w-xl">
         {editingItem && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6 pb-4 border-b border-border">
@@ -765,7 +766,7 @@ export function ExpensePage() {
             )}
 
             <div className="flex justify-end pt-4 border-t border-border mt-6">
-              <button type="button" onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Close</button>
+              <button type="button" onClick={() => { setIsViewOpen(false); setPreviewPdf(null); }} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Close</button>
             </div>
           </div>
         )}

@@ -407,6 +407,7 @@ export function JournalPage() {
   
   const handleViewClick = (row: Journal) => {
     setEditingItem(row);
+    setPreviewPdf(null);
     setIsViewOpen(true);
   };
 
@@ -580,7 +581,7 @@ export function JournalPage() {
                       >
                         <option value="">-- No RAB --</option>
                         {line.project_id && rabItemsByProject[line.project_id]?.map(r => (
-                          <option key={r.id} value={r.id}>{r.category} â†’ {r.description}</option>
+                          <option key={r.id} value={r.id}>{r.category} Ã¢â€ â€™ {r.description}</option>
                         ))}
                       </select>
                     </td>
@@ -694,7 +695,7 @@ export function JournalPage() {
       </Modal>
 
       {/* View Modal */}
-      <Modal isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} title="Journal Details" maxWidth="max-w-4xl">
+      <Modal isOpen={isViewOpen} onClose={() => { setIsViewOpen(false); setPreviewPdf(null); }} title="Journal Details" maxWidth="max-w-4xl">
         {editingItem && (
           <div className="space-y-6">
             <div className="grid grid-cols-3 gap-4 pb-4 border-b border-border">
@@ -833,7 +834,7 @@ export function JournalPage() {
             )}
 
             <div className="flex justify-end pt-4 mt-6">
-              <button type="button" onClick={() => setIsViewOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Close</button>
+              <button type="button" onClick={() => { setIsViewOpen(false); setPreviewPdf(null); }} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Close</button>
             </div>
           </div>
         )}
