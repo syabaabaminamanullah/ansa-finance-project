@@ -380,6 +380,13 @@ export function ExpensePage() {
   const expenseAccounts = coas.filter(c => c.account_type.toLowerCase() === 'expense');
   const paymentAccounts = coas.filter(c => c.account_type.toLowerCase() === 'asset'); // Cash/Bank are assets
 
+  const getPreviewUrl = (path: string | null) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    if (path.startsWith('/uploads/')) return `${baseApiUrl}${path}`;
+    return `${baseApiUrl}/api/v1/finance/attachments/${path}`;
+  };
+
   return (
     <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col">
       <div className="flex items-center gap-4">
@@ -738,7 +745,7 @@ export function ExpensePage() {
                     <span>Dokumen PDF</span>
                   </div>
                   <a 
-                    href={`${baseApiUrl}${previewPdf}`} 
+                    href={getPreviewUrl(previewPdf)} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-primary hover:text-primary/80 text-sm font-medium transition-colors"
@@ -749,7 +756,7 @@ export function ExpensePage() {
                 </div>
                 <div className="h-[400px] w-full bg-muted/10">
                   <iframe 
-                    src={`${baseApiUrl}${previewPdf}`} 
+                    src={getPreviewUrl(previewPdf)} 
                     className="w-full h-full border-0" 
                     title="PDF Viewer"
                   />

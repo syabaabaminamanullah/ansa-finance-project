@@ -928,14 +928,64 @@ def delete_expense(expense_id: str, db: Session = Depends(get_db)):
 import shutil, os, uuid
 @router.post("/upload")
 def upload_file(file: UploadFile = File(...)):
+    import os, shutil, requests, mimetypes
     try:
-        os.makedirs("uploads", exist_ok=True)
         ext = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
         filename = f"{uuid.uuid4().hex}.{ext}"
-        filepath = os.path.join("uploads", filename)
+        
+        # Local fallback
+        upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "journal_attachments")
+        os.makedirs(upload_dir, exist_ok=True)
+        filepath = os.path.join(upload_dir, filename)
+        file.file.seek(0)
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        return {"url": f"/uploads/{filename}"}
+            
+        # Supabase upload
+        supabase_url = os.getenv("SUPABASE_URL", "https://rwglshhjtgwjudwdgkvf.supabase.co")
+        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", os.getenv("SUPABASE_KEY", ""))
+        supabase_bucket = os.getenv("SUPABASE_STORAGE_BUCKET", "attachments")
+        
+        if supabase_url and supabase_key:
+            try:
+                file.file.seek(0)
+                file_bytes = file.file.read()
+                mime_type, _ = mimetypes.guess_type(filename)
+                headers = {
+                    "Authorization": f"Bearer {supabase_key}",
+                    "apikey": supabase_key,
+                    "Content-Type": mime_type or "application/octet-stream",
+                    "x-upsert": "true"
+                }
+                storage_url = f"{supabase_url}/storage/v1/object/{supabase_bucket}/journal_attachments/{filename}"
+                r = requests.post(storage_url, headers=headers, data=file_bytes, timeout=10)
+                r.raise_for_status()
+            except Exception as err:
+                print(f"Failed to upload to Supabase: {err}")
+                
+        # Return path format compatible with the attachment endpoint
+        return {"url": f"journal_attachments/{filename}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/attachments/{file_path:path}")
+def get_attachment(file_path: str):
+    from fastapi.responses import FileResponse, RedirectResponse
+    import os
+    
+    if file_path.startswith("/"):
+        file_path = file_path[1:]
+        
+    upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads")
+    filepath = os.path.join(upload_dir, file_path)
+    if os.path.exists(filepath):
+        return FileResponse(filepath)
+        
+    supabase_url = os.getenv("SUPABASE_URL", "https://rwglshhjtgwjudwdgkvf.supabase.co")
+    supabase_bucket = os.getenv("SUPABASE_STORAGE_BUCKET", "attachments")
+    if supabase_url:
+        cloud_url = f"{supabase_url}/storage/v1/object/public/{supabase_bucket}/{file_path}"
+        return RedirectResponse(cloud_url)
+        
+    raise HTTPException(status_code=404, detail="File not found")
 
