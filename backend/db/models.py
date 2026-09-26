@@ -397,6 +397,7 @@ class Journal(BaseModel):
     ref_id = Column(String) # ID of the reference document
     status = Column(String, default="Draft") # Draft, Posted
     attachment_path = Column(String, nullable=True)  # Path to uploaded bukti transfer
+    attachment_path_2 = Column(String, nullable=True) # Path to dokumen dasar
     attachment_memo = Column(String, nullable=True)  # Memo/catatan tambahan untuk bukti
 
     lines = relationship("JournalLine", back_populates="journal", cascade="all, delete-orphan")
@@ -505,6 +506,9 @@ class Expense(BaseModel):
     
     admin_fee_amount = Column(Float, default=0.0)
     admin_fee_account_id = Column(String, ForeignKey("chart_of_accounts.id"), nullable=True)
+
+    attachment_path = Column(String, nullable=True)
+    attachment_path_2 = Column(String, nullable=True)
 
     project_rab_id = Column(String, ForeignKey("project_rabs.id"), nullable=True)  # Optional RAB allocation
     fixed_asset_id = Column(String, ForeignKey("fixed_assets.id"), nullable=True) # Tag asset for maintenance/repairs

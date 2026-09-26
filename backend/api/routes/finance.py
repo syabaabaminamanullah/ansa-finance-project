@@ -754,7 +754,9 @@ def create_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
         description=f"Auto-journal for Expense {new_expense.expense_number}: {new_expense.description}",
         ref_type="Expense",
         ref_id=new_expense.id,
-        status="Posted"
+        status="Posted",
+        attachment_path=new_expense.attachment_path,
+        attachment_path_2=new_expense.attachment_path_2
     )
     db.add(new_journal)
     db.commit()
@@ -824,6 +826,8 @@ def update_expense(expense_id: str, expense_update: ExpenseUpdate, db: Session =
     if auto_journal:
         auto_journal.date = db_expense.date
         auto_journal.description = f"Auto-journal for Expense {db_expense.expense_number}: {db_expense.description}"
+        auto_journal.attachment_path = db_expense.attachment_path
+        auto_journal.attachment_path_2 = db_expense.attachment_path_2
         if not auto_journal.journal_number:
             auto_journal.journal_number = generate_transaction_number(db, db_expense.date, None, 'JV', Journal, 'journal_number')
         
@@ -877,18 +881,26 @@ def get_expenses(month: Optional[str] = None, skip: int = 0, limit: int = 1000, 
     expenses = query.order_by(Expense.date.desc()).offset(skip).limit(limit).all()
     
     exp_ids = [e.id for e in expenses]
-    journals = db.query(Journal.ref_id, Journal.status, Journal.journal_number).filter(
+    journals = db.query(Journal.ref_id, Journal.status, Journal.journal_number, Journal.attachment_path, Journal.attachment_path_2).filter(
         Journal.ref_id.in_(exp_ids),
         Journal.ref_type == "Expense"
     ).all()
-    journal_map = {j[0]: (j[1], j[2]) for j in journals}
+    journal_map = {j[0]: j for j in journals}
     
     results = []
     for exp in expenses:
         exp_dict = {c.name: getattr(exp, c.name) for c in exp.__table__.columns}
         j_info = journal_map.get(exp.id)
-        exp_dict['journal_status'] = j_info[0] if j_info else "Draft"
-        exp_dict['journal_number'] = j_info[1] if j_info else None
+        if j_info:
+            exp_dict['journal_status'] = j_info[1]
+            exp_dict['journal_number'] = j_info[2]
+            if not exp_dict.get('attachment_path') and j_info[3]:
+                exp_dict['attachment_path'] = j_info[3]
+            if not exp_dict.get('attachment_path_2') and j_info[4]:
+                exp_dict['attachment_path_2'] = j_info[4]
+        else:
+            exp_dict['journal_status'] = "Draft"
+            exp_dict['journal_number'] = None
         results.append(ExpenseResponse(**exp_dict))
     return results
 
@@ -926,3 +938,4 @@ def upload_file(file: UploadFile = File(...)):
         return {"url": f"/uploads/{filename}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+

@@ -32,6 +32,8 @@ class JournalBase(BaseModel):
     ref_type: Optional[str] = None
     ref_id: Optional[str] = None
     status: str = "Draft"
+    attachment_path: Optional[str] = None
+    attachment_path_2: Optional[str] = None
 
 class JournalCreate(JournalBase):
     lines: List[JournalLineCreate]
@@ -40,11 +42,14 @@ class JournalUpdate(BaseModel):
     date: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+    attachment_path: Optional[str] = None
+    attachment_path_2: Optional[str] = None
 
 class JournalResponse(JournalBase):
     id: str
     created_at: datetime
     attachment_path: Optional[str] = None
+    attachment_path_2: Optional[str] = None
     attachment_memo: Optional[str] = None
     lines: List[JournalLineResponse] = []
     model_config = ConfigDict(from_attributes=True)
@@ -168,6 +173,7 @@ class ExpenseBase(BaseModel):
     admin_fee_amount: float = 0.0
     admin_fee_account_id: Optional[str] = None
     attachment_path: Optional[str] = None
+    attachment_path_2: Optional[str] = None
 
 class ExpenseCreate(ExpenseBase):
     pass
@@ -186,6 +192,7 @@ class ExpenseUpdate(BaseModel):
     admin_fee_amount: Optional[float] = None
     admin_fee_account_id: Optional[str] = None
     attachment_path: Optional[str] = None
+    attachment_path_2: Optional[str] = None
 
 class ExpenseResponse(ExpenseBase):
     id: str

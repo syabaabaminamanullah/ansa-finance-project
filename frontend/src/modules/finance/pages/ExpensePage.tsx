@@ -280,12 +280,12 @@ export function ExpensePage() {
 
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'attachment_path' | 'attachment_path_2') => {
     if (!e.target.files || !e.target.files[0]) return;
     setIsUploading(true);
     try {
       const res = await financeApi.uploadFile(e.target.files[0]);
-      setFormData(prev => ({ ...prev, attachment_path: res.data.url }));
+      setFormData(prev => ({ ...prev, [field]: res.data.url }));
       addToast('success', 'Upload Success', 'File attached successfully.');
     } catch (err: any) {
       addToast('error', 'Upload Failed', err.message);
@@ -293,6 +293,32 @@ export function ExpensePage() {
       setIsUploading(false);
     }
   };
+
+  const handleLateUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'attachment_path' | 'attachment_path_2', id: string) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    setIsUploading(true);
+    try {
+      const res = await financeApi.uploadFile(e.target.files[0]);
+      const url = res.data.url;
+      // Update via API
+      if (true) {
+        await financeApi.updateExpense(id, { [field]: url });
+      } else {
+        await financeApi.updateJournal(id, { [field]: url });
+      }
+      setEditingItem(prev => prev ? { ...prev, [field]: url } : null);
+      addToast('success', 'Upload Success', 'File attached successfully.');
+      fetchData();
+    } catch (err: any) {
+      addToast('error', 'Upload Failed', err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
+  const [previewPdf, setPreviewPdf] = useState<string | null>(null);
+  const baseApiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
+
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -631,7 +657,7 @@ export function ExpensePage() {
               </div>
             </div>
 
-            {editingItem.attachment_path && (
+            {previewPdf && (
               <div className="bg-background border border-border rounded-lg mt-4 overflow-hidden">
                 <div className="flex items-center justify-between p-3 border-b border-border bg-muted/20">
                   <div className="flex items-center gap-2 text-danger font-medium text-sm">
@@ -639,7 +665,7 @@ export function ExpensePage() {
                     <span>Dokumen PDF</span>
                   </div>
                   <a 
-                    href={`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000')}${editingItem.attachment_path}`} 
+                    href={`${baseApiUrl}${previewPdf}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-primary hover:text-primary/80 text-sm font-medium transition-colors"
@@ -650,7 +676,7 @@ export function ExpensePage() {
                 </div>
                 <div className="h-[400px] w-full bg-muted/10">
                   <iframe 
-                    src={`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000')}${editingItem.attachment_path}`} 
+                    src={`${baseApiUrl}${previewPdf}`} 
                     className="w-full h-full border-0" 
                     title="PDF Viewer"
                   />
