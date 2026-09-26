@@ -44,6 +44,31 @@ try:
         dashboard, equipment, profile
     )
     from db.database import engine, Base
+    from sqlalchemy import text, inspect as sa_inspect
+
+    # --- Auto-migration: ensure all model columns exist in DB ---
+    try:
+        url_str = str(engine.url)
+        if not url_str.startswith("sqlite"):
+            inspector = sa_inspect(engine)
+            _migrations_needed = {
+                "expenses": ["attachment_path", "attachment_path_2"],
+                "journals": ["attachment_path_2"],
+            }
+            with engine.connect() as _conn:
+                for _tbl, _cols in _migrations_needed.items():
+                    try:
+                        existing = {c["name"] for c in inspector.get_columns(_tbl)}
+                        for _col in _cols:
+                            if _col not in existing:
+                                _conn.execute(text(f'ALTER TABLE "{_tbl}" ADD COLUMN "{_col}" VARCHAR'))
+                                _conn.commit()
+                                print(f"AUTO-MIGRATE: Added {_col} to {_tbl}")
+                    except Exception as _me:
+                        print(f"AUTO-MIGRATE WARNING ({_tbl}): {_me}")
+    except Exception as _migrate_err:
+        print(f"AUTO-MIGRATE ERROR: {_migrate_err}")
+    # --- End auto-migration ---
 
     app.include_router(organization.router, prefix="/api/v1/master-data/organization", tags=["Organization"])
     app.include_router(financials.router, prefix="/api/v1/master-data/financials", tags=["Financial Master Data"])
