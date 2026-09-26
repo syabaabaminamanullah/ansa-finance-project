@@ -629,7 +629,7 @@ export function ExpensePage() {
       </Modal>
 
       {/* View Modal */}
-      <Modal isOpen={isViewOpen} onClose={() => { setIsViewOpen(false); setPreviewPdf(null); }} title="Expense Details" maxWidth="max-w-xl">
+      <Modal isOpen={isViewOpen} onClose={() => { setIsViewOpen(false); setPreviewPdf(null); }} title="Expense Details" maxWidth={previewPdf ? "max-w-5xl" : "max-w-xl"}>
         {editingItem && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6 pb-4 border-b border-border">
@@ -738,32 +738,34 @@ export function ExpensePage() {
               </div>
             </div>
 
-            {previewPdf && (
-              <div className="bg-background border border-border rounded-lg mt-4 overflow-hidden">
-                <div className="flex items-center justify-between p-3 border-b border-border bg-muted/20">
-                  <div className="flex items-center gap-2 text-danger font-medium text-sm">
-                    <FileText className="w-5 h-5" />
-                    <span>Dokumen PDF</span>
+            </div>
+              {previewPdf && (
+                <div className="bg-background border border-border rounded-lg overflow-hidden flex flex-col h-full min-h-[500px]">
+                  <div className="flex items-center justify-between p-3 border-b border-border bg-muted/20">
+                    <div className="flex items-center gap-2 text-danger font-medium text-sm">
+                      <FileText className="w-5 h-5" />
+                      <span>Dokumen PDF</span>
+                    </div>
+                    <a 
+                      href={getPreviewUrl(previewPdf)} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-primary hover:text-primary/80 text-sm font-medium transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>Lihat Penuh</span>
+                    </a>
                   </div>
-                  <a 
-                    href={getPreviewUrl(previewPdf)} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-primary hover:text-primary/80 text-sm font-medium transition-colors"
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span>Lihat Penuh</span>
-                  </a>
+                  <div className="flex-1 w-full bg-muted/10">
+                    <iframe 
+                      src={getPreviewUrl(previewPdf)} 
+                      className="w-full h-full border-0 min-h-[500px]" 
+                      title="PDF Viewer"
+                    />
+                  </div>
                 </div>
-                <div className="h-[400px] w-full bg-muted/10">
-                  <iframe 
-                    src={getPreviewUrl(previewPdf)} 
-                    className="w-full h-full border-0" 
-                    title="PDF Viewer"
-                  />
-                </div>
-              </div>
-            )}
+              )}
+            
 
             <div className="flex justify-end pt-4 border-t border-border mt-6">
               <button type="button" onClick={() => { setIsViewOpen(false); setPreviewPdf(null); }} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Close</button>
