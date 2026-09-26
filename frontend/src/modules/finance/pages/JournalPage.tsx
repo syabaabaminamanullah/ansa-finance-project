@@ -763,9 +763,16 @@ export function JournalPage() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-textPrimary">Dokumen Dasar (Tagihan)</p>
                     <p className="text-xs text-textSecondary mb-2">Invoice / SPD / Perjanjian</p>
-                    <button type="button" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                      <Download className="w-3 h-3" /> Lihat File
-                    </button>
+                    {editingItem.attachment_path_2 ? (
+                      <button type="button" onClick={() => setPreviewPdf(editingItem.attachment_path_2 || null)} className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> Lihat File
+                      </button>
+                    ) : (
+                      <label className="text-xs font-semibold text-danger hover:underline flex items-center gap-1 cursor-pointer">
+                        <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleLateUpload(e, 'attachment_path_2', editingItem.id)} disabled={isUploading} />
+                        <Upload className="w-3 h-3" /> Upload Susulan
+                      </label>
+                    )}
                   </div>
                 </div>
                 
@@ -776,9 +783,16 @@ export function JournalPage() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-textPrimary">Bukti Pengeluaran Kas</p>
                     <p className="text-xs text-textSecondary mb-2">Bukti Transfer / Rekening Koran</p>
-                    <button type="button" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                      <Download className="w-3 h-3" /> Lihat File
-                    </button>
+                    {editingItem.attachment_path ? (
+                      <button type="button" onClick={() => setPreviewPdf(editingItem.attachment_path || null)} className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> Lihat File
+                      </button>
+                    ) : (
+                      <label className="text-xs font-semibold text-danger hover:underline flex items-center gap-1 cursor-pointer">
+                        <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleLateUpload(e, 'attachment_path', editingItem.id)} disabled={isUploading} />
+                        <Upload className="w-3 h-3" /> Upload Susulan
+                      </label>
+                    )}
                   </div>
                 </div>
               </div>
