@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { CoaSelect } from '../../../components/ui/CoaSelect';
@@ -498,8 +498,8 @@ export function JournalPage() {
         maxWidth="max-w-7xl"
       >
         <form onSubmit={handleSave} className="space-y-6">
-          <div className="grid grid-cols-3 gap-6">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-3 space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-textPrimary">Journal No.</label>
                 <span className="text-[10px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
@@ -515,7 +515,7 @@ export function JournalPage() {
                 className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-sm text-primary font-mono font-bold cursor-not-allowed select-none shadow-xs"
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="col-span-3 space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Date</label>
               <DatePicker
                 required
@@ -523,7 +523,7 @@ export function JournalPage() {
                 onChange={(val) => handleJournalDateChange(val)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="col-span-6 space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Description</label>
               <input type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="Brief description..."/>
             </div>
@@ -580,7 +580,7 @@ export function JournalPage() {
                       >
                         <option value="">-- No RAB --</option>
                         {line.project_id && rabItemsByProject[line.project_id]?.map(r => (
-                          <option key={r.id} value={r.id}>{r.category} → {r.description}</option>
+                          <option key={r.id} value={r.id}>{r.category} â†’ {r.description}</option>
                         ))}
                       </select>
                     </td>
