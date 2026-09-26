@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { CoaSelect } from '../../../components/ui/CoaSelect';
@@ -697,7 +697,8 @@ export function JournalPage() {
       {/* View Modal */}
       <Modal isOpen={isViewOpen} onClose={() => { setIsViewOpen(false); setPreviewPdf(null); }} title="Journal Details" maxWidth={previewPdf ? "max-w-7xl" : "max-w-4xl"}>
         {editingItem && (
-          <div className="space-y-6">
+          <div className={previewPdf ? "grid grid-cols-2 gap-6 items-start" : "space-y-6"}>
+            <div className="space-y-6">
             <div className="grid grid-cols-3 gap-4 pb-4 border-b border-border">
               <div>
                 <p className="text-sm text-textSecondary">Journal No.</p>
@@ -835,7 +836,7 @@ export function JournalPage() {
               )}
             
 
-            <div className="flex justify-end pt-4 mt-6">
+            <div className={`flex justify-end pt-4 mt-6 ${previewPdf ? 'col-span-2 border-t border-border' : ''}`}>
               <button type="button" onClick={() => { setIsViewOpen(false); setPreviewPdf(null); }} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Close</button>
             </div>
           </div>

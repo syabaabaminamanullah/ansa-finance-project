@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { CoaSelect } from '../../../components/ui/CoaSelect';
@@ -629,9 +629,10 @@ export function ExpensePage() {
       </Modal>
 
       {/* View Modal */}
-      <Modal isOpen={isViewOpen} onClose={() => { setIsViewOpen(false); setPreviewPdf(null); }} title="Expense Details" maxWidth={previewPdf ? "max-w-5xl" : "max-w-xl"}>
+      <Modal isOpen={isViewOpen} onClose={() => { setIsViewOpen(false); setPreviewPdf(null); }} title="Expense Details" maxWidth={previewPdf ? "max-w-6xl" : "max-w-xl"}>
         {editingItem && (
-          <div className="space-y-6">
+          <div className={previewPdf ? "grid grid-cols-2 gap-6 items-start" : "space-y-6"}>
+            <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6 pb-4 border-b border-border">
               <div>
                 <p className="text-sm text-textSecondary">Expense No.</p>
@@ -767,7 +768,7 @@ export function ExpensePage() {
               )}
             
 
-            <div className="flex justify-end pt-4 border-t border-border mt-6">
+            <div className={`flex justify-end pt-4 border-t border-border mt-6 ${previewPdf ? 'col-span-2' : ''}`}>
               <button type="button" onClick={() => { setIsViewOpen(false); setPreviewPdf(null); }} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Close</button>
             </div>
           </div>
