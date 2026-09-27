@@ -86,7 +86,7 @@ function AttachmentModal({
     try {
       const res = await financeApi.uploadFile(file);
       const url = res.data.url;
-      await financeApi.updateJournal(journal.journal_id, { [fieldType]: url });
+      await financeApi.updateJournalPartial(journal.journal_id, { [fieldType]: url });
 
       addToast('success', 'Upload Berhasil', 'Dokumen berhasil diupload.');
       onUploaded();

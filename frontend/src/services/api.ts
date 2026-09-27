@@ -207,6 +207,7 @@ export const financeApi = {
   getJournal: (id: string) => api.get(`/finance/journals/${id}`),
   createJournal: (data: any) => api.post('/finance/journals', data),
   updateJournal: (id: string, data: any) => api.put(`/finance/journals/${id}`, data),
+  updateJournalPartial: (id: string, data: any) => api.patch(`/finance/journals/${id}/partial`, data),
   updateJournalStatus: (id: string, data: any) => api.put(`/finance/journals/${id}/status`, data),
   deleteJournal: (id: string) => api.delete(`/finance/journals/${id}`),
 

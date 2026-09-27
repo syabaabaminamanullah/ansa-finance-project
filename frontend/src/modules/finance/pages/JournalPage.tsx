@@ -312,7 +312,7 @@ export function JournalPage() {
       if (false) {
         await financeApi.updateExpense(id, { [field]: url });
       } else {
-        await financeApi.updateJournal(id, { [field]: url });
+        await financeApi.updateJournalPartial(id, { [field]: url });
       }
       setEditingItem(prev => prev ? { ...prev, [field]: url } : null);
       addToast('success', 'Upload Success', 'File attached successfully.');

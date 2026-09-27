@@ -226,13 +226,20 @@ def update_journal(journal_id: str, journal_update: JournalCreate, db: Session =
     return db_journal
 
 @router.put("/journals/{journal_id}/status", response_model=JournalResponse)
+@router.patch("/journals/{journal_id}/partial", response_model=JournalResponse)
 def update_journal_status(journal_id: str, status_update: JournalUpdate, db: Session = Depends(get_db)):
     db_journal = db.query(Journal).filter(Journal.id == journal_id).first()
     if not db_journal:
         raise HTTPException(status_code=404, detail="Journal not found")
     
-    if status_update.status:
+    if status_update.status is not None:
         db_journal.status = status_update.status
+    if status_update.attachment_path is not None:
+        db_journal.attachment_path = status_update.attachment_path
+    if status_update.attachment_path_2 is not None:
+        db_journal.attachment_path_2 = status_update.attachment_path_2
+    if status_update.description is not None:
+        db_journal.description = status_update.description
     
     db.commit()
     db.refresh(db_journal)
