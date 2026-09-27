@@ -89,13 +89,17 @@ export function JournalPage() {
     journal_number: string;
     date: string;
     description: string;
+    project_id?: string;
+    project_rab_id?: string;
     attachment_path?: string;
-  attachment_path_2?: string;
+    attachment_path_2?: string;
     lines: JournalLine[];
   }>({
     journal_number: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
+    project_id: '',
+    project_rab_id: '',
     attachment_path: '',
     attachment_path_2: '',
     lines: [
@@ -390,18 +394,20 @@ export function JournalPage() {
       return;
     }
     setEditingItem(row);
+    const firstLineProj = row.lines?.[0]?.project_id || '';
+    const firstLineRab = row.lines?.[0]?.project_rab_id || '';
     setFormData({
       journal_number: row.journal_number,
       date: row.date,
       description: row.description || '',
+      project_id: firstLineProj,
+      project_rab_id: firstLineRab,
       lines: row.lines && row.lines.length > 0 ? row.lines : [
         { account_id: '', project_id: '', project_rab_id: '', description: '', debit: 0, credit: 0 },
         { account_id: '', project_id: '', project_rab_id: '', description: '', debit: 0, credit: 0 }
       ]
     });
-    row.lines?.forEach(line => {
-      if (line.project_id) fetchRabItems(line.project_id);
-    });
+    if (firstLineProj) fetchRabItems(firstLineProj);
     setIsFormOpen(true);
   };
   
