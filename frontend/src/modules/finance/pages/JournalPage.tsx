@@ -541,16 +541,14 @@ export function JournalPage() {
           <div className="border border-border rounded-lg shadow-sm">
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-textSecondary uppercase bg-background border-b border-border rounded-t-lg">
-                <tr>
-                  <th className="px-4 py-3.5 w-[30%]">Account (COA)</th>
-                  <th className="px-4 py-3.5 w-[15%]">Project</th>
-                  <th className="px-4 py-3.5 w-[15%]">RAB / Anggaran</th>
-                  <th className="px-4 py-3.5">Line Description</th>
-                  <th className="px-4 py-3.5 w-40">Debit (Rp)</th>
-                  <th className="px-4 py-3.5 w-40">Credit (Rp)</th>
-                  <th className="px-4 py-3.5 w-12 text-center">Act</th>
-                </tr>
-              </thead>
+                  <tr>
+                    <th className="px-4 py-3.5 w-[40%]">Account (COA)</th>
+                    <th className="px-4 py-3.5">Line Description</th>
+                    <th className="px-4 py-3.5 w-48">Debit (Rp)</th>
+                    <th className="px-4 py-3.5 w-48">Credit (Rp)</th>
+                    <th className="px-4 py-3.5 w-12 text-center">Act</th>
+                  </tr>
+                </thead>
               <tbody>
                 {formData.lines.map((line, idx) => (
                   <tr key={idx} className="border-b border-border bg-card">
@@ -565,31 +563,6 @@ export function JournalPage() {
                         onChange={(val) => updateLine(idx, 'account_id', val)}
                         placeholder="-- Pilih Akun COA --"
                       />
-                    </td>
-                    <td className="px-2 py-2">
-                      <select 
-                        value={line.project_id || ''}
-                        onChange={(e) => updateLine(idx, 'project_id', e.target.value)}
-                        className="w-full px-2 py-1.5 bg-background border border-border rounded text-sm text-textPrimary"
-                      >
-                        <option value="">-- No Project --</option>
-                        {projects.map(p => (
-                          <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-2 py-2">
-                      <select 
-                        value={line.project_rab_id || ''}
-                        onChange={(e) => updateLine(idx, 'project_rab_id', e.target.value)}
-                        disabled={!line.project_id}
-                        className="w-full px-2 py-1.5 bg-background border border-border rounded text-sm text-textPrimary disabled:opacity-50"
-                      >
-                        <option value="">-- No RAB --</option>
-                        {line.project_id && rabItemsByProject[line.project_id]?.map(r => (
-                          <option key={r.id} value={r.id}>{r.category} Ã¢â€ â€™ {r.description}</option>
-                        ))}
-                      </select>
                     </td>
                     <td className="px-2 py-2">
                       <input 
@@ -725,6 +698,21 @@ export function JournalPage() {
                 </span>
               </div>
             </div>
+              
+              {(editingItem.lines?.[0]?.project_id) && (
+                <div className="grid grid-cols-2 gap-4 pb-2 pt-4">
+                  <div>
+                    <p className="text-sm text-textSecondary">Project</p>
+                    <p className="font-medium text-textPrimary">{projects.find(p => p.id === editingItem.lines?.[0]?.project_id)?.name || '-'}</p>
+                  </div>
+                  {editingItem.lines?.[0]?.project_rab_id && (
+                    <div>
+                      <p className="text-sm text-textSecondary">RAB / Anggaran</p>
+                      <p className="font-medium text-textPrimary">Ter-Alokasi RAB</p>
+                    </div>
+                  )}
+                </div>
+              )}
             
             {editingItem.description && (
               <div>
@@ -736,22 +724,17 @@ export function JournalPage() {
             <div className="border border-border rounded-lg overflow-hidden">
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-textSecondary uppercase bg-background border-b border-border">
-                  <tr>
-                    <th className="px-4 py-3">Account (COA)</th>
-                    <th className="px-4 py-3">Project / RAB</th>
-                    <th className="px-4 py-3">Line Description</th>
-                    <th className="px-4 py-3 text-right">Debit (Rp)</th>
-                    <th className="px-4 py-3 text-right">Credit (Rp)</th>
-                  </tr>
-                </thead>
+                    <tr>
+                      <th className="px-4 py-3 w-[40%]">Account (COA)</th>
+                      <th className="px-4 py-3">Line Description</th>
+                      <th className="px-4 py-3 text-right w-32">Debit (Rp)</th>
+                      <th className="px-4 py-3 text-right w-32">Credit (Rp)</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {editingItem.lines?.map((line, idx) => (
                     <tr key={idx} className="border-b border-border bg-card">
                       <td className="px-4 py-3 font-medium text-textPrimary">{getAccountDisplay(line.account_id)}</td>
-                      <td className="px-4 py-3 text-textSecondary">
-                        <div className="font-medium text-textPrimary">{line.project_id ? projects.find(p => p.id === line.project_id)?.code : '-'}</div>
-                        {line.project_rab_id && <div className="text-xs text-primary font-medium mt-0.5">Ber-Alokasi RAB</div>}
-                      </td>
                       <td className="px-4 py-3 text-textSecondary">{line.description || '-'}</td>
                       <td className="px-4 py-3 text-right text-textPrimary">{formatNumber(line.debit)}</td>
                       <td className="px-4 py-3 text-right text-textPrimary">{formatNumber(line.credit)}</td>
