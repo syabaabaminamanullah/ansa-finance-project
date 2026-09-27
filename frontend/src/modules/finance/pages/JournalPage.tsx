@@ -576,17 +576,17 @@ export function JournalPage() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-textSecondary uppercase bg-background border-b border-border rounded-t-lg">
                   <tr>
-                    <th className="px-4 py-3.5 w-[40%]">Account (COA)</th>
-                    <th className="px-4 py-3.5">Line Description</th>
-                    <th className="px-4 py-3.5 w-48">Debit (Rp)</th>
-                    <th className="px-4 py-3.5 w-48">Credit (Rp)</th>
-                    <th className="px-4 py-3.5 w-12 text-center">Act</th>
-                  </tr>
+                      <th className="px-4 py-3.5 w-[30%]">Account (COA)</th>
+                      <th className="px-4 py-3.5 w-[35%]">Line Description</th>
+                      <th className="px-4 py-3.5 w-[15%]">Debit (Rp)</th>
+                      <th className="px-4 py-3.5 w-[15%]">Credit (Rp)</th>
+                      <th className="px-4 py-3.5 w-12 text-center">Act</th>
+                    </tr>
                 </thead>
               <tbody>
                 {formData.lines.map((line, idx) => (
                   <tr key={idx} className="border-b border-border bg-card">
-                    <td className="px-3 py-2 min-w-[320px]">
+                    <td className="px-3 py-2 min-w-[280px]">
                       <CoaSelect
                         required
                         placement="top"
@@ -759,11 +759,11 @@ export function JournalPage() {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-textSecondary uppercase bg-background border-b border-border">
                     <tr>
-                      <th className="px-4 py-3 w-[40%]">Account (COA)</th>
-                      <th className="px-4 py-3">Line Description</th>
-                      <th className="px-4 py-3 text-right w-32">Debit (Rp)</th>
-                      <th className="px-4 py-3 text-right w-32">Credit (Rp)</th>
-                    </tr>
+                        <th className="px-4 py-3 w-[30%]">Account (COA)</th>
+                        <th className="px-4 py-3 w-[40%]">Line Description</th>
+                        <th className="px-4 py-3 text-right w-[15%]">Debit (Rp)</th>
+                        <th className="px-4 py-3 text-right w-[15%]">Credit (Rp)</th>
+                      </tr>
                   </thead>
                 <tbody>
                   {editingItem.lines?.map((line, idx) => (
