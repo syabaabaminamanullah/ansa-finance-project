@@ -52,95 +52,49 @@ interface FlatEntry {
 // Modal component for viewing/uploading attachment
 function AttachmentModal({
   journal,
+  fieldType,
   onClose,
   onUploaded
 }: {
   journal: FlatEntry;
+  fieldType: 'attachment_path' | 'attachment_path_2';
   onClose: () => void;
   onUploaded: () => void;
 }) {
   const [isUploading, setIsUploading] = useState(false);
-  const [isSavingMemo, setIsSavingMemo] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewType, setPreviewType] = useState<'image' | 'pdf' | null>(null);
-  const [memo, setMemo] = useState(journal.attachment_memo || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addToast = useToastStore((s) => s.addToast);
+  const baseApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-  const attachmentUrl = `${API_BASE}/journals/${journal.journal_id}/attachment`;
-
-  const loadPreview = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(attachmentUrl, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) return;
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-      setPreviewType(blob.type.includes('pdf') ? 'pdf' : 'image');
-    } catch {
-      // no attachment yet
-    }
+  const getPreviewUrl = (path: string | null) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    if (path.startsWith('/uploads/')) return `${baseApiUrl}${path}`;
+    return `${baseApiUrl}/api/v1/finance/attachments/${path}`;
   };
 
-  useEffect(() => {
-    if (journal.attachment_path) {
-      loadPreview();
-    }
-    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
-  }, []);
+  const currentPath = fieldType === 'attachment_path' ? journal.attachment_path : (journal as any).attachment_path_2;
+  const previewUrl = getPreviewUrl(currentPath || null);
+  const isPdf = currentPath?.toLowerCase().endsWith('.pdf');
+  const title = fieldType === 'attachment_path' ? 'Bukti Pengeluaran Kas (Transfer)' : 'Dokumen Dasar (Invoice/SPD)';
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+    
     setIsUploading(true);
     try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('file', file);
+      const res = await financeApi.uploadFile(file);
+      const url = res.data.url;
+      await financeApi.updateJournal(journal.journal_id, { [fieldType]: url });
 
-      const res = await fetch(`${API_BASE}/journals/${journal.journal_id}/attachment`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Upload failed');
-      }
-
-      addToast('success', 'Upload Berhasil', 'Bukti transfer berhasil diupload.');
+      addToast('success', 'Upload Berhasil', 'Dokumen berhasil diupload.');
       onUploaded();
-
-      // Show preview immediately
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      setPreviewType(file.type.includes('pdf') ? 'pdf' : 'image');
+      onClose(); // Just close to refresh
     } catch (err: any) {
-      addToast('error', 'Upload Gagal', err.message || 'Gagal mengupload file. Pastikan format PDF/JPG/PNG.');
+      addToast('error', 'Upload Gagal', err.message || 'Gagal mengupload file.');
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleSaveMemo = async () => {
-    setIsSavingMemo(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/journals/${journal.journal_id}/memo`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memo })
-      });
-      if (!res.ok) throw new Error('Save failed');
-      addToast('success', 'Memo Tersimpan', 'Catatan berhasil disimpan.');
-      onUploaded();
-    } catch {
-      addToast('error', 'Gagal', 'Gagal menyimpan memo.');
-    } finally {
-      setIsSavingMemo(false);
     }
   };
 
@@ -155,10 +109,10 @@ function AttachmentModal({
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Paperclip className="w-5 h-5 text-primary" />
+              <FileText className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="font-bold text-textPrimary">Bukti Transaksi</h2>
+              <h2 className="font-bold text-textPrimary">{title}</h2>
               <p className="text-xs text-textSecondary font-mono">{journal.journal_number} — {journal.date}</p>
             </div>
           </div>
@@ -167,43 +121,13 @@ function AttachmentModal({
           </button>
         </div>
 
-        {/* Description + Memo */}
+        {/* Description */}
         <div className="px-5 pt-4 pb-2 space-y-3">
           <div>
             <p className="text-xs font-semibold text-textSecondary uppercase tracking-wide mb-1">Keterangan Otomatis:</p>
             <p className="text-sm text-textSecondary bg-background/50 rounded-lg p-3 border border-border">
-              {journal.description}
+              {journal.description || 'Tidak ada deskripsi.'}
             </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-textSecondary uppercase tracking-wide mb-1.5">Memo Tambahan:</p>
-            <div className="flex gap-2.5 items-stretch">
-              <textarea
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                rows={2}
-                placeholder="Contoh: Bukti TF ini mencakup 3 transaksi — Ronny Rp11jt, Asep Rp10jt, Basriyanto Rp15jt..."
-                className="flex-1 px-3 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-textPrimary resize-none placeholder:text-textSecondary/40 transition-all shadow-xs"
-              />
-              <button
-                onClick={handleSaveMemo}
-                disabled={isSavingMemo}
-                className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-xs transition-all shadow-sm hover:shadow active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-1.5 shrink-0 self-stretch"
-                title="Simpan Memo"
-              >
-                {isSavingMemo ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Menyimpan...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Simpan</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         </div>
 
@@ -212,13 +136,13 @@ function AttachmentModal({
           {previewUrl ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                {previewType === 'pdf' ? (
+                {isPdf ? (
                   <FileText className="w-5 h-5 text-danger" />
                 ) : (
                   <Image className="w-5 h-5 text-success" />
                 )}
                 <span className="text-sm font-medium text-textPrimary">
-                  {previewType === 'pdf' ? 'Dokumen PDF' : 'Gambar Bukti Transfer'}
+                  {isPdf ? 'Dokumen PDF' : 'Gambar Dokumen'}
                 </span>
                 <button
                   onClick={openInNewTab}
@@ -228,49 +152,52 @@ function AttachmentModal({
                 </button>
               </div>
 
-              {previewType === 'image' ? (
-                <img
-                  src={previewUrl}
-                  alt="Bukti Transfer"
-                  className="w-full max-h-[50vh] object-contain rounded-xl border border-border bg-background"
-                />
-              ) : (
+              {isPdf ? (
                 <iframe
                   src={previewUrl}
                   className="w-full h-[50vh] rounded-xl border border-border"
-                  title="Bukti Transfer PDF"
+                  title="Document PDF"
+                />
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt="Document"
+                  className="w-full max-h-[50vh] object-contain rounded-xl border border-border bg-background"
                 />
               )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-textSecondary border-2 border-dashed border-border rounded-xl">
-              <Paperclip className="w-12 h-12 mb-3 opacity-30" />
-              <p className="font-medium text-textPrimary">Belum ada bukti transfer</p>
-              <p className="text-sm mt-1">Upload file PDF atau gambar (JPG, PNG) di bawah</p>
+              <Upload className="w-12 h-12 mb-3 opacity-30" />
+              <p className="font-medium text-textPrimary">Belum ada dokumen</p>
+              <p className="text-sm mt-1">Klik tombol di bawah untuk mengupload</p>
             </div>
           )}
         </div>
 
-        {/* Upload Button */}
-        <div className="p-5 border-t border-border">
+        {/* Footer Actions */}
+        <div className="p-5 border-t border-border bg-muted/20 flex justify-between items-center rounded-b-2xl">
           <input
-            ref={fileInputRef}
             type="file"
-            accept="application/pdf,image/jpeg,image/jpg,image/png"
-            className="hidden"
+            ref={fileInputRef}
             onChange={handleFileChange}
+            accept=".pdf,image/*"
+            className="hidden"
           />
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground rounded-xl font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-background border border-border hover:bg-border text-textPrimary rounded-lg text-sm font-medium transition-all disabled:opacity-50"
           >
-            <Upload className="w-4 h-4" />
-            {isUploading
-              ? 'Mengupload...'
-              : journal.attachment_path
-              ? 'Ganti Bukti Transfer'
-              : 'Upload Bukti Transfer (PDF/JPG/PNG)'}
+            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            {previewUrl ? 'Ganti Dokumen' : 'Upload Dokumen'}
+          </button>
+          
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg text-sm transition-all shadow-sm hover:shadow active:scale-95"
+          >
+            Tutup
           </button>
         </div>
       </div>
@@ -303,7 +230,7 @@ export function AllJournalEntriesPage() {
       return [];
     }
   });
-  const [selectedAttachmentEntry, setSelectedAttachmentEntry] = useState<FlatEntry | null>(null);
+  const [selectedAttachmentEntry, setSelectedAttachmentEntry] = useState<{entry: FlatEntry, fieldType: 'attachment_path' | 'attachment_path_2'} | null>(null);
 
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
@@ -484,9 +411,26 @@ export function AllJournalEntriesPage() {
             <span className="hidden group-hover/btn:block">{row.status === 'Posted' ? 'Unpost' : 'Post'}</span>
           </button>
 
-          {/* Attachment button */}
+          {/* Attachment button 1 - Dokumen Dasar */}
           <button
-            onClick={() => setSelectedAttachmentEntry(row)}
+            onClick={() => setSelectedAttachmentEntry({entry: row, fieldType: 'attachment_path_2'})}
+            title={(row as any).attachment_path_2 ? 'Lihat/Ganti Dokumen Dasar (Invoice/SPD)' : 'Upload Dokumen Dasar'}
+            className={`p-1.5 rounded-lg transition-all ${
+              (row as any).attachment_path_2
+                ? 'bg-success/15 text-success hover:bg-success/25 border border-success/30'
+                : 'bg-background text-textSecondary hover:bg-border hover:text-textPrimary border border-border'
+            }`}
+          >
+            {(row as any).attachment_path_2 ? (
+              <FileText className="w-3.5 h-3.5" />
+            ) : (
+              <FileText className="w-3.5 h-3.5 opacity-50" />
+            )}
+          </button>
+          
+          {/* Attachment button 2 - Bukti Transfer */}
+          <button
+            onClick={() => setSelectedAttachmentEntry({entry: row, fieldType: 'attachment_path'})}
             title={row.attachment_path ? 'Lihat/Ganti Bukti Transfer' : 'Upload Bukti Transfer'}
             className={`p-1.5 rounded-lg transition-all ${
               row.attachment_path
@@ -497,7 +441,7 @@ export function AllJournalEntriesPage() {
             {row.attachment_path ? (
               <Paperclip className="w-3.5 h-3.5" />
             ) : (
-              <Upload className="w-3.5 h-3.5" />
+              <Paperclip className="w-3.5 h-3.5 opacity-50" />
             )}
           </button>
         </div>
@@ -633,7 +577,8 @@ export function AllJournalEntriesPage() {
       {/* Attachment Modal */}
       {selectedAttachmentEntry && (
         <AttachmentModal
-          journal={selectedAttachmentEntry}
+          journal={selectedAttachmentEntry.entry}
+          fieldType={selectedAttachmentEntry.fieldType}
           onClose={() => setSelectedAttachmentEntry(null)}
           onUploaded={() => {
             fetchData();
