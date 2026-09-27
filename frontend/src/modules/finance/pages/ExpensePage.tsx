@@ -328,16 +328,17 @@ export function ExpensePage() {
       return;
     }
     
-    // Optional project ID
-    const payload = { ...formData };
-    if (!payload.project_id) {
-      payload.project_id = null as any;
-    }
+    const payload: any = { ...formData };
+    if (!payload.project_id) payload.project_id = undefined;
+    if (!payload.project_rab_id) payload.project_rab_id = undefined;
+    if (!payload.employee_id) payload.employee_id = undefined;
+    if (!payload.attachment_path) payload.attachment_path = undefined;
+    if (!payload.attachment_path_2) payload.attachment_path_2 = undefined;
     
     // Optional admin fee
     if (!hasAdminFee || !payload.admin_fee_account_id) {
       payload.admin_fee_amount = 0;
-      delete (payload as any).admin_fee_account_id;
+      payload.admin_fee_account_id = undefined;
     }
 
     setIsSaving(true);

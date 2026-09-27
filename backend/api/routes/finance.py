@@ -734,6 +734,7 @@ def create_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
         # Standard COA convention: 12x0 is Asset, 12x1 is Accumulated Depreciation
         # Determine accumulated depreciation account and depreciation expense account
         # Try to find corresponding accounts
+        accum_code = coa.account_code[:-1] + '1' if coa.account_code.endswith('0') else coa.account_code + '1'
         accum_coa = db.query(ChartOfAccount).filter(ChartOfAccount.account_code.in_([accum_code, accum_code + '0'])).first()
         dep_exp_coa = db.query(ChartOfAccount).filter(ChartOfAccount.account_code.in_(["61400", "6140"])).first()
         
@@ -941,12 +942,15 @@ def upload_file(file: UploadFile = File(...)):
         filename = f"{uuid.uuid4().hex}.{ext}"
         
         # Local fallback
-        upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "journal_attachments")
-        os.makedirs(upload_dir, exist_ok=True)
-        filepath = os.path.join(upload_dir, filename)
-        file.file.seek(0)
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        try:
+            upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "journal_attachments")
+            os.makedirs(upload_dir, exist_ok=True)
+            filepath = os.path.join(upload_dir, filename)
+            file.file.seek(0)
+            with open(filepath, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+        except Exception as e:
+            print(f"Local fallback write failed (expected on Vercel): {e}")
             
         # Supabase upload
         supabase_url = os.getenv("SUPABASE_URL", "https://rwglshhjtgwjudwdgkvf.supabase.co")
