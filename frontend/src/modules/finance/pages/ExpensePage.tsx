@@ -8,6 +8,7 @@ import { ArrowLeft, Save, AlertTriangle, FileText, Eye, Upload, CheckCircle } fr
 import { Link } from 'react-router-dom';
 import { financeApi, financialsApi, projectsApi, rabApi } from '../../../services/api';
 import { useToastStore } from '../../../store/toastStore';
+import { TaxHintHelper } from '../components/TaxHintHelper';
 
 interface Project {
   id: string;
@@ -528,6 +529,11 @@ export function ExpensePage() {
               />
             </div>
           </div>
+
+          <TaxHintHelper 
+            accountName={coas.find(c => c.id === formData.expense_account_id)?.account_name}
+            description={formData.description}
+          />
 
           <div className="space-y-1.5 mt-4">
             <label className="text-sm font-medium text-textPrimary">Expense Amount (Rp) <span className="text-danger">*</span></label>

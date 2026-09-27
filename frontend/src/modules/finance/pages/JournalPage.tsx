@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Plus, Trash2, ArrowRight, MapPin, Building2, FileText,
 import { Link } from 'react-router-dom';
 import { financeApi, financialsApi, projectsApi, rabApi } from '../../../services/api';
 import { useToastStore } from '../../../store/toastStore';
+import { TaxHintHelper } from '../components/TaxHintHelper';
 
 interface JournalLine {
   id?: string;
@@ -570,7 +571,10 @@ export function JournalPage() {
               </div>
             </div>
 
-
+          <TaxHintHelper 
+            accountName={formData.lines.map(l => coas.find(c => c.id === l.account_id)?.account_name).join(' ')}
+            description={formData.description}
+          />
 
           <div className="border border-border rounded-lg shadow-sm">
             <table className="w-full text-sm text-left">
