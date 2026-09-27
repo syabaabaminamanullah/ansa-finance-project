@@ -500,25 +500,6 @@ export function ExpensePage() {
             <input required type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="e.g. Client meeting for planning phase"/>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-textPrimary">Bukti PDF / Attachment <span className="text-xs text-textSecondary">(Opsional)</span></label>
-            <div className="flex items-center gap-2">
-              <input 
-                type="file" 
-                accept=".pdf,image/*" 
-                onChange={handleFileUpload} 
-                disabled={isUploading}
-                className="block w-full text-sm text-textSecondary file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-              />
-              {isUploading && <span className="text-xs text-textSecondary animate-pulse">Uploading...</span>}
-            </div>
-            {formData.attachment_path && (
-              <div className="text-xs text-success bg-success/10 px-2 py-1 rounded border border-success/20 inline-block mt-1">
-                File terlampir: {formData.attachment_path.split('/').pop()}
-              </div>
-            )}
-          </div>
-
           <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border mt-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-textPrimary">Expense Category (Debit) <span className="text-danger">*</span></label>
