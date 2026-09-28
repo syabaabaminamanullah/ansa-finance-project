@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Calculator, AlertCircle, Info, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Calculator, AlertCircle, Info, FileText, ArrowLeft } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
 
 export function TaxCalculatorPage() {
@@ -101,12 +102,25 @@ export function TaxCalculatorPage() {
 
   return (
     <div className="space-y-6 pb-10">
-      <div>
-        <h1 className="text-2xl font-bold text-textPrimary flex items-center gap-2">
-          <Calculator className="w-6 h-6 text-primary" />
-          Kalkulator Pajak (Simulasi)
-        </h1>
-        <p className="text-textSecondary text-sm mt-1">
+      <div className="flex items-center gap-4">
+        <Link to="/finance" className="p-2 border border-border rounded-lg text-textSecondary hover:bg-background hover:text-textPrimary transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-textPrimary flex items-center gap-2">
+            <Calculator className="w-6 h-6 text-primary" />
+            Kalkulator Pajak (Simulasi)
+          </h1>
+          <div className="flex items-center gap-2 mt-1 text-sm text-textSecondary">
+            <Link to="/finance" className="hover:text-primary transition-colors">Finance</Link>
+            <span>/</span>
+            <span className="text-primary font-medium">Kalkulator Pajak</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-lg p-4">
+        <p className="text-textSecondary text-sm">
           Gunakan fitur ini untuk mensimulasikan perhitungan potongan pajak (PPh 21, PPh 23, PPN, dan PPh 4 ayat 2 Final).
         </p>
       </div>
