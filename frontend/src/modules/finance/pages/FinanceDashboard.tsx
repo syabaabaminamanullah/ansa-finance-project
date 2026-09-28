@@ -6,7 +6,8 @@ import {
   FileText,
   PieChart,
   CreditCard,
-  BrainCircuit
+  BrainCircuit,
+  Calculator
 } from 'lucide-react';
 
 const financeCategories = [
@@ -17,6 +18,7 @@ const financeCategories = [
       { name: 'Journal Entries', icon: BookOpen, path: '/finance/journals', desc: 'Manage manual and auto journals' },
       { name: 'All Journal Entries', icon: BookOpen, path: '/finance/all-journals', desc: 'Buku Jurnal Umum (Detail semua baris)' },
       { name: 'General Ledger', icon: FileSpreadsheet, path: '/finance/gl', desc: 'View mutasi per account (COA)' },
+      { name: 'Kalkulator Pajak', icon: Calculator, path: '/finance/tax-calculator', desc: 'Simulasi perhitungan PPh 21, PPh 23, PPN, dll' },
     ]
   },
   {

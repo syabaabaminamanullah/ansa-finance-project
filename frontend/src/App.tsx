@@ -79,6 +79,7 @@ import { AllJournalEntriesPage } from './modules/finance/pages/AllJournalEntries
 import { ProjectFinancialReportsPage } from './modules/finance/pages/ProjectFinancialReportsPage';
 import { PurchaseOrderPage } from './modules/finance/pages/PurchaseOrderPage';
 import { SmartForecastPage } from './modules/finance/pages/SmartForecastPage';
+import { TaxCalculatorPage } from './modules/finance/pages/TaxCalculatorPage';
 
 // Equipment Pages
 import { EquipmentDashboard } from './modules/equipment/pages/EquipmentDashboard';
@@ -169,6 +170,7 @@ function App() {
           <Route path="finance/ar-aging" element={<ArAgingReport />} />
           <Route path="finance/ap-aging" element={<ApAgingReport />} />
           <Route path="finance/expenses" element={<ExpensePage />} />
+          <Route path="finance/tax-calculator" element={<TaxCalculatorPage />} />
 
           <Route path="procurement" element={<PurchaseOrderPage />} />
           <Route path="inventory">
