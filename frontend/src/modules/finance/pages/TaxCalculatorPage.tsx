@@ -7,6 +7,7 @@ export function TaxCalculatorPage() {
   const [activeTab, setActiveTab] = useState<'pph21' | 'ppn23' | 'pph42'>('pph21');
 
   // PPh 21 State
+  const [calculationMethod, setCalculationMethod] = useState<'gross' | 'net'>('gross');
   const [grossSalary, setGrossSalary] = useState<number>(0);
   const [ptkpStatus, setPtkpStatus] = useState<string>('TK/0');
   const [hasNpwp, setHasNpwp] = useState<boolean>(true);
@@ -24,56 +25,80 @@ export function TaxCalculatorPage() {
 
   // === PPh 21 Calculator (Simplified TER 2024 approximation or standard rules) ===
   const pph21Result = useMemo(() => {
-    // Standard basic PPh 21 yearly approximation (Bukan metode TER bulanan detail untuk kesederhanaan simulasi, tapi cukup akurat untuk simulasi tahunan/bulanan rata-rata)
-    let ptkpYearly = 54000000;
-    if (['K/0', 'TK/1'].includes(ptkpStatus)) ptkpYearly = 58500000;
-    if (['K/1', 'TK/2'].includes(ptkpStatus)) ptkpYearly = 63000000;
-    if (['K/2', 'TK/3'].includes(ptkpStatus)) ptkpYearly = 67500000;
-    if (['K/3'].includes(ptkpStatus)) ptkpYearly = 72000000;
+    const calculateTax = (grossMonthly: number, ptkpStat: string, npwp: boolean) => {
+      let ptkpYearly = 54000000;
+      if (['K/0', 'TK/1'].includes(ptkpStat)) ptkpYearly = 58500000;
+      if (['K/1', 'TK/2'].includes(ptkpStat)) ptkpYearly = 63000000;
+      if (['K/2', 'TK/3'].includes(ptkpStat)) ptkpYearly = 67500000;
+      if (['K/3'].includes(ptkpStat)) ptkpYearly = 72000000;
 
-    const grossYearly = grossSalary * 12;
-    // Biaya jabatan (5% max 6jt setahun)
-    const biayaJabatan = Math.min(grossYearly * 0.05, 6000000);
-    const netYearly = grossYearly - biayaJabatan;
-    const pkp = Math.max(0, netYearly - ptkpYearly);
-    
-    // Tarif Progresif
-    let taxYearly = 0;
-    let sisaPkp = pkp;
+      const grossYearly = grossMonthly * 12;
+      const biayaJabatan = Math.min(grossYearly * 0.05, 6000000);
+      const netYearly = grossYearly - biayaJabatan;
+      const pkp = Math.floor(Math.max(0, netYearly - ptkpYearly) / 1000) * 1000;
+      
+      let taxYearly = 0;
+      let sisaPkp = pkp;
 
-    if (sisaPkp > 0) {
-      const layer1 = Math.min(sisaPkp, 60000000);
-      taxYearly += layer1 * 0.05;
-      sisaPkp -= layer1;
-    }
-    if (sisaPkp > 0) {
-      const layer2 = Math.min(sisaPkp, 190000000); // 60jt - 250jt
-      taxYearly += layer2 * 0.15;
-      sisaPkp -= layer2;
-    }
-    if (sisaPkp > 0) {
-      const layer3 = Math.min(sisaPkp, 250000000); // 250jt - 500jt
-      taxYearly += layer3 * 0.25;
-      sisaPkp -= layer3;
-    }
-    if (sisaPkp > 0) {
-      const layer4 = Math.min(sisaPkp, 4500000000); // 500jt - 5M
-      taxYearly += layer4 * 0.30;
-      sisaPkp -= layer4;
-    }
-    if (sisaPkp > 0) {
-      taxYearly += sisaPkp * 0.35; // > 5M
-    }
+      if (sisaPkp > 0) {
+        const layer1 = Math.min(sisaPkp, 60000000);
+        taxYearly += layer1 * 0.05;
+        sisaPkp -= layer1;
+      }
+      if (sisaPkp > 0) {
+        const layer2 = Math.min(sisaPkp, 190000000);
+        taxYearly += layer2 * 0.15;
+        sisaPkp -= layer2;
+      }
+      if (sisaPkp > 0) {
+        const layer3 = Math.min(sisaPkp, 250000000);
+        taxYearly += layer3 * 0.25;
+        sisaPkp -= layer3;
+      }
+      if (sisaPkp > 0) {
+        const layer4 = Math.min(sisaPkp, 4500000000);
+        taxYearly += layer4 * 0.30;
+        sisaPkp -= layer4;
+      }
+      if (sisaPkp > 0) {
+        taxYearly += sisaPkp * 0.35;
+      }
 
-    if (!hasNpwp) {
-      taxYearly = taxYearly * 1.2; // Tambahan 20% jika tidak ada NPWP
+      if (!npwp) taxYearly = taxYearly * 1.2;
+
+      const taxMonthly = taxYearly / 12;
+      const takeHomePay = grossMonthly - taxMonthly;
+
+      return { grossMonthly, ptkpYearly, pkp, taxYearly, taxMonthly, takeHomePay };
+    };
+
+    if (calculationMethod === 'gross') {
+      return calculateTax(grossSalary, ptkpStatus, hasNpwp);
+    } else {
+      // Net to Gross (Gross-Up via Bisection)
+      const targetTHP = grossSalary;
+      if (targetTHP <= 0) return calculateTax(0, ptkpStatus, hasNpwp);
+      
+      let low = targetTHP;
+      let high = targetTHP * 2; // Asumsi THP maksimal terpotong pajak 50%
+      let mid = low;
+      
+      for (let i = 0; i < 60; i++) {
+        mid = (low + high) / 2;
+        const calc = calculateTax(mid, ptkpStatus, hasNpwp);
+        
+        if (Math.abs(calc.takeHomePay - targetTHP) < 1) break;
+        
+        if (calc.takeHomePay < targetTHP) {
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+      
+      return calculateTax(mid, ptkpStatus, hasNpwp);
     }
-
-    const taxMonthly = taxYearly / 12;
-    const takeHomePay = grossSalary - taxMonthly;
-
-    return { ptkpYearly, pkp, taxYearly, taxMonthly, takeHomePay };
-  }, [grossSalary, ptkpStatus, hasNpwp]);
+  }, [grossSalary, ptkpStatus, hasNpwp, calculationMethod]);
 
   // === PPN & PPh 23 Calculator ===
   const ppn23Result = useMemo(() => {
@@ -160,9 +185,36 @@ export function TaxCalculatorPage() {
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 <FileText className="w-5 h-5" /> Parameter Gaji
               </h3>
+
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="calcMethod"
+                    value="gross"
+                    checked={calculationMethod === 'gross'}
+                    onChange={() => setCalculationMethod('gross')}
+                    className="text-primary focus:ring-primary"
+                  />
+                  Hitung dari Bruto
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="calcMethod"
+                    value="net"
+                    checked={calculationMethod === 'net'}
+                    onChange={() => setCalculationMethod('net')}
+                    className="text-primary focus:ring-primary"
+                  />
+                  Gross-Up (Dari THP)
+                </label>
+              </div>
               
               <div>
-                <label className="block text-sm font-medium text-textSecondary mb-1">Gaji Pokok / Penghasilan Bruto (Per Bulan)</label>
+                <label className="block text-sm font-medium text-textSecondary mb-1">
+                  {calculationMethod === 'gross' ? 'Gaji Pokok / Penghasilan Bruto (Per Bulan)' : 'Target Take Home Pay (THP) / Gaji Bersih'}
+                </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary">Rp</span>
                   <input
@@ -216,7 +268,7 @@ export function TaxCalculatorPage() {
               
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">Penghasilan Bruto (Bulanan):</span>
-                <span className="font-semibold">{formatCurrency(grossSalary)}</span>
+                <span className="font-semibold">{formatCurrency(pph21Result.grossMonthly)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">Status PTKP Tahunan:</span>
