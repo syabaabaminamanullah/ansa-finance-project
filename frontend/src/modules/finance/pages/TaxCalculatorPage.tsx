@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Calculator, AlertCircle, Info, FileText } from 'lucide-react';
-import { formatRupiah } from '../../../utils/formatters';
+import { formatCurrency } from '../../../utils/formatters';
 
 export function TaxCalculatorPage() {
   const [activeTab, setActiveTab] = useState<'pph21' | 'ppn23' | 'pph42'>('pph21');
@@ -202,32 +202,32 @@ export function TaxCalculatorPage() {
               
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">Penghasilan Bruto (Bulanan):</span>
-                <span className="font-semibold">{formatRupiah(grossSalary)}</span>
+                <span className="font-semibold">{formatCurrency(grossSalary)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">Status PTKP Tahunan:</span>
-                <span className="font-medium">{ptkpStatus} ({formatRupiah(pph21Result.ptkpYearly)})</span>
+                <span className="font-medium">{ptkpStatus} ({formatCurrency(pph21Result.ptkpYearly)})</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">PKP (Penghasilan Kena Pajak) Tahunan:</span>
-                <span className="font-medium">{formatRupiah(pph21Result.pkp)}</span>
+                <span className="font-medium">{formatCurrency(pph21Result.pkp)}</span>
               </div>
               
               <div className="h-px bg-border my-4"></div>
               
               <div className="flex justify-between items-center">
                 <span className="text-textSecondary font-medium">Pajak PPh 21 (Bulanan):</span>
-                <span className="font-bold text-red-600 text-lg">- {formatRupiah(pph21Result.taxMonthly)}</span>
+                <span className="font-bold text-red-600 text-lg">- {formatCurrency(pph21Result.taxMonthly)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-textSecondary font-medium">Pajak PPh 21 (Tahunan):</span>
-                <span className="font-semibold text-red-600">- {formatRupiah(pph21Result.taxYearly)}</span>
+                <span className="font-semibold text-red-600">- {formatCurrency(pph21Result.taxYearly)}</span>
               </div>
               
               <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-primary">Take Home Pay (THP) / Bln:</span>
-                  <span className="font-bold text-primary text-xl">{formatRupiah(pph21Result.takeHomePay)}</span>
+                  <span className="font-bold text-primary text-xl">{formatCurrency(pph21Result.takeHomePay)}</span>
                 </div>
               </div>
 
@@ -326,28 +326,28 @@ export function TaxCalculatorPage() {
               
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">Dasar Pengenaan Pajak (DPP):</span>
-                <span className="font-semibold">{formatRupiah(ppn23Result.dpp)}</span>
+                <span className="font-semibold">{formatCurrency(ppn23Result.dpp)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">PPN ({ppnRate}%):</span>
-                <span className="font-semibold text-green-600">+ {formatRupiah(ppn23Result.ppnAmount)}</span>
+                <span className="font-semibold text-green-600">+ {formatCurrency(ppn23Result.ppnAmount)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary font-medium">Total Invoice (DPP + PPN):</span>
-                <span className="font-bold">{formatRupiah(ppn23Result.invoiceTotal)}</span>
+                <span className="font-bold">{formatCurrency(ppn23Result.invoiceTotal)}</span>
               </div>
 
               <div className="h-px bg-border my-4"></div>
 
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">Potongan PPh 23 ({(ppn23Result.actualPph23Rate * 100).toFixed(1)}%):</span>
-                <span className="font-semibold text-red-600">- {formatRupiah(ppn23Result.pph23Amount)}</span>
+                <span className="font-semibold text-red-600">- {formatCurrency(ppn23Result.pph23Amount)}</span>
               </div>
               
               <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-primary">Jumlah Dibayar ke Vendor:</span>
-                  <span className="font-bold text-primary text-xl">{formatRupiah(ppn23Result.amountToPayVendor)}</span>
+                  <span className="font-bold text-primary text-xl">{formatCurrency(ppn23Result.amountToPayVendor)}</span>
                 </div>
                 <p className="text-xs text-primary/70 mt-1">Total Invoice - PPh 23</p>
               </div>
@@ -400,18 +400,18 @@ export function TaxCalculatorPage() {
               
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">Dasar Pengenaan Pajak (DPP):</span>
-                <span className="font-semibold">{formatRupiah(rentValue)}</span>
+                <span className="font-semibold">{formatCurrency(rentValue)}</span>
               </div>
               
               <div className="flex justify-between items-center text-sm">
                 <span className="text-textSecondary">Potongan PPh Pasal 4 ayat (2) ({pph42Rate}%):</span>
-                <span className="font-semibold text-red-600">- {formatRupiah(pph42Result.taxAmount)}</span>
+                <span className="font-semibold text-red-600">- {formatCurrency(pph42Result.taxAmount)}</span>
               </div>
               
               <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-primary">Jumlah Pembayaran Bersih:</span>
-                  <span className="font-bold text-primary text-xl">{formatRupiah(pph42Result.netToPay)}</span>
+                  <span className="font-bold text-primary text-xl">{formatCurrency(pph42Result.netToPay)}</span>
                 </div>
               </div>
             </div>
