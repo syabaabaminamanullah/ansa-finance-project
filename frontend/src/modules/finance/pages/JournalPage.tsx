@@ -586,12 +586,12 @@ export function JournalPage() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-textSecondary uppercase bg-background border-b border-border rounded-t-lg">
                   <tr>
-                      <th className="px-4 py-3.5 w-[30%]">Account (COA)</th>
-                      <th className="px-4 py-3.5 w-[35%]">Line Description</th>
-                      <th className="px-4 py-3.5 w-[15%]">Debit (Rp)</th>
-                      <th className="px-4 py-3.5 w-[15%]">Credit (Rp)</th>
-                      <th className="px-4 py-3.5 w-12 text-center">Act</th>
-                    </tr>
+                    <th className="px-4 py-3.5 w-[35%]">Account (COA)</th>
+                    <th className="px-4 py-3.5">Line Description</th>
+                    <th className="px-4 py-3.5 w-[15%]">Debit (Rp)</th>
+                    <th className="px-4 py-3.5 w-[15%]">Credit (Rp)</th>
+                    <th className="px-4 py-3.5 w-14 text-center">Act</th>
+                  </tr>
                 </thead>
               <tbody>
                 {formData.lines.map((line, idx) => (
