@@ -153,6 +153,14 @@ export function TaxCalculatorPage() {
 
       <div className="flex space-x-1 bg-background/50 p-1 rounded-lg border border-border w-fit">
         <button
+          onClick={() => setActiveTab('hr')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === 'hr' ? 'bg-primary text-white shadow' : 'text-textSecondary hover:bg-background'
+          }`}
+        >
+          Pengelola Pekerja (HR)
+        </button>
+        <button
           onClick={() => setActiveTab('pph21')}
           className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             activeTab === 'pph21' ? 'bg-primary text-white shadow' : 'text-textSecondary hover:bg-background'
@@ -483,6 +491,11 @@ export function TaxCalculatorPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* TAB HR / PENGELOLA PEKERJA */}
+        {activeTab === 'hr' && (
+          <TaxWorkerManager />
         )}
       </div>
     </div>
