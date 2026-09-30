@@ -33,7 +33,7 @@ class TaxWorkerHistoryCreate(BaseModel):
     tax_amount: float
     net_salary: float
 
-@router.get("/")
+@router.get("")
 def get_tax_workers(db: Session = Depends(get_db)):
     workers = db.query(TaxWorker).order_by(TaxWorker.name).all()
     # Fetch history summary for each
@@ -65,7 +65,7 @@ def get_tax_workers(db: Session = Depends(get_db)):
         })
     return results
 
-@router.post("/")
+@router.post("")
 def create_tax_worker(payload: TaxWorkerCreate, db: Session = Depends(get_db)):
     w = TaxWorker(
         id=str(uuid.uuid4()),
