@@ -396,21 +396,33 @@ def generate_copy1_data(base_cashflow: Dict[str, Any]) -> Dict[str, Any]:
     all_copy1_tx.sort(key=lambda x: (x["date"], x.get("journal_number", "")))
 
     # 4. Compute weeks_list for Copy 1
+    max_week = 10
+    for t in all_copy1_tx:
+        if t["week_num"] > max_week:
+            max_week = t["week_num"]
+
+    from datetime import date as dt_date, timedelta, datetime
+    PROJECT_START = dt_date(2026, 7, 13)
+    def get_indonesian_month(m):
+        return ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"][m-1]
+
+    def get_dynamic_week_info(date_str):
+        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+        delta = (d - PROJECT_START).days
+        if delta < 0: delta = 0
+        w_num = (delta // 7) + 1
+        w_start = PROJECT_START + timedelta(days=(w_num-1)*7)
+        w_end = w_start + timedelta(days=6)
+        sm = get_indonesian_month(w_start.month)
+        em = get_indonesian_month(w_end.month)
+        short_label = f"W{w_num} ({w_start.day:02d}-{w_end.day:02d} {em})" if sm == em else f"W{w_num} ({w_start.day:02d} {sm}-{w_end.day:02d} {em})"
+        full_label = f"{w_start.day:02d} {sm} - {w_end.day:02d} {em} {w_start.year}"
+        return w_num, short_label, full_label
+
     weeks_dict = {}
-    for w in range(1, 11):
-        sample_date = (
-            "2026-07-13" if w == 1 else
-            "2026-07-21" if w == 2 else
-            "2026-07-28" if w == 3 else
-            "2026-08-05" if w == 4 else
-            "2026-08-12" if w == 5 else
-            "2026-08-20" if w == 6 else
-            "2026-08-25" if w == 7 else
-            "2026-09-02" if w == 8 else
-            "2026-09-09" if w == 9 else
-            "2026-09-14"
-        )
-        _, label, drange = get_lpj_week_info(sample_date)
+    for w in range(1, max_week + 1):
+        sample_date = (PROJECT_START + timedelta(days=(w-1)*7)).strftime("%Y-%m-%d")
+        _, label, drange = get_dynamic_week_info(sample_date)
         weeks_dict[w] = {
             "week_num": w,
             "label": label,
@@ -447,7 +459,7 @@ def generate_copy1_data(base_cashflow: Dict[str, Any]) -> Dict[str, Any]:
     tot_inflow = 0.0
     tot_outflow = 0.0
     weeks_list = []
-    for w in range(1, 11):
+    for w in range(1, max_week + 1):
         wd = weeks_dict[w]
         wd["net"] = wd["inflow"] - wd["outflow"]
         running_cum += wd["net"]
