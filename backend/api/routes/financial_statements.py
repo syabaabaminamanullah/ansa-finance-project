@@ -901,6 +901,10 @@ def get_project_weekly_cashflow(
         full_text = f"{j.description or ''} {exp_desc} {cash_line.description or ''}".lower()
 
         # Determine flow and category
+        # 1. Skip Mutation (Mutasi Antar Kas 11xxx ke 11xxx)
+        if opp_coa and opp_coa.account_code.startswith('11'):
+            continue
+
         if cash_line.debit and cash_line.debit > 0:
             flow = "INFLOW"
             amount = float(cash_line.debit)
@@ -912,10 +916,23 @@ def get_project_weekly_cashflow(
             amount = float(cash_line.credit or 0.0)
             is_new = False
             
-            # Classification logic
-            if 'bpjs' in full_text or 'mcu' in full_text or coa_code == '51731':
+            # Classification logic (STRICT COA-BASED for consistency)
+            if coa_code in ['51731', '51733']: # BPJS, Alat Kesehatan
                 category = "MCU + BPJS"
                 cat_code = "KAT-01"
+            elif coa_code in ['51720', '51200']: # Material
+                category = "Material"
+                cat_code = "KAT-07"
+            elif coa_code in ['54610', '54620', '54300', '51745', '54600']: # Makan, Extra Food, Transport, Mess
+                category = "Akomodasi & Meals"
+                cat_code = "KAT-05"
+            elif coa_code in ['51410', '51750', '51700']: # BBM, Ops Lainnya
+                category = "Operasional"
+                cat_code = "KAT-10"
+            elif coa_code in ['51500', '61100', '53221']: # Gaji, Upah, Insentif
+                category = "Gaji Personil"
+                cat_code = "KAT-08"
+            # Fallback to keywords for legacy data or missing COA
             elif 'sucofindo' in full_text or 'inspeksi alat' in full_text or 'pengujian baja' in full_text or 'labor terpadu' in full_text:
                 category = "Sucofindo + Uji Material"
                 cat_code = "KAT-02"
@@ -931,10 +948,10 @@ def get_project_weekly_cashflow(
             elif 'mobilisasi' in full_text or 'pengiriman material' in full_text:
                 category = "Mobilisasi Personil, Rig, Material"
                 cat_code = "KAT-04"
-            elif 'po-1 material' in full_text or 'toko besi' in full_text or (coa_code == '51200' and 'material' in full_text and 'spillbak' not in full_text):
+            elif 'po-1 material' in full_text or 'toko besi' in full_text:
                 category = "Material"
                 cat_code = "KAT-07"
-            elif 'gaji' in full_text or coa_code in ['51500', '61100']:
+            elif 'gaji' in full_text:
                 category = "Gaji Personil"
                 cat_code = "KAT-08"
             elif 'kasbon' in full_text:
