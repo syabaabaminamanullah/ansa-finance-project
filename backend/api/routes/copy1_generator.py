@@ -333,9 +333,9 @@ def generate_copy1_data(base_cashflow: Dict[str, Any]) -> Dict[str, Any]:
                 "memo": memo,
                 "coa_desc": coa_desc,
                 "date_raw": dt_str,
-                "qty": parts[8].strip() if len(parts) > 8 else "-",
-                "unit": parts[9].strip() if len(parts) > 9 else "-",
-                "unit_price": parse_num(parts[10]) if len(parts) > 10 and parts[10].strip() else amt,
+                "qty": parts[9].strip() if len(parts) > 9 else "-",
+                "unit": parts[10].strip() if len(parts) > 10 else "-",
+                "unit_price": parse_num(parts[11]) if len(parts) > 11 and parts[11].strip() else amt,
             }
         })
 
