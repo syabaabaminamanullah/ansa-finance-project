@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calculator, AlertCircle, Info, FileText, ArrowLeft } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
+import { TaxWorkerManager } from '../components/TaxWorkerManager';
 
 export function TaxCalculatorPage() {
-  const [activeTab, setActiveTab] = useState<'pph21' | 'ppn23' | 'pph42'>('pph21');
+  const [activeTab, setActiveTab] = useState<'pph21' | 'ppn23' | 'pph42' | 'hr'>('pph21');
 
   // PPh 21 State
   const [calculationMethod, setCalculationMethod] = useState<'gross' | 'net'>('gross');

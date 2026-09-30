@@ -41,7 +41,7 @@ try:
         organization, financials, finance, projects, stakeholders,
         hr, inventory, project_ops, reports, project_rabs, assets,
         financial_statements, procurement, data_management, billing_schedule,
-        dashboard, equipment, profile
+        dashboard, equipment, profile, tax_workers
     )
     from db.database import engine, Base
     from sqlalchemy import text, inspect as sa_inspect
@@ -49,6 +49,11 @@ try:
     # --- Auto-migration: ensure all model columns exist in DB ---
     try:
         url_str = str(engine.url)
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception as e:
+            print("Create all error:", e)
+
         if not url_str.startswith("sqlite"):
             inspector = sa_inspect(engine)
             _migrations_needed = {
@@ -88,6 +93,7 @@ try:
     app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
     app.include_router(equipment.router, prefix="/api/v1/equipment", tags=["Equipment"])
     app.include_router(profile.router, prefix="/api/v1/profile", tags=["User Profile"])
+    app.include_router(tax_workers.router, prefix="/api/v1/tax-workers", tags=["Tax Workers"])
 
     _routers_loaded = True
     _router_error = None
