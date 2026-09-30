@@ -583,7 +583,7 @@ export function JournalPage() {
           />
 
           <div className="border border-border rounded-lg shadow-sm">
-            <table className="w-full text-sm text-left">
+            <table className="w-full text-sm text-left table-fixed">
               <thead className="text-xs text-textSecondary uppercase bg-background border-b border-border rounded-t-lg">
                   <tr>
                     <th className="px-4 py-3.5 w-[35%]">Account (COA)</th>
@@ -766,7 +766,7 @@ export function JournalPage() {
             )}
 
             <div className="border border-border rounded-lg overflow-hidden">
-              <table className="w-full text-sm text-left">
+              <table className="w-full text-sm text-left table-fixed">
                 <thead className="text-xs text-textSecondary uppercase bg-background border-b border-border">
                     <tr>
                         <th className="px-4 py-3 w-[30%]">Account (COA)</th>
