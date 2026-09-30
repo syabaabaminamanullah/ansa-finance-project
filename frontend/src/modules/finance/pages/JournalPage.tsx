@@ -506,38 +506,32 @@ export function JournalPage() {
         maxWidth="max-w-7xl"
       >
         <form onSubmit={handleSave} className="space-y-6">
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-3 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-textPrimary">Journal No.</label>
-                <span className="text-[10px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
-                  Otomatis
-                </span>
+          <div className="grid grid-cols-12 gap-6 pb-4">
+            <div className="col-span-6 grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-textPrimary">Journal No.</label>
+                  <span className="text-[10px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
+                    Otomatis
+                  </span>
+                </div>
+                <input 
+                  required 
+                  readOnly 
+                  type="text" 
+                  value={formData.journal_number} 
+                  title="Nomor Jurnal dihitung otomatis berurutan oleh sistem buku besar"
+                  className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-sm text-primary font-mono font-bold cursor-not-allowed select-none shadow-xs"
+                />
               </div>
-              <input 
-                required 
-                readOnly 
-                type="text" 
-                value={formData.journal_number} 
-                title="Nomor Jurnal dihitung otomatis berurutan oleh sistem buku besar"
-                className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-sm text-primary font-mono font-bold cursor-not-allowed select-none shadow-xs"
-              />
-            </div>
-            <div className="col-span-3 space-y-1.5">
-              <label className="text-sm font-medium text-textPrimary">Date</label>
-              <DatePicker
-                required
-                value={formData.date}
-                onChange={(val) => handleJournalDateChange(val)}
-              />
-            </div>
-            <div className="col-span-6 space-y-1.5">
-              <label className="text-sm font-medium text-textPrimary">Description</label>
-              <input type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary" placeholder="Brief description..."/>
-            </div>
-          </div>
-
-            <div className="grid grid-cols-2 gap-4 pb-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-textPrimary">Date</label>
+                <DatePicker
+                  required
+                  value={formData.date}
+                  onChange={(val) => handleJournalDateChange(val)}
+                />
+              </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-textPrimary">Project (Opsional)</label>
                 <select 
@@ -565,11 +559,23 @@ export function JournalPage() {
                 >
                   <option value="">-- No RAB --</option>
                   {formData.project_id && rabItemsByProject[formData.project_id]?.map(r => (
-                    <option key={r.id} value={r.id}>{r.category} → {r.description}</option>
+                    <option key={r.id} value={r.id}>{r.category} - {r.description}</option>
                   ))}
                 </select>
               </div>
             </div>
+            
+            <div className="col-span-6 space-y-1.5 flex flex-col">
+              <label className="text-sm font-medium text-textPrimary">Description</label>
+              <textarea 
+                required
+                value={formData.description} 
+                onChange={e => setFormData({...formData, description: e.target.value})} 
+                className="w-full flex-grow px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary resize-none min-h-[110px]" 
+                placeholder="Brief description..."
+              />
+            </div>
+          </div>
 
           <TaxHintHelper 
             accountName={formData.lines.map(l => coas.find(c => c.id === l.account_id)?.account_name).join(' ')}
