@@ -802,29 +802,32 @@ def get_project_weekly_cashflow(
     journals = db.query(Journal).filter(Journal.id.in_(matched_journal_ids)).order_by(Journal.date.asc(), Journal.journal_number.asc()).all()
 
     # Define helper to determine week
-    from datetime import date as dt_date
+    from datetime import date as dt_date, timedelta
+    
+    # Project baseline start date
+    PROJECT_START = dt_date(2026, 7, 13)
+    
+    def get_indonesian_month(m):
+        return ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"][m-1]
+        
     def get_week_info(date_str):
         d = datetime.strptime(date_str, "%Y-%m-%d").date()
-        if d <= dt_date(2026, 7, 19):
-            return 1, "W1 (13-19 Jul)", "13 Jul – 19 Jul 2026"
-        elif d <= dt_date(2026, 7, 26):
-            return 2, "W2 (20-26 Jul)", "20 Jul – 26 Jul 2026"
-        elif d <= dt_date(2026, 8, 2):
-            return 3, "W3 (27 Jul-02 Agu)", "27 Jul – 02 Agu 2026"
-        elif d <= dt_date(2026, 8, 9):
-            return 4, "W4 (03-09 Agu)", "03 Agu – 09 Agu 2026"
-        elif d <= dt_date(2026, 8, 16):
-            return 5, "W5 (10-16 Agu)", "10 Agu – 16 Agu 2026"
-        elif d <= dt_date(2026, 8, 23):
-            return 6, "W6 (17-23 Agu)", "17 Agu – 23 Agu 2026"
-        elif d <= dt_date(2026, 8, 30):
-            return 7, "W7 (24-30 Agu)", "24 Agu – 30 Agu 2026"
-        elif d <= dt_date(2026, 9, 6):
-            return 8, "W8 (31 Agu-06 Sep)", "31 Agu – 06 Sep 2026"
-        elif d <= dt_date(2026, 9, 13):
-            return 9, "W9 (07-13 Sep)", "07 Sep – 13 Sep 2026"
-        else:
-            return 10, "W10 (14-20 Sep)", "14 Sep – 20 Sep 2026"
+        delta = (d - PROJECT_START).days
+        if delta < 0:
+            delta = 0
+        w_num = (delta // 7) + 1
+        
+        # Calculate week start and end
+        w_start = PROJECT_START + timedelta(days=(w_num-1)*7)
+        w_end = w_start + timedelta(days=6)
+        
+        sm = get_indonesian_month(w_start.month)
+        em = get_indonesian_month(w_end.month)
+        
+        short_label = f"W{w_num} ({w_start.day:02d}-{w_end.day:02d} {em})" if sm == em else f"W{w_num} ({w_start.day:02d} {sm}-{w_end.day:02d} {em})"
+        full_label = f"{w_start.day:02d} {sm} - {w_end.day:02d} {em} {w_start.year}"
+        
+        return w_num, short_label, full_label
 
     # Category definitions & ordering
     CATEGORY_ORDER = [
@@ -844,20 +847,18 @@ def get_project_weekly_cashflow(
     ]
 
     transactions = []
+    
+    # Determine max week from journals, default to 10 if less
+    max_week = 10
+    for j in journals:
+        w_num, _, _ = get_week_info(j.date)
+        if w_num > max_week:
+            max_week = w_num
+
     weeks_dict = {}
-    for w in range(1, 11):
-        sample_date = (
-            "2026-07-13" if w == 1 else
-            "2026-07-21" if w == 2 else
-            "2026-07-28" if w == 3 else
-            "2026-08-05" if w == 4 else
-            "2026-08-12" if w == 5 else
-            "2026-08-20" if w == 6 else
-            "2026-08-25" if w == 7 else
-            "2026-09-02" if w == 8 else
-            "2026-09-09" if w == 9 else
-            "2026-09-14"
-        )
+    for w in range(1, max_week + 1):
+        # sample date to generate label
+        sample_date = (PROJECT_START + timedelta(days=(w-1)*7)).strftime("%Y-%m-%d")
         _, label, drange = get_week_info(sample_date)
         weeks_dict[w] = {
             "week_num": w,
@@ -1201,4 +1202,4 @@ def get_project_weekly_cashflow_copy1(
         end_date=end_date,
         version="copy1",
         db=db
-    )
+    )
