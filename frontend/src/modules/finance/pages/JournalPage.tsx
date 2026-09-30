@@ -646,13 +646,13 @@ export function JournalPage() {
                 ))}
               </tbody>
               <tfoot className="bg-background font-semibold">
-                <tr>
-                  <td colSpan={4} className="px-4 py-3 text-right">Total:</td>
-                  <td className={`px-4 py-3 text-right ${totalDebit !== totalCredit ? 'text-danger' : 'text-success'}`}>{formatCurrency(totalDebit)}</td>
-                  <td className={`px-4 py-3 text-right ${totalDebit !== totalCredit ? 'text-danger' : 'text-success'}`}>{formatCurrency(totalCredit)}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
+                  <tr>
+                    <td colSpan={2} className="px-4 py-3 text-right">Total:</td>
+                    <td className={`px-4 py-3 text-right ${totalDebit !== totalCredit ? 'text-danger' : 'text-success'}`}>{formatCurrency(totalDebit)}</td>
+                    <td className={`px-4 py-3 text-right ${totalDebit !== totalCredit ? 'text-danger' : 'text-success'}`}>{formatCurrency(totalCredit)}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
             </table>
             <div className="p-3 bg-background border-t border-border flex justify-center">
               <button type="button" onClick={handleAddLine} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-md transition-colors">
@@ -787,9 +787,9 @@ export function JournalPage() {
                 </tbody>
                 <tfoot className="bg-background font-bold text-textPrimary">
                   <tr>
-                    <td colSpan={3} className="px-4 py-3 text-right">Total:</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(editingItem.lines?.reduce((sum, l) => sum + l.debit, 0) || 0)}</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(editingItem.lines?.reduce((sum, l) => sum + l.credit, 0) || 0)}</td>
+                    <td colSpan={2} className="px-4 py-3 text-right">Total:</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(editingItem.lines?.reduce((sum, l) => sum + l.debit, 0) || 0)}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(editingItem.lines?.reduce((sum, l) => sum + l.credit, 0) || 0)}</td>
                   </tr>
                 </tfoot>
               </table>
