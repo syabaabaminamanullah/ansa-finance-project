@@ -1624,9 +1624,9 @@ export const generateWeeklyCashflowPDF = (
 
   // Matrix Net Cashflow
   const netRow = ['-', 'NET CASH FLOW'];
-  data.weeks.forEach((w: any) => {
-    netRow.push(w.net !== 0 ? formatMatrixVal(w.net) : '-');
-  });
+    data.weeks.forEach((w: any) => {
+      netRow.push(w.cumulative !== 0 ? formatMatrixVal(w.cumulative) : '-');
+    });
   netRow.push(formatMatrixVal(data.kpi.net_cashflow));
   matrixRows.push(netRow);
 

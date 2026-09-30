@@ -938,11 +938,11 @@ export function WeeklyProjectCashflowView({
               </tr>
               <tr>
                 <td colSpan={2} className="py-2.5 px-3 text-right uppercase text-primary">NET CASH FLOW</td>
-                {activeData.weeks.map((w: any) => (
-                  <td key={w.week_num} className={`py-2.5 px-2 text-right font-mono ${w.net >= 0 ? 'text-success font-semibold' : 'text-danger'}`}>
-                    {w.net !== 0 ? formatCurrency(w.net) : '-'}
-                  </td>
-                ))}
+                  {activeData.weeks.map((w: any) => (
+                    <td key={w.week_num} className={`py-2.5 px-2 text-right font-mono ${w.cumulative >= 0 ? 'text-success font-semibold' : 'text-danger'}`}>
+                      {w.cumulative !== 0 ? formatCurrency(w.cumulative) : '-'}
+                    </td>
+                  ))}
                 <td className="py-2.5 px-3 text-right font-mono text-success font-bold text-sm">
                   +{formatCurrency(activeData.kpi.net_cashflow)}
                 </td>
