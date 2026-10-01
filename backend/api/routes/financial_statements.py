@@ -422,7 +422,7 @@ def get_equity_changes(
     ).join(
         Journal, Journal.id == JournalLine.journal_id
     ).filter(
-        ChartOfAccount.account_type == 'Equity',
+        ChartOfAccount.account_code.startswith('3'),
         Journal.date < start_date,
         Journal.status == 'Posted'
     ).first()
@@ -489,7 +489,7 @@ def get_equity_changes(
     ).join(
         Journal, Journal.id == JournalLine.journal_id
     ).filter(
-        ChartOfAccount.account_type == 'Equity',
+        ChartOfAccount.account_code.startswith('3'),
         Journal.date >= start_date,
         Journal.date <= end_date,
         Journal.status == 'Posted'
@@ -505,7 +505,7 @@ def get_equity_changes(
     ).join(
         Journal, Journal.id == JournalLine.journal_id
     ).filter(
-        ChartOfAccount.account_type == 'Equity',
+        ChartOfAccount.account_code.startswith('3'),
         Journal.date >= start_date,
         Journal.date <= end_date,
         Journal.status == 'Posted'
