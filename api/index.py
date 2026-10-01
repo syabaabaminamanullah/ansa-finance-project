@@ -150,6 +150,24 @@ def test_ar():
         import traceback
         return {"error": str(e), "traceback": traceback.format_exc()}
 
+@app.get("/api/v1/fix-ar-column")
+def fix_ar_column():
+    """Temporary endpoint to add missing ar_account_id column to production DB"""
+    try:
+        from db.database import engine
+        from sqlalchemy import text, inspect as sa_inspect
+        inspector = sa_inspect(engine)
+        existing = {c["name"] for c in inspector.get_columns("ar_invoices")}
+        added = []
+        if "ar_account_id" not in existing:
+            with engine.begin() as conn:
+                conn.execute(text('ALTER TABLE "ar_invoices" ADD COLUMN "ar_account_id" VARCHAR'))
+            added.append("ar_account_id")
+        return {"status": "ok", "existing_columns": list(existing), "added": added}
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
+
 
 @app.get("/api/debug")
 def debug():
