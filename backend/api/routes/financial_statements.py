@@ -59,10 +59,10 @@ def get_income_statement(
             'balance': net_balance
         }
         
-        if row.account_type == 'Revenue':
+        if 'revenue' in str(row.account_type).lower():
             revenue_items.append(item)
             total_revenue += net_balance
-        elif row.account_type == 'Expense':
+        elif 'expense' in str(row.account_type).lower():
             if str(row.account_code).startswith('5'):
                 cogs_items.append(item)
                 total_cogs += net_balance
@@ -150,13 +150,13 @@ def get_balance_sheet(
             'balance': net_balance
         }
         
-        if row.account_type == 'Asset':
+        if 'asset' in str(row.account_type).lower():
             asset_items.append(item)
             total_assets += net_balance
-        elif row.account_type == 'Liability':
+        elif 'liabilit' in str(row.account_type).lower():
             liability_items.append(item)
             total_liabilities += net_balance
-        elif row.account_type == 'Equity':
+        elif 'equity' in str(row.account_type).lower():
             # For Equity accounts, Credit increases equity, Debit (Prive/Dividends) reduces equity
             equity_balance = credit - debit
             item = {
@@ -166,9 +166,9 @@ def get_balance_sheet(
             }
             equity_items.append(item)
             total_equity_ledger += equity_balance
-        elif row.account_type == 'Revenue':
+        elif 'revenue' in str(row.account_type).lower():
             total_revenue += (credit - debit)
-        elif row.account_type == 'Expense':
+        elif 'expense' in str(row.account_type).lower():
             total_expense += (debit - credit)
             
     # Calculate current period net income to be added to equity
@@ -446,7 +446,7 @@ def get_equity_changes(
     prior_revenue = 0.0
     prior_expenses = 0.0
     for row in prior_income_query:
-        if row.account_type == 'Revenue':
+        if 'revenue' in str(row.account_type).lower():
             prior_revenue += (row.total_credit or 0.0) - (row.total_debit or 0.0)
         else:
             prior_expenses += (row.total_debit or 0.0) - (row.total_credit or 0.0)
@@ -473,7 +473,7 @@ def get_equity_changes(
     revenue = 0.0
     expenses = 0.0
     for row in income_query:
-        if row.account_type == 'Revenue':
+        if 'revenue' in str(row.account_type).lower():
             revenue += (row.total_credit or 0.0) - (row.total_debit or 0.0)
         else:
             expenses += (row.total_debit or 0.0) - (row.total_credit or 0.0)
