@@ -51,7 +51,8 @@ def get_income_statement(
     total_expense = 0.0
     
     for row in results:
-        net_balance = (row.total_credit or 0.0) - (row.total_debit or 0.0) if row.account_type == 'Revenue' else (row.total_debit or 0.0) - (row.total_credit or 0.0)
+        is_revenue = str(row.account_code).startswith('4') or (str(row.account_code).startswith('7') and 'pendapatan' in str(row.account_name).lower())
+        net_balance = (row.total_credit or 0.0) - (row.total_debit or 0.0) if is_revenue else (row.total_debit or 0.0) - (row.total_credit or 0.0)
         
         item = {
             'account_code': row.account_code,
@@ -59,10 +60,10 @@ def get_income_statement(
             'balance': net_balance
         }
         
-        if 'revenue' in str(row.account_type).lower():
+        if is_revenue:
             revenue_items.append(item)
             total_revenue += net_balance
-        elif 'expense' in str(row.account_type).lower():
+        elif not is_revenue and str(row.account_code)[0] in ['5', '6', '7', '8', '9']:
             if str(row.account_code).startswith('5'):
                 cogs_items.append(item)
                 total_cogs += net_balance
@@ -150,13 +151,13 @@ def get_balance_sheet(
             'balance': net_balance
         }
         
-        if 'asset' in str(row.account_type).lower():
+        if str(row.account_code).startswith('1'):
             asset_items.append(item)
             total_assets += net_balance
-        elif 'liabilit' in str(row.account_type).lower():
+        elif str(row.account_code).startswith('2'):
             liability_items.append(item)
             total_liabilities += net_balance
-        elif 'equity' in str(row.account_type).lower():
+        elif str(row.account_code).startswith('3'):
             # For Equity accounts, Credit increases equity, Debit (Prive/Dividends) reduces equity
             equity_balance = credit - debit
             item = {
@@ -166,9 +167,9 @@ def get_balance_sheet(
             }
             equity_items.append(item)
             total_equity_ledger += equity_balance
-        elif 'revenue' in str(row.account_type).lower():
+        elif str(row.account_code).startswith('4') or (str(row.account_code).startswith('7') and row.normal_balance == 'Credit'):
             total_revenue += (credit - debit)
-        elif 'expense' in str(row.account_type).lower():
+        elif str(row.account_code)[0] in ['5', '6', '8', '9'] or (str(row.account_code).startswith('7') and row.normal_balance == 'Debit'):
             total_expense += (debit - credit)
             
     # Calculate current period net income to be added to equity
@@ -446,7 +447,7 @@ def get_equity_changes(
     prior_revenue = 0.0
     prior_expenses = 0.0
     for row in prior_income_query:
-        if 'revenue' in str(row.account_type).lower():
+        if is_revenue:
             prior_revenue += (row.total_credit or 0.0) - (row.total_debit or 0.0)
         else:
             prior_expenses += (row.total_debit or 0.0) - (row.total_credit or 0.0)
@@ -473,7 +474,7 @@ def get_equity_changes(
     revenue = 0.0
     expenses = 0.0
     for row in income_query:
-        if 'revenue' in str(row.account_type).lower():
+        if is_revenue:
             revenue += (row.total_credit or 0.0) - (row.total_debit or 0.0)
         else:
             expenses += (row.total_debit or 0.0) - (row.total_credit or 0.0)
@@ -697,7 +698,7 @@ def get_trial_balance(
         if init_d == 0 and init_c == 0 and mov_d == 0 and mov_c == 0:
             continue
             
-        is_debit_normal = coa.account_type in ['Asset', 'Expense']
+        is_debit_normal = str(coa.account_code).startswith('1') or str(coa.account_code)[0] in ['5', '6', '8', '9'] or (str(coa.account_code).startswith('7') and coa.normal_balance == 'Debit')
         
         # Beginning balance breakdown
         # Net balance
