@@ -31,7 +31,7 @@ const financeCategories = [
   {
     title: 'Accounts Receivable (AR)',
     items: [
-      { name: 'Invoice Termin / Billing', icon: FileText, path: '/finance/billing', desc: 'Jadwal penagihan termin proyek & invoice A4' },
+      
       { name: 'AR Invoices', icon: FileText, path: '/finance/ar-invoices', desc: 'Manage customer invoices' },
       { name: 'AR Aging Report', icon: FileText, path: '/finance/ar-aging', desc: 'Laporan umur piutang / tunggakan' },
     ]

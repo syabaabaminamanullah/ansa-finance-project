@@ -161,7 +161,7 @@ function App() {
           <Route path="finance/gl" element={<GeneralLedgerPage />} />
           <Route path="finance/ap-invoices" element={<ApInvoicePage />} />
           <Route path="finance/ar-invoices" element={<ArInvoicePage />} />
-          <Route path="finance/billing" element={<BillingSchedulePage />} />
+          
           <Route path="finance/reports" element={<FinancialReportsPage />} />
           <Route path="finance/project-reports" element={<ProjectFinancialReportsPage />} />
           <Route path="finance/smart-forecast" element={<SmartForecastPage />} />

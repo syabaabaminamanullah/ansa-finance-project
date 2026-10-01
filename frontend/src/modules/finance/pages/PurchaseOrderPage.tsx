@@ -534,7 +534,7 @@ export function PurchaseOrderPage() {
                         {p.status === 'Draft' && <Clock className="w-3 h-3" />}
                         {p.status === 'Approved' && <CheckCircle className="w-3 h-3" />}
                         {p.status === 'Completed' && <Check className="w-3 h-3" />}
-                        {p.status}
+                        {p.status === 'Approved' ? 'Ditagih (AP)' : p.status}
                       </span>
                     </td>
                     {/* Integration Status Column */}
@@ -609,9 +609,9 @@ export function PurchaseOrderPage() {
                             <button
                               onClick={() => handleUpdateStatus(p.id, 'Approved')}
                               className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors shadow-xs cursor-pointer flex items-center gap-1"
-                              title="Approve PO: Otomatis posting Jurnal Beban/Aset & Hutang Vendor (AP) ke Buku Besar"
+                              title="Proses Tagihan: Otomatis posting Jurnal Beban/Aset & Hutang Vendor (AP) ke Buku Besar"
                             >
-                              <Check className="w-3.5 h-3.5" /> Approve
+                              <Check className="w-3.5 h-3.5" /> Proses Jurnal (Terima Tagihan)
                             </button>
 
                             <button
@@ -637,7 +637,7 @@ export function PurchaseOrderPage() {
                               className="px-2.5 py-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded-lg text-xs font-semibold hover:bg-amber-500/20 transition-colors cursor-pointer flex items-center gap-1"
                               title="Unapprove PO: Batalkan persetujuan, hapus Jurnal & AP Invoice bersih dari GL, lalu kembalikan PO ke status Draft"
                             >
-                              <RotateCcw className="w-3.5 h-3.5" /> Unapprove
+                              <RotateCcw className="w-3.5 h-3.5" /> Batal Jurnal
                             </button>
                           </>
                         )}
@@ -720,7 +720,7 @@ export function PurchaseOrderPage() {
                         ${selectedPo.status === 'Completed' ? 'bg-green-100 text-green-800' :
                           selectedPo.status === 'Approved' ? 'bg-slate-100 text-slate-800' :
                           'bg-slate-100 text-slate-700'}`}>
-                        {selectedPo.status.toUpperCase()}
+                        {selectedPo.status === 'Approved' ? 'DITAGIH (AP)' : selectedPo.status.toUpperCase()}
                       </span>
                     </div>
                   </div>
@@ -907,7 +907,7 @@ export function PurchaseOrderPage() {
               <RotateCcw className="w-6 h-6" />
             </div>
             <h3 className="text-lg font-bold text-center text-textPrimary mb-2">
-              Batalkan Approval PO (Unapprove)?
+              Batalkan Jurnal Hutang PO (Unapprove)?
             </h3>
             <div className="bg-background/80 rounded-lg p-3 text-xs font-mono mb-4 border border-border space-y-1">
               <div className="flex justify-between">
@@ -944,7 +944,7 @@ export function PurchaseOrderPage() {
                 onClick={handleConfirmUnapprove}
                 className="flex-1 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors text-sm flex items-center justify-center gap-1.5 shadow-sm"
               >
-                <RotateCcw className="w-4 h-4" /> Ya, Unapprove
+                <RotateCcw className="w-4 h-4" /> Ya, Batalkan Jurnal
               </button>
             </div>
           </div>

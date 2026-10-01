@@ -16,6 +16,9 @@ export interface CustomInvoiceParams {
   milestone?: string;
   unit?: string;
   amount?: number;
+  baseAmount?: number;
+  taxAmount?: number;
+  ppnRate?: number;
   totalDp?: number;
   totalContract?: number;
   prevBilledDp?: number;
@@ -308,7 +311,10 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   const itemDescEn = customParams?.itemDescriptionEn || '';
   const milestoneText = customParams?.milestone || 'Field preparation';
   const unitText = customParams?.unit || 'Lump Sump';
-  const invAmount = customParams?.amount ?? 175000000;
+  const invBaseAmount = customParams?.baseAmount ?? customParams?.amount ?? 175000000;
+  const invTaxAmount = customParams?.taxAmount ?? 0;
+  const invTotalAmount = customParams?.amount ?? (invBaseAmount + invTaxAmount);
+  const ppnRate = customParams?.ppnRate ?? 12;
 
   const isDp = itemDesc.toLowerCase().includes('dp') ||
                itemDesc.toLowerCase().includes('uang muka') ||
@@ -571,14 +577,14 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...primaryColor);
   doc.text('Rp', rpX, sy);
-  doc.text(`${invAmount.toLocaleString('id-ID')},-`, numRightX, sy, { align: 'right' });
+  doc.text(`${invBaseAmount.toLocaleString('id-ID')},-`, numRightX, sy, { align: 'right' });
 
   sy += 4.5;
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...textColor);
-  doc.text('PPN 11% / Tax:', sumX + 4, sy);
+  doc.text(`PPN ${ppnRate}% / Tax:`, sumX + 4, sy);
   doc.text('Rp', rpX, sy);
-  doc.text('0,-', numRightX, sy, { align: 'right' });
+  doc.text(invTaxAmount > 0 ? `${invTaxAmount.toLocaleString('id-ID')},-` : '0,-', numRightX, sy, { align: 'right' });
 
   sy += 5.5;
   doc.setDrawColor(...subtleBorder);
@@ -589,7 +595,7 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   doc.setTextColor(...primaryColor);
   doc.text('Total Harus Dibayar / Due:', sumX + 4, sy + 1.5);
   doc.text('Rp', rpX, sy + 1.5);
-  doc.text(`${invAmount.toLocaleString('id-ID')},-`, numRightX, sy + 1.5, { align: 'right' });
+  doc.text(`${invTotalAmount.toLocaleString('id-ID')},-`, numRightX, sy + 1.5, { align: 'right' });
 
   // Left Note Box (Clean No-Border Fill)
   const noteWidth = pageWidth - 28 - sumWidth - 5; // 82mm

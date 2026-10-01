@@ -456,6 +456,7 @@ class ArInvoice(BaseModel):
     total_amount = Column(Float, default=0.0)
     amount_paid = Column(Float, default=0.0)
     status = Column(String, default="Draft") # Draft, Unpaid, Partial, Paid
+    ar_account_id = Column(String, nullable=True) # Account for Piutang
     revenue_account_id = Column(String, nullable=True)
     tax_account_id = Column(String, nullable=True)
     milestone = Column(String, nullable=True, default="Field preparation")

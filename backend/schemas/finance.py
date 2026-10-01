@@ -118,6 +118,7 @@ class ArInvoiceBase(BaseModel):
     total_amount: float = 0.0
     status: str = "Draft"
     amount_paid: float = 0.0
+    ar_account_id: Optional[str] = None
     revenue_account_id: Optional[str] = None
     tax_account_id: Optional[str] = None
     milestone: Optional[str] = "Field preparation"
@@ -139,6 +140,7 @@ class ArInvoiceUpdate(BaseModel):
     total_amount: Optional[float] = None
     status: Optional[str] = None
     amount_paid: Optional[float] = None
+    ar_account_id: Optional[str] = None
     revenue_account_id: Optional[str] = None
     tax_account_id: Optional[str] = None
 

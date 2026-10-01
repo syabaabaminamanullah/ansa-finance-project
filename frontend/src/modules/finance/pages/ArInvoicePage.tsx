@@ -36,6 +36,9 @@ interface ArInvoice {
   tax_amount: number;
   total_amount: number;
   status: string;
+  ar_account_id?: string;
+  revenue_account_id?: string;
+  tax_account_id?: string;
 }
 
 export function ArInvoicePage() {
@@ -62,6 +65,9 @@ export function ArInvoicePage() {
   const [formData, setFormData] = useState<Omit<ArInvoice, 'id' | 'created_at'>>({
     invoice_number: '', customer_id: '', project_id: '', po_number: '', date: '', due_date: '', description: '', milestone: 'Field preparation', unit: 'Lump Sump', amount: 0, tax_amount: 0, total_amount: 0, status: 'Unpaid'
   });
+
+  const [paidToday, setPaidToday] = useState(false);
+  const [shortcutBankAccountId, setShortcutBankAccountId] = useState('');
 
   const fetchData = async () => {
     try {
@@ -170,7 +176,10 @@ export function ArInvoicePage() {
                   itemDescription: row.description || 'Progres Pekerjaan Lapangan',
                   milestone: row.milestone || 'Field preparation',
                   unit: row.unit || 'Lump Sump',
-                  amount: Number(row.total_amount) || Number(row.amount) || 21090000,
+                  amount: Number(row.total_amount) || 21090000,
+                  baseAmount: Number(row.amount) || 0,
+                  taxAmount: Number(row.tax_amount) || 0,
+                  ppnRate: (Number(row.amount) > 0 && Number(row.tax_amount) > 0) ? Math.round((Number(row.tax_amount) / Number(row.amount)) * 100) : 12,
                   prevBilledTotal: prevBilledTotal,
                   prevInvoiceNum: prevInvoiceNum,
                   totalContract: totalContract
@@ -279,7 +288,10 @@ export function ArInvoicePage() {
       amount: 0, 
       tax_amount: 0, 
       total_amount: 0, 
-      status: 'Unpaid' 
+      status: 'Unpaid',
+      ar_account_id: '',
+      revenue_account_id: '',
+      tax_account_id: ''
     });
     setIsFormOpen(true);
   };
@@ -312,7 +324,10 @@ export function ArInvoicePage() {
       amount: row.amount, 
       tax_amount: row.tax_amount, 
       total_amount: row.total_amount, 
-      status: row.status 
+      status: row.status,
+      ar_account_id: row.ar_account_id || '',
+      revenue_account_id: row.revenue_account_id || '',
+      tax_account_id: row.tax_account_id || ''
     });
     setIsFormOpen(true);
   };
@@ -369,8 +384,79 @@ export function ArInvoicePage() {
         await financeApi.updateArInvoice(editingItem.id, payload);
         addToast('success', 'Invoice Updated', `Invoice ${formData.invoice_number} has been updated.`);
       } else {
-        await financeApi.createArInvoice(payload);
-        addToast('success', 'Invoice Created', `Invoice ${formData.invoice_number} has been created.`);
+        const payloadCreate = { ...payload, status: paidToday ? 'Paid' : 'Unpaid' };
+        const res = await financeApi.createArInvoice(payloadCreate);
+        const savedInvoice = res.data;
+        
+        // JURNAL 1: PENGAKUAN PIUTANG (ACCRUAL)
+        const piutangLines = [
+          {
+            account_id: formData.ar_account_id,
+            project_id: formData.project_id || undefined,
+            description: `Piutang Tagihan AR ${savedInvoice.invoice_number}`,
+            debit: formData.total_amount,
+            credit: 0
+          },
+          {
+            account_id: formData.revenue_account_id,
+            project_id: formData.project_id || undefined,
+            description: `Pendapatan Tagihan AR ${savedInvoice.invoice_number}`,
+            debit: 0,
+            credit: formData.amount
+          }
+        ];
+        
+        if (formData.tax_amount > 0 && formData.tax_account_id) {
+           piutangLines.push({
+             account_id: formData.tax_account_id,
+             project_id: formData.project_id || undefined,
+             description: `PPN Keluaran AR ${savedInvoice.invoice_number}`,
+             debit: 0,
+             credit: formData.tax_amount
+           });
+        }
+        
+        await financeApi.createJournal({
+          journal_number: `JV-INV-${savedInvoice.invoice_number}`,
+          date: formData.date,
+          description: `Auto-Journal: Pengakuan Piutang ${savedInvoice.invoice_number}`,
+          status: 'Posted',
+          ref_type: 'AR_Invoice',
+          ref_id: savedInvoice.id,
+          lines: piutangLines,
+        });
+
+        // JURNAL 2: PELUNASAN (JIKA SHORTCUT LUNAS HARI INI)
+        if (paidToday && shortcutBankAccountId) {
+           const kasLines = [
+             {
+               account_id: shortcutBankAccountId,
+               project_id: formData.project_id || undefined,
+               description: `Penerimaan Kas (Lunas Langsung) AR ${savedInvoice.invoice_number}`,
+               debit: formData.total_amount,
+               credit: 0
+             },
+             {
+               account_id: formData.ar_account_id,
+               project_id: formData.project_id || undefined,
+               description: `Pelunasan Piutang AR ${savedInvoice.invoice_number}`,
+               debit: 0,
+               credit: formData.total_amount
+             }
+           ];
+           
+           await financeApi.createJournal({
+              journal_number: `JV-REC-${savedInvoice.invoice_number}`,
+              date: formData.date,
+              description: `Auto-Journal: Penerimaan Kas ${savedInvoice.invoice_number}`,
+              status: 'Posted',
+              ref_type: 'AR_Invoice_Receipt',
+              ref_id: savedInvoice.id,
+              lines: kasLines,
+           });
+        }
+        
+        addToast('success', 'Invoice Created', `Invoice ${savedInvoice.invoice_number} has been created & journaled.`);
       }
       await fetchData();
       setIsFormOpen(false);
@@ -402,18 +488,14 @@ export function ArInvoicePage() {
   const processPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
-    if (!paymentData.bank_account_id || !paymentData.revenue_account_id) {
-      addToast('error', 'Validation Error', 'Bank and Revenue accounts are required.');
-      return;
-    }
-    if (editingItem.tax_amount > 0 && !paymentData.tax_account_id) {
-      addToast('error', 'Validation Error', 'Tax account is required since there is tax in this invoice.');
+    if (!paymentData.bank_account_id) {
+      addToast('error', 'Validation Error', 'Bank account is required.');
       return;
     }
 
     setIsSaving(true);
     try {
-      // 1. Create Auto Journal
+      // 1. Create Auto Journal (Cash Basis Pelunasan)
       const journalLines = [
         {
           account_id: paymentData.bank_account_id,
@@ -423,23 +505,15 @@ export function ArInvoicePage() {
           credit: 0
         },
         {
-          account_id: paymentData.revenue_account_id,
+          account_id: editingItem.ar_account_id || paymentData.revenue_account_id, // Fallback for old invoices
           project_id: editingItem.project_id || undefined,
-          description: `Revenue for AR ${editingItem.invoice_number}`,
+          description: `Pelunasan Piutang AR ${editingItem.invoice_number}`,
           debit: 0,
-          credit: editingItem.amount
+          credit: editingItem.total_amount
         }
       ];
 
-      if (editingItem.tax_amount > 0) {
-        journalLines.push({
-          account_id: paymentData.tax_account_id,
-          project_id: editingItem.project_id || undefined,
-          description: `PPN Out for AR ${editingItem.invoice_number}`,
-          debit: 0,
-          credit: editingItem.tax_amount
-        });
-      }
+      // Pajak tidak di-kredit lagi di sini karena sudah di-kredit saat Pengakuan Piutang (Create Invoice).
 
       await financeApi.createJournal({
         journal_number: `JV-REC-${editingItem.invoice_number}`,
@@ -465,9 +539,10 @@ export function ArInvoicePage() {
     }
   };
 
-  const bankAccounts = coas.filter(c => c.account_type.toLowerCase() === 'asset');
-  const revAccounts = coas.filter(c => c.account_type.toLowerCase() === 'revenue');
-  const taxAccounts = coas.filter(c => c.account_type.toLowerCase() === 'liability');
+  const bankAccounts = coas.filter(c => c.account_type.toLowerCase().includes('asset'));
+  const arAccounts = coas.filter(c => c.account_type.toLowerCase().includes('asset'));
+  const revAccounts = coas.filter(c => c.account_type.toLowerCase().includes('revenue'));
+  const taxAccounts = coas.filter(c => c.account_type.toLowerCase().includes('liabilit'));
 
   return (
     <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col">
@@ -621,14 +696,70 @@ export function ArInvoicePage() {
             )}
           </div>
 
-          <div className="space-y-1.5 w-1/2">
-            <label className="text-sm font-medium text-textPrimary">Payment Status</label>
-            <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary">
-              <option value="Unpaid">Unpaid</option>
-              <option value="Partial">Partial</option>
-              <option value="Paid">Paid</option>
-            </select>
+          {editingItem && (
+            <div className="space-y-1.5 w-1/2">
+              <label className="text-sm font-medium text-textPrimary">Payment Status</label>
+              <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary disabled:opacity-50">
+                <option value="Unpaid">Unpaid</option>
+                <option value="Partial">Partial</option>
+                <option value="Paid">Paid</option>
+              </select>
+            </div>
+          )}
+          
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-textPrimary">AR Account (Akun Piutang) <span className="text-danger">*</span></label>
+            <CoaSelect
+              required
+              accounts={arAccounts}
+              value={formData.ar_account_id || ''}
+              onChange={(val) => setFormData({ ...formData, ar_account_id: val })}
+              placeholder="-- Pilih Akun Piutang --"
+            />
           </div>
+          
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-textPrimary">Revenue Account (Akun Pendapatan) <span className="text-danger">*</span></label>
+            <CoaSelect
+              required
+              accounts={revAccounts}
+              value={formData.revenue_account_id || ''}
+              onChange={(val) => setFormData({ ...formData, revenue_account_id: val })}
+              placeholder="-- Pilih Akun Pendapatan --"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-textPrimary">Tax Account (Akun PPN)</label>
+            <CoaSelect
+              accounts={taxAccounts}
+              value={formData.tax_account_id || ''}
+              onChange={(val) => setFormData({ ...formData, tax_account_id: val })}
+              placeholder="-- Pilih Akun Hutang PPN (opsional) --"
+            />
+          </div>
+
+          {!editingItem && (
+            <div className="mt-4 p-4 border border-border rounded-lg bg-primary/5">
+              <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-primary">
+                <input type="checkbox" checked={paidToday} onChange={(e) => setPaidToday(e.target.checked)} className="w-4 h-4 text-primary rounded border-border" />
+                Langsung catat sebagai Lunas (Paid Today)
+              </label>
+              {paidToday && (
+                <div className="mt-3 space-y-1.5">
+                  <label className="text-sm font-medium text-textPrimary">Uang Masuk ke Rekening Bank Mana? <span className="text-danger">*</span></label>
+                  <CoaSelect
+                    required={paidToday}
+                    accounts={bankAccounts}
+                    value={shortcutBankAccountId}
+                    onChange={setShortcutBankAccountId}
+                    placeholder="-- Pilih Akun Kas/Bank Penerima --"
+                  />
+                  <p className="text-xs text-textSecondary mt-1">* Sistem otomatis membuat Jurnal Piutang sekaligus Pelunasan Kas.</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
             <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 transition-colors text-textPrimary">Cancel</button>
@@ -742,29 +873,7 @@ export function ArInvoicePage() {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-textPrimary">Revenue Account (Kredit Pendapatan) <span className="text-danger">*</span></label>
-            <CoaSelect
-              required
-              accounts={revAccounts}
-              value={paymentData.revenue_account_id}
-              onChange={(val) => setPaymentData({ ...paymentData, revenue_account_id: val })}
-              placeholder="-- Pilih Akun Pendapatan --"
-            />
-          </div>
 
-          {(editingItem?.tax_amount || 0) > 0 && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-textPrimary">Tax Account (Kredit Hutang PPN) <span className="text-danger">*</span></label>
-              <CoaSelect
-                required
-                accounts={taxAccounts}
-                value={paymentData.tax_account_id}
-                onChange={(val) => setPaymentData({ ...paymentData, tax_account_id: val })}
-                placeholder="-- Pilih Akun Hutang Pajak --"
-              />
-            </div>
-          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
             <button type="button" onClick={() => setIsPaymentOpen(false)} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-border/50 text-textPrimary">Cancel</button>
