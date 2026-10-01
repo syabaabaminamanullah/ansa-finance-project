@@ -315,6 +315,7 @@ export function generateExactCoreterraInvoicePDF(customParams?: CustomInvoicePar
   const invTaxAmount = customParams?.taxAmount ?? 0;
   const invTotalAmount = customParams?.amount ?? (invBaseAmount + invTaxAmount);
   const ppnRate = customParams?.ppnRate ?? 12;
+  const invAmount = invTotalAmount; // Alias used throughout the rest of the function
 
   const isDp = itemDesc.toLowerCase().includes('dp') ||
                itemDesc.toLowerCase().includes('uang muka') ||
