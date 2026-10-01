@@ -110,10 +110,45 @@ def read_root():
     return {"message": "Welcome to ANSA ERP API", "status": "active"}
 
 
+from fastapi.responses import JSONResponse
+from fastapi import Request
+import traceback
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    print(f"UNHANDLED ERROR on {request.url}: {exc}\n{tb}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "traceback": tb}
+    )
+
 @app.get("/health")
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "routers_loaded": _routers_loaded}
+
+@app.get("/api/v1/test-ar")
+def test_ar():
+    """Debug endpoint to test AR invoices query directly"""
+    try:
+        from db.database import SessionLocal
+        from db.models import ArInvoice
+        db = SessionLocal()
+        invoices = db.query(ArInvoice).all()
+        results = []
+        for inv in invoices:
+            results.append({
+                "id": inv.id,
+                "invoice_number": inv.invoice_number,
+                "ar_account_id": getattr(inv, 'ar_account_id', 'MISSING_ATTR'),
+                "total_amount": inv.total_amount,
+            })
+        db.close()
+        return {"count": len(results), "invoices": results}
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
 
 
 @app.get("/api/debug")
