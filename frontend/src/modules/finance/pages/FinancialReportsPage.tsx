@@ -1125,6 +1125,7 @@ export function FinancialReportsPage() {
             </div>
           </div>
         </div>
+      </div>
 
       <div className="mt-6">
         {renderTabs()}
