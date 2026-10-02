@@ -173,7 +173,7 @@ export function MonthPicker({
   const todayYear = today.getFullYear();
   const todayMonth = today.getMonth();
 
-  const displayLabel = `${MONTH_NAMES_ID[currentParsed.month]} ${currentParsed.year}`;
+  const displayLabel = value ? `${MONTH_NAMES_ID[currentParsed.month]} ${currentParsed.year}` : 'Semua Bulan';
 
   return (
     <div ref={containerRef} className={`relative inline-flex items-center ${className}`}>
@@ -282,8 +282,19 @@ export function MonthPicker({
               })}
             </div>
 
-            {/* Footer Action */}
-            <div className="flex items-center justify-between pt-3 mt-3 border-t border-border">
+          {/* Footer Action */}
+          <div className="flex items-center justify-between pt-3 mt-3 border-t border-border">
+            <div className="flex gap-3 items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange('');
+                  setIsOpen(false);
+                }}
+                className="text-xs font-semibold text-textSecondary hover:text-textPrimary transition-all cursor-pointer"
+              >
+                Reset
+              </button>
               <button
                 type="button"
                 onClick={handleSetThisMonth}
@@ -291,14 +302,15 @@ export function MonthPicker({
               >
                 Bulan Ini
               </button>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-xs font-medium text-textSecondary hover:text-textPrimary px-2 py-1 rounded hover:bg-secondary/20 transition-colors cursor-pointer"
-              >
-                Tutup
-              </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="text-xs font-medium text-textSecondary hover:text-textPrimary px-2 py-1 rounded hover:bg-secondary/20 transition-colors cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
           </div>,
           document.body
         )}

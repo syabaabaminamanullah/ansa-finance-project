@@ -207,7 +207,7 @@ function AttachmentModal({
 }
 
 export function AllJournalEntriesPage() {
-  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [journals, setJournals] = useState<Journal[]>(() => {
     try {
       const cached = sessionStorage.getItem('ansa_all_journals_cache');
