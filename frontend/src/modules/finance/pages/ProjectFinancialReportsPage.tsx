@@ -825,6 +825,8 @@ export function ProjectFinancialReportsPage() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const printDate = new Date().toLocaleString('id-ID');
 
+    drawWatermark(doc);
+
 
 
     let currentY = addReportHeader(
@@ -944,11 +946,35 @@ export function ProjectFinancialReportsPage() {
       head: [['Tanggal', 'Komponen Aktual Tervalidasi', 'Status Bukti', 'Pemasukan (Rp)', 'Pengeluaran (Rp)']],
       body: rRows,
       startY: currentY + 3,
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       margin: { bottom: 20 },
       styles: { fontSize: 8, valign: 'middle' },
       headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       columnStyles: {
         0: { cellWidth: 24, halign: 'center' },
         1: { cellWidth: 'auto' },
@@ -1049,11 +1075,35 @@ export function ProjectFinancialReportsPage() {
       head: [['Tanggal', 'Akun & Keterangan', 'Ref', 'Status Bukti', 'Debit (Rp)', 'Kredit (Rp)']],
       body: gRows,
       startY: currentY + 3,
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
       headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       columnStyles: {
         0: { cellWidth: 24, halign: 'center' },
         1: { cellWidth: 'auto' },
@@ -1269,6 +1319,8 @@ export function ProjectFinancialReportsPage() {
 
     const doc = new jsPDF('landscape', 'mm', 'a4'); 
     const printDate = new Date().toLocaleString('id-ID');
+
+    drawWatermark(doc);
     const pageWidth = doc.internal.pageSize.getWidth();
     
     // Page 1: Header
@@ -1308,11 +1360,35 @@ export function ProjectFinancialReportsPage() {
       head: [['Nama Proyek', 'Total Pemasukan (Rp)', 'Total Pengeluaran (Rp)', 'Gross Profit (Rp)']],
       body: tableARows,
       startY: 56,
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
       headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       willDrawCell: (data) => {
         if ([1, 2, 3].includes(data.column.index)) {
           data.cell.styles.halign = 'right';
@@ -1366,11 +1442,35 @@ export function ProjectFinancialReportsPage() {
       head: [['Keterangan', 'Total Pemasukan (Rp)', 'Total Pengeluaran (Rp)', 'Net (Rp)']],
       body: tableBRows,
       startY: currentY + 3,
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
       headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       willDrawCell: (data) => {
         if ([1, 2, 3].includes(data.column.index)) {
           data.cell.styles.halign = 'right';
@@ -1422,11 +1522,35 @@ export function ProjectFinancialReportsPage() {
       head: [['Ringkasan', 'Total Pemasukan (Rp)', 'Total Pengeluaran (Rp)', 'Net / Saldo (Rp)']],
       body: tableCRows,
       startY: currentY + 3,
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
       headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       willDrawCell: (data) => {
         if ([1, 2, 3].includes(data.column.index)) {
           data.cell.styles.halign = 'right';
@@ -1489,11 +1613,35 @@ export function ProjectFinancialReportsPage() {
       head: [['Kode Akun', 'Nama Akun', 'Total Debit (Rp)', 'Total Kredit (Rp)']],
       body: tableDRows,
       startY: currentY + 3,
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
       headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       willDrawCell: (data) => {
         if ([2, 3].includes(data.column.index)) {
           data.cell.styles.halign = 'right';
@@ -1574,11 +1722,35 @@ export function ProjectFinancialReportsPage() {
         head: [['Tanggal', 'Komponen Aktual Tervalidasi', 'Status Bukti', 'Pemasukan (Rp)', 'Pengeluaran (Rp)']],
         body: rRows,
         startY: 38,
-        theme: 'grid',
+        theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
         margin: { top: 25, bottom: 25 },
         styles: { fontSize: 8, valign: 'middle' },
         headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
         columnStyles: {
           0: { cellWidth: 24, halign: 'center' },
           1: { cellWidth: 'auto' },
@@ -1685,11 +1857,35 @@ export function ProjectFinancialReportsPage() {
       head: [['Tanggal', 'Akun & Keterangan', 'Ref', 'Tag Proyek', 'Status Bukti', 'Debit (Rp)', 'Kredit (Rp)']],
       body: gRows,
       startY: 28,
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
       headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
-      theme: 'grid',
+      theme: 'plain',
+      styles: { fontSize: 8.5 },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        } else if (hookData.section === 'body') {
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+      },
       columnStyles: { 
         0: { cellWidth: 22, halign: 'center' },
         1: { cellWidth: 70 },
