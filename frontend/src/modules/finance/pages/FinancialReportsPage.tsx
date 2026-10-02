@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useToastStore } from '../../../store/toastStore';
 import { generateSingleReportPDF, generateConsolidatedReportPDF } from '../utils/pdfGenerator';
 import { DatePicker } from '../../../components/ui/DatePicker';
+import { MonthPicker } from '../../../components/ui/MonthPicker';
 import { api } from '../../../services/api';
 
 
@@ -1045,69 +1046,85 @@ export function FinancialReportsPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2 bg-card p-1.5 rounded-xl border border-border shadow-sm">
-          <DatePicker
-            value={startDate}
-            onChange={(val) => setStartDate(val)}
-            placeholder="Dari tanggal..."
-            className="w-38"
+        <div className="flex items-center gap-2 flex-wrap">
+          <MonthPicker
+            value=""
+            onChange={(val) => {
+              if (val) {
+                const [y, m] = val.split('-').map(Number);
+                const first = `${y}-${String(m).padStart(2, '0')}-01`;
+                const lastDay = new Date(y, m, 0).getDate();
+                const last = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+                setStartDate(first);
+                setEndDate(last);
+              }
+            }}
+            align="right"
+            showQuickNav={false}
           />
-          <span className="text-textSecondary text-xs font-semibold px-0.5 select-none">s/d</span>
-          <DatePicker
-            value={endDate}
-            onChange={(val) => setEndDate(val)}
-            placeholder="Sampai tanggal..."
-            className="w-38"
-          />
-          <button onClick={fetchReportData} className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors text-xs shadow-2xs cursor-pointer ml-1">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Filter</span>
-          </button>
-          
-          <div className="w-px h-5 bg-border mx-1"></div>
-
-          <div className="relative">
-            <button 
-              onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-card hover:bg-background border border-border hover:border-primary/40 text-textPrimary rounded-lg font-semibold text-xs transition-all shadow-2xs cursor-pointer"
-              title="Pilihan Unduh Dokumen PDF"
-            >
-              <Download className="w-3.5 h-3.5 text-primary" />
-              <span>Unduh PDF</span>
-              <ChevronDown className="w-3 h-3 text-textSecondary" />
+          <div className="flex items-center gap-2 bg-card p-1.5 rounded-xl border border-border shadow-sm">
+            <DatePicker
+              value={startDate}
+              onChange={(val) => setStartDate(val)}
+              placeholder="Dari tanggal..."
+              className="w-38"
+            />
+            <span className="text-textSecondary text-xs font-semibold px-0.5 select-none">s/d</span>
+            <DatePicker
+              value={endDate}
+              onChange={(val) => setEndDate(val)}
+              placeholder="Sampai tanggal..."
+              className="w-38"
+            />
+            <button onClick={fetchReportData} className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors text-xs shadow-2xs cursor-pointer ml-1">
+              <Filter className="w-3.5 h-3.5" />
+              <span>Filter</span>
             </button>
+          
+            <div className="w-px h-5 bg-border mx-1"></div>
 
-            {isExportDropdownOpen && (
-              <div 
-                className="absolute right-0 mt-1.5 w-60 bg-card border border-border rounded-xl shadow-xl p-1.5 z-40 animate-in fade-in zoom-in-95 duration-150"
-                onClick={() => setIsExportDropdownOpen(false)}
+            <div className="relative">
+              <button 
+                onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-card hover:bg-background border border-border hover:border-primary/40 text-textPrimary rounded-lg font-semibold text-xs transition-all shadow-2xs cursor-pointer"
+                title="Pilihan Unduh Dokumen PDF"
               >
-                <button
-                  onClick={() => generateSingleReportPDF(activeTab, reportData, startDate, endDate)}
-                  className="w-full text-left px-3 py-2 text-xs text-textPrimary hover:bg-primary/10 hover:text-primary rounded-lg flex items-center gap-2 font-medium transition-colors cursor-pointer"
+                <Download className="w-3.5 h-3.5 text-primary" />
+                <span>Unduh PDF</span>
+                <ChevronDown className="w-3 h-3 text-textSecondary" />
+              </button>
+
+              {isExportDropdownOpen && (
+                <div 
+                  className="absolute right-0 mt-1.5 w-60 bg-card border border-border rounded-xl shadow-xl p-1.5 z-40 animate-in fade-in zoom-in-95 duration-150"
+                  onClick={() => setIsExportDropdownOpen(false)}
                 >
-                  <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <div className="truncate">
-                    <span className="block font-semibold">Laporan {activeTabLabel}</span>
-                    <span className="text-[10px] text-textSecondary">Format PDF tab yang aktif saat ini</span>
-                  </div>
-                </button>
-                <div className="h-px bg-border/60 my-1"></div>
-                <button
-                  onClick={() => generateConsolidatedReportPDF(startDate, endDate, addToast)}
-                  className="w-full text-left px-3 py-2 text-xs text-textPrimary hover:bg-primary/10 hover:text-primary rounded-lg flex items-center gap-2 font-medium transition-colors cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <div className="truncate">
-                    <span className="block font-semibold">Semua Laporan Lengkap</span>
-                    <span className="text-[10px] text-textSecondary">Bundel komprehensif seluruh laporan</span>
-                  </div>
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={() => generateSingleReportPDF(activeTab, reportData, startDate, endDate)}
+                    className="w-full text-left px-3 py-2 text-xs text-textPrimary hover:bg-primary/10 hover:text-primary rounded-lg flex items-center gap-2 font-medium transition-colors cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <div className="truncate">
+                      <span className="block font-semibold">Laporan {activeTabLabel}</span>
+                      <span className="text-[10px] text-textSecondary">Format PDF tab yang aktif saat ini</span>
+                    </div>
+                  </button>
+                  <div className="h-px bg-border/60 my-1"></div>
+                  <button
+                    onClick={() => generateConsolidatedReportPDF(startDate, endDate, addToast)}
+                    className="w-full text-left px-3 py-2 text-xs text-textPrimary hover:bg-primary/10 hover:text-primary rounded-lg flex items-center gap-2 font-medium transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <div className="truncate">
+                      <span className="block font-semibold">Semua Laporan Lengkap</span>
+                      <span className="text-[10px] text-textSecondary">Bundel komprehensif seluruh laporan</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
       <div className="mt-6">
         {renderTabs()}
