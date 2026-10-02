@@ -3,6 +3,7 @@ import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { CoaSelect } from '../../../components/ui/CoaSelect';
 import { DatePicker } from '../../../components/ui/DatePicker';
+import { MonthPicker } from '../../../components/ui/MonthPicker';
 import { ArrowLeft, Save, Plus, Trash2, ArrowRight, MapPin, Building2, FileText, Download, CheckCircle, Upload, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { financeApi, financialsApi, projectsApi, rabApi } from '../../../services/api';
@@ -43,6 +44,7 @@ interface Project {
 }
 
 export function JournalPage() {
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [journals, setJournals] = useState<Journal[]>(() => {
     try {
       const cached = sessionStorage.getItem('ansa_all_journals_cache');
@@ -457,19 +459,29 @@ export function JournalPage() {
     return `${baseApiUrl}/api/v1/finance/attachments/${path}`;
   };
 
+  const filteredJournals = selectedMonth ? journals.filter(j => j.date.startsWith(selectedMonth)) : journals;
+
   return (
     <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col">
       <div className="flex items-center gap-4">
         <Link to="/finance" className="p-2 border border-border rounded-lg text-textSecondary hover:bg-background hover:text-textPrimary transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-textPrimary">Journal Entries</h1>
           <div className="flex items-center gap-2 mt-1 text-sm text-textSecondary">
             <Link to="/finance" className="hover:text-primary transition-colors">Finance</Link>
             <span>/</span>
             <span className="text-primary font-medium">Journals</span>
           </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <MonthPicker 
+            value={selectedMonth}
+            onChange={(val) => setSelectedMonth(val)}
+            align="right"
+            showQuickNav={true}
+          />
         </div>
       </div>
 
@@ -478,7 +490,7 @@ export function JournalPage() {
           title="Journal Entries"
           description="Manage general journal entries."
           columns={columns}
-          data={journals}
+          data={filteredJournals}
           searchPlaceholder="Search journal..."
           isLoading={isLoading}
           onAdd={handleAdd}

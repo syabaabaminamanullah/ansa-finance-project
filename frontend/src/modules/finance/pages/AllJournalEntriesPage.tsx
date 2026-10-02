@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { DataTable } from '../../../components/ui/DataTable';
 import { DatePicker } from '../../../components/ui/DatePicker';
+import { MonthPicker } from '../../../components/ui/MonthPicker';
 import { ArrowLeft, Filter, Download, Paperclip, Upload, Eye, X, FileText, Image, MapPin, Building2, Save, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, financeApi, financialsApi, projectsApi } from '../../../services/api';
@@ -206,6 +207,7 @@ function AttachmentModal({
 }
 
 export function AllJournalEntriesPage() {
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [journals, setJournals] = useState<Journal[]>(() => {
     try {
       const cached = sessionStorage.getItem('ansa_all_journals_cache');
@@ -283,6 +285,8 @@ export function AllJournalEntriesPage() {
   const flatEntries = useMemo(() => {
     const entries: FlatEntry[] = [];
     journals.forEach(journal => {
+      const hasDateFilter = filterDateFrom || filterDateTo;
+      if (!hasDateFilter && selectedMonth && !journal.date.startsWith(selectedMonth)) return;
       if (filterDateFrom && journal.date < filterDateFrom) return;
       if (filterDateTo && journal.date > filterDateTo) return;
 
@@ -325,7 +329,7 @@ export function AllJournalEntriesPage() {
     }
 
     return entries;
-  }, [journals, coas, filterDateFrom, filterDateTo]);
+  }, [journals, coas, filterDateFrom, filterDateTo, selectedMonth]);
 
   const formatCurrency = (val: number) => {
     if (val === 0) return '-';
@@ -499,13 +503,25 @@ export function AllJournalEntriesPage() {
         <Link to="/finance" className="p-2 border border-border rounded-lg text-textSecondary hover:bg-background hover:text-textPrimary transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-textPrimary">All Journal Entries</h1>
           <div className="flex items-center gap-2 mt-1 text-sm text-textSecondary">
             <Link to="/finance" className="hover:text-primary transition-colors">Finance</Link>
             <span>/</span>
             <span className="text-primary font-medium">All Journals</span>
           </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <MonthPicker 
+            value={selectedMonth}
+            onChange={(val) => {
+              setSelectedMonth(val);
+              setFilterDateFrom('');
+              setFilterDateTo('');
+            }}
+            align="right"
+            showQuickNav={true}
+          />
         </div>
       </div>
 
