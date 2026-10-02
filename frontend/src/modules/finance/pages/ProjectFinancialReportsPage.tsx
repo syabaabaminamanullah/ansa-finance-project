@@ -825,7 +825,7 @@ export function ProjectFinancialReportsPage() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const printDate = new Date().toLocaleString('id-ID');
 
-    drawWatermark(doc);
+
 
     let currentY = addReportHeader(
       doc,
@@ -940,6 +940,7 @@ export function ProjectFinancialReportsPage() {
     rRows.push(['', 'SISA SALDO PROYEK (Pemasukan - Pengeluaran)', '', '', formatCurrency(pTotalIn - pTotalEx)]);
 
     autoTable(doc, {
+      willDrawPage: () => { drawWatermark(doc); },
       head: [['Tanggal', 'Komponen Aktual Tervalidasi', 'Status Bukti', 'Pemasukan (Rp)', 'Pengeluaran (Rp)']],
       body: rRows,
       startY: currentY + 3,
@@ -1044,6 +1045,7 @@ export function ProjectFinancialReportsPage() {
     gRows.push(['', 'TOTAL DEBIT & KREDIT PROYEK', '', '', formatCurrency(jTotalDebit), formatCurrency(jTotalCredit)]);
 
     autoTable(doc, {
+      willDrawPage: () => { drawWatermark(doc); },
       head: [['Tanggal', 'Akun & Keterangan', 'Ref', 'Status Bukti', 'Debit (Rp)', 'Kredit (Rp)']],
       body: gRows,
       startY: currentY + 3,
@@ -1302,6 +1304,7 @@ export function ProjectFinancialReportsPage() {
     tableARows.push(['TOTAL KESELURUHAN', formatCurrency(totalGlobalIncome), formatCurrency(totalGlobalExpense), formatCurrency(totalGlobalIncome - totalGlobalExpense)]);
 
     autoTable(doc, {
+      willDrawPage: () => { drawWatermark(doc); },
       head: [['Nama Proyek', 'Total Pemasukan (Rp)', 'Total Pengeluaran (Rp)', 'Gross Profit (Rp)']],
       body: tableARows,
       startY: 56,
@@ -1359,6 +1362,7 @@ export function ProjectFinancialReportsPage() {
     ];
 
     autoTable(doc, {
+      willDrawPage: () => { drawWatermark(doc); },
       head: [['Keterangan', 'Total Pemasukan (Rp)', 'Total Pengeluaran (Rp)', 'Net (Rp)']],
       body: tableBRows,
       startY: currentY + 3,
@@ -1414,6 +1418,7 @@ export function ProjectFinancialReportsPage() {
     ];
 
     autoTable(doc, {
+      willDrawPage: () => { drawWatermark(doc); },
       head: [['Ringkasan', 'Total Pemasukan (Rp)', 'Total Pengeluaran (Rp)', 'Net / Saldo (Rp)']],
       body: tableCRows,
       startY: currentY + 3,
@@ -1480,6 +1485,7 @@ export function ProjectFinancialReportsPage() {
     tableDRows.push(['', 'TOTAL', formatCurrency(totalDebit), formatCurrency(totalCredit)]);
 
     autoTable(doc, {
+      willDrawPage: () => { drawWatermark(doc); },
       head: [['Kode Akun', 'Nama Akun', 'Total Debit (Rp)', 'Total Kredit (Rp)']],
       body: tableDRows,
       startY: currentY + 3,
@@ -1564,6 +1570,7 @@ export function ProjectFinancialReportsPage() {
       rRows.push(['', 'SISA SALDO (Pemasukan - Pengeluaran)', '', '', formatCurrency(pTotalIn - pTotalEx)]);
       
       autoTable(doc, {
+      willDrawPage: () => { drawWatermark(doc); },
         head: [['Tanggal', 'Komponen Aktual Tervalidasi', 'Status Bukti', 'Pemasukan (Rp)', 'Pengeluaran (Rp)']],
         body: rRows,
         startY: 38,
@@ -1674,6 +1681,7 @@ export function ProjectFinancialReportsPage() {
     gRows.push(['', 'TOTAL KESELURUHAN DEBIT & KREDIT', '', '', '', formatCurrency(gTotalDebit), formatCurrency(gTotalCredit)]);
 
     autoTable(doc, {
+      willDrawPage: () => { drawWatermark(doc); },
       head: [['Tanggal', 'Akun & Keterangan', 'Ref', 'Tag Proyek', 'Status Bukti', 'Debit (Rp)', 'Kredit (Rp)']],
       body: gRows,
       startY: 28,
