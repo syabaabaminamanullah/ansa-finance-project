@@ -1265,9 +1265,8 @@ export const generateSingleReportPDF = (activeTab: string, reportData: any, star
 
 export const generateConsolidatedReportPDF = async (startDate: string, endDate: string, addToast: any) => {
   try {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token');
-    const headers = { 'Authorization': `Bearer ${token}` };
+    const token = localStorage.getItem('token') || '';
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
     const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://127.0.0.1:8000/api/v1');
 
