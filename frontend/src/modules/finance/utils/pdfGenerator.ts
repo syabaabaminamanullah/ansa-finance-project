@@ -1328,9 +1328,9 @@ export const generateConsolidatedReportPDF = async (startDate: string, endDate: 
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
     window.open(pdfUrl, '_blank');
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to generate consolidated PDF', error);
-    addToast('error', 'Export Failed', 'Gagal membuat laporan gabungan PDF.');
+    addToast('error', 'Export Failed', `Gagal: ${error.message || error.toString()}`);
   }
 };
 
