@@ -447,7 +447,7 @@ def get_equity_changes(
     prior_revenue = 0.0
     prior_expenses = 0.0
     for row in prior_income_query:
-        if is_revenue:
+        if row.account_type == 'Revenue':
             prior_revenue += (row.total_credit or 0.0) - (row.total_debit or 0.0)
         else:
             prior_expenses += (row.total_debit or 0.0) - (row.total_credit or 0.0)
@@ -474,7 +474,7 @@ def get_equity_changes(
     revenue = 0.0
     expenses = 0.0
     for row in income_query:
-        if is_revenue:
+        if row.account_type == 'Revenue':
             revenue += (row.total_credit or 0.0) - (row.total_debit or 0.0)
         else:
             expenses += (row.total_debit or 0.0) - (row.total_credit or 0.0)
