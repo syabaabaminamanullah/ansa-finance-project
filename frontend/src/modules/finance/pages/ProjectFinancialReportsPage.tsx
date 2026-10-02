@@ -7,6 +7,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, L
 import { DataTable } from '../../../components/ui/DataTable';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addReportHeader, drawWatermark } from '../utils/pdfGenerator';
+
 import { WeeklyProjectCashflowView } from '../components/WeeklyProjectCashflowView';
 
 const API_BASE = (api.defaults.baseURL || '/api/v1') + '/finance';
@@ -823,66 +825,107 @@ export function ProjectFinancialReportsPage() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const printDate = new Date().toLocaleString('id-ID');
 
-    // Page 1 Header Box
-    doc.setFillColor(20, 60, 100);
-    doc.rect(14, 12, pageWidth - 28, 14, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.setTextColor(255, 255, 255);
-    doc.text('LAPORAN KEUANGAN PROYEK', 18, 20.5);
+    drawWatermark(doc);
 
+    let currentY = addReportHeader(
+      doc,
+      'LAPORAN KEUANGAN PROYEK',
+      `PROYEK: ${project.code} - ${project.name}`,
+      '',
+      printDate
+    );
+    currentY += 5;
+
+    // Executive KPI summary box
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(14, currentY, pageWidth - 28, 28, 2, 2, 'FD');
+
+    const profitMargin = totalBilled - totalActualCost;
+    
+    // KPI 1: Budget
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Tgl Cetak: ${printDate}`, pageWidth - 18, 20.5, { align: 'right' });
-
-    // Project Info Summary Header
+    doc.setTextColor(100, 116, 139);
+    doc.text('NILAI KONTRAK (BUDGET)', 20, currentY + 7);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(20, 60, 100);
-    doc.text(`Proyek: ${project.name.toUpperCase()} (${project.code})`, 14, 33);
+    doc.setTextColor(30, 64, 175); // Blue
+    doc.text(formatCurrency(budgetIDR), 20, currentY + 14);
 
-    doc.setFontSize(8.5);
+    // Divider 1
+    const divWidth = (pageWidth - 28) / 5;
+    let currX = 14 + divWidth;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(currX, currentY + 4, currX, currentY + 24);
+
+    // KPI 2: Spent
+    currX += 6;
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(60);
-    doc.text(`Client / Klien: ${customer?.name || '-'} | Status: ${project.status}`, 14, 38);
+    doc.setTextColor(100, 116, 139);
+    doc.text('BIAYA AKTUAL (SPENT)', currX, currentY + 7);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(185, 28, 28); // Red
+    doc.text(formatCurrency(totalActualCost), currX, currentY + 14);
 
-    // Executive Metrics Cards Table Box
-    const profitMargin = totalBilled - totalActualCost;
-    const summaryRows = [
-      [
-        `Nilai Kontrak (Budget):
-${formatCurrency(budgetIDR)}`,
-        `Biaya Aktual (Spent):
-${formatCurrency(totalActualCost)}`,
-        `Sisa Anggaran:
-${formatCurrency(remainingBudget)}`,
-        `Total Tagihan (AR):
-${formatCurrency(totalBilled)}`,
-        `Laba Proyek (Profit):
-${formatCurrency(profitMargin)}`
-      ]
-    ];
+    // Divider 2
+    currX = 14 + divWidth * 2;
+    doc.line(currX, currentY + 4, currX, currentY + 24);
 
-    autoTable(doc, {
-      startY: 42,
-      body: summaryRows,
-      theme: 'plain',
-      styles: { fontSize: 8.5, fontStyle: 'bold', halign: 'center', valign: 'middle', cellPadding: 3 },
-      columnStyles: {
-        0: { fillColor: [240, 245, 250], textColor: [20, 60, 100] },
-        1: { fillColor: [254, 242, 242], textColor: [185, 28, 28] },
-        2: { fillColor: [240, 253, 244], textColor: [21, 128, 61] },
-        3: { fillColor: [239, 246, 255], textColor: [29, 78, 216] },
-        4: { fillColor: profitMargin >= 0 ? [240, 253, 244] : [254, 242, 242], textColor: profitMargin >= 0 ? [21, 128, 61] : [185, 28, 28] }
-      }
-    });
+    // KPI 3: Sisa
+    currX += 6;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('SISA ANGGARAN', currX, currentY + 7);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(21, 128, 61); // Green
+    doc.text(formatCurrency(remainingBudget), currX, currentY + 14);
 
-    let currentY = (doc as any).lastAutoTable.finalY + 6;
+    // Divider 3
+    currX = 14 + divWidth * 3;
+    doc.line(currX, currentY + 4, currX, currentY + 24);
+
+    // KPI 4: AR
+    currX += 6;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('TOTAL TAGIHAN (AR)', currX, currentY + 7);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(29, 78, 216); // Blue
+    doc.text(formatCurrency(totalBilled), currX, currentY + 14);
+
+    // Divider 4
+    currX = 14 + divWidth * 4;
+    doc.line(currX, currentY + 4, currX, currentY + 24);
+
+    // KPI 5: Profit
+    currX += 6;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('LABA PROYEK (PROFIT)', currX, currentY + 7);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    if (profitMargin >= 0) {
+      doc.setTextColor(21, 128, 61); // Green
+    } else {
+      doc.setTextColor(185, 28, 28); // Red
+    }
+    doc.text(formatCurrency(profitMargin), currX, currentY + 14);
+    
+    currentY += 36;
+
 
     // SECTION 1: RINCIAN TRANSAKSI AKTUAL
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(20, 60, 100);
+    doc.setTextColor(194, 65, 12);
     doc.text('BAGIAN I: RINCIAN TRANSAKSI KEUANGAN PROYEK', 14, currentY);
 
     const rRows = details.map(d => [
@@ -903,7 +946,8 @@ ${formatCurrency(profitMargin)}`
       theme: 'grid',
       margin: { bottom: 20 },
       styles: { fontSize: 8, valign: 'middle' },
-      headStyles: { fillColor: [220, 230, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+      headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
+      theme: 'grid',
       columnStyles: {
         0: { cellWidth: 24, halign: 'center' },
         1: { cellWidth: 'auto' },
@@ -967,7 +1011,7 @@ ${formatCurrency(profitMargin)}`
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(20, 60, 100);
+    doc.setTextColor(194, 65, 12);
     doc.text('BAGIAN II: RINCIAN JURNAL AKUNTANSI PROYEK', 14, currentY);
 
     let jTotalDebit = 0;
@@ -1006,7 +1050,8 @@ ${formatCurrency(profitMargin)}`
       theme: 'grid',
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
-      headStyles: { fillColor: [240, 245, 250], textColor: [0, 0, 0], fontStyle: 'bold' },
+      headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
+      theme: 'grid',
       columnStyles: {
         0: { cellWidth: 24, halign: 'center' },
         1: { cellWidth: 'auto' },
@@ -1231,7 +1276,7 @@ ${formatCurrency(profitMargin)}`
     doc.text(`Dicetak oleh: Sistem Keuangan PT Ansa`, pageWidth - 14, 20, { align: 'right' });
 
     doc.setFontSize(14);
-    doc.setTextColor(20, 60, 100);
+    doc.setTextColor(194, 65, 12);
     doc.setFont('helvetica', 'bold');
     doc.text('LAPORAN KEUANGAN KONSOLIDASI & JURNAL UMUM', 14, 30);
     
@@ -1263,7 +1308,8 @@ ${formatCurrency(profitMargin)}`
       theme: 'grid',
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
-      headStyles: { fillColor: [220, 230, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+      headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
+      theme: 'grid',
       willDrawCell: (data) => {
         if ([1, 2, 3].includes(data.column.index)) {
           data.cell.styles.halign = 'right';
@@ -1319,7 +1365,8 @@ ${formatCurrency(profitMargin)}`
       theme: 'grid',
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
-      headStyles: { fillColor: [220, 230, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+      headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
+      theme: 'grid',
       willDrawCell: (data) => {
         if ([1, 2, 3].includes(data.column.index)) {
           data.cell.styles.halign = 'right';
@@ -1373,7 +1420,8 @@ ${formatCurrency(profitMargin)}`
       theme: 'grid',
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
-      headStyles: { fillColor: [240, 245, 250], textColor: [0, 0, 0], fontStyle: 'bold' },
+      headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
+      theme: 'grid',
       willDrawCell: (data) => {
         if ([1, 2, 3].includes(data.column.index)) {
           data.cell.styles.halign = 'right';
@@ -1438,7 +1486,8 @@ ${formatCurrency(profitMargin)}`
       theme: 'grid',
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
-      headStyles: { fillColor: [220, 230, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+      headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
+      theme: 'grid',
       willDrawCell: (data) => {
         if ([2, 3].includes(data.column.index)) {
           data.cell.styles.halign = 'right';
@@ -1477,7 +1526,7 @@ ${formatCurrency(profitMargin)}`
           doc.setFontSize(11);
           doc.setFillColor(240, 245, 250);
           doc.rect(14, 14, pageWidth - 28, 8, 'F');
-          doc.setTextColor(20, 60, 100);
+          doc.setTextColor(194, 65, 12);
           doc.setFont('helvetica', 'bold');
           doc.text('BAGIAN I: RINCIAN KEUANGAN PER PROYEK', 16, 19.5);
         }
@@ -1486,7 +1535,7 @@ ${formatCurrency(profitMargin)}`
         const headerY = data.pageNumber === 1 ? 28 : 15;
         
         doc.setFontSize(10);
-        doc.setTextColor(20, 60, 100);
+        doc.setTextColor(194, 65, 12);
         doc.setFont('helvetica', 'bold');
         doc.text(`${projIndex}. Proyek: ${p?.name?.toUpperCase()}${isContinued}`, 14, headerY);
         
@@ -1521,7 +1570,8 @@ ${formatCurrency(profitMargin)}`
         theme: 'grid',
         margin: { top: 25, bottom: 25 },
         styles: { fontSize: 8, valign: 'middle' },
-        headStyles: { fillColor: [220, 230, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+        headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
+      theme: 'grid',
         columnStyles: {
           0: { cellWidth: 24, halign: 'center' },
           1: { cellWidth: 'auto' },
@@ -1586,7 +1636,7 @@ ${formatCurrency(profitMargin)}`
     doc.setFontSize(11);
     doc.setFillColor(240, 245, 250);
     doc.rect(14, 14, pageWidth - 28, 8, 'F');
-    doc.setTextColor(20, 60, 100);
+    doc.setTextColor(194, 65, 12);
     doc.setFont('helvetica', 'bold');
     doc.text('BAGIAN II: JURNAL UMUM KOMPREHENSIF', 16, 19.5);
     
@@ -1630,7 +1680,8 @@ ${formatCurrency(profitMargin)}`
       theme: 'grid',
       margin: { bottom: 25 },
       styles: { fontSize: 8, valign: 'middle' },
-      headStyles: { fillColor: [240, 245, 250], textColor: [0, 0, 0], fontStyle: 'bold' },
+      headStyles: { fillColor: [255, 255, 255], textColor: [71, 85, 105], fontStyle: 'bold', lineWidth: 0.1, lineColor: [226, 232, 240] },
+      theme: 'grid',
       columnStyles: { 
         0: { cellWidth: 22, halign: 'center' },
         1: { cellWidth: 70 },

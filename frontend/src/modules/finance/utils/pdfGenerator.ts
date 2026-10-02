@@ -135,7 +135,7 @@ const formatIndoDate = (dateStr: string) => {
   return dateStr;
 };
 
-const drawWatermark = (doc: jsPDF) => {
+export const drawWatermark = (doc: jsPDF) => {
   const settings = getCompanySettings();
   const logoData = settings.logoBase64 || LOGO_CORETERRA_BASE64;
   if (!logoData) return;
@@ -165,7 +165,7 @@ const drawWatermark = (doc: jsPDF) => {
   }
 };
 
-const addReportHeader = (doc: jsPDF, primaryTitle: string, secondaryTitle: string, startDate: string, endDate: string) => {
+export const addReportHeader = (doc: jsPDF, primaryTitle: string, secondaryTitle: string, startDate: string, endDate: string) => {
   const settings = getCompanySettings();
   const companyName = settings.companyName || 'PT. CoreTerra Geo Engineering';
   
