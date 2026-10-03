@@ -119,7 +119,7 @@ export function GeneralLedgerPage() {
   };
 
   const columns = [
-    { header: 'Date', accessor: 'date' as keyof LedgerEntry, className: 'w-32' },
+    { header: 'Date', accessor: 'date' as keyof LedgerEntry, className: 'w-32 whitespace-nowrap' },
     { header: 'Journal No.', accessor: 'journal_number' as keyof LedgerEntry, className: 'font-mono text-primary w-40' },
     { header: 'Description', accessor: 'description' as keyof LedgerEntry },
     { 
