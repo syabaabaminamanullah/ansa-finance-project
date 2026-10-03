@@ -133,7 +133,9 @@ export function JournalPage() {
         projectsApi.getProjects()
       ]);
       const sortedJournals = [...journalsRes.data].sort((a: Journal, b: Journal) => {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return (b.journal_number || '').localeCompare(a.journal_number || '');
       });
       setJournals(sortedJournals);
       const sortedCoas = [...coasRes.data].sort((a: any, b: any) => {

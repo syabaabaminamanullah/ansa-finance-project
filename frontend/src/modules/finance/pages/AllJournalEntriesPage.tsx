@@ -316,7 +316,7 @@ export function AllJournalEntriesPage() {
     entries.sort((a, b) => {
       const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
       if (dateDiff !== 0) return dateDiff;
-      if (a.journal_number !== b.journal_number) return a.journal_number.localeCompare(b.journal_number);
+      if (a.journal_number !== b.journal_number) return b.journal_number.localeCompare(a.journal_number);
       return b.debit - a.debit;
     });
 
