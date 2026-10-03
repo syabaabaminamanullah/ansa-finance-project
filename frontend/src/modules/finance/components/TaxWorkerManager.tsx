@@ -44,6 +44,24 @@ export function TaxWorkerManager() {
 
   // History modal state
   const [selectedWorker, setSelectedWorker] = useState<TaxWorker | null>(null);
+  const [showHistoryForm, setShowHistoryForm] = useState(false);
+  const [historyForm, setHistoryForm] = useState({
+    period_month: '',
+    project_id: '',
+    gross_salary: 0,
+    tax_amount: 0,
+    net_salary: 0
+  });
+
+  const formatNumber = (val: number) => {
+    if (!val) return '';
+    return val.toLocaleString('id-ID');
+  };
+
+  const handleNumberInput = (val: string, setter: (n: number) => void) => {
+    const numericString = val.replace(/[^0-9]/g, '');
+    setter(numericString ? parseInt(numericString, 10) : 0);
+  };
 
   useEffect(() => {
     fetchWorkers();
@@ -275,19 +293,142 @@ export function TaxWorkerManager() {
             <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
               <div>
                 <h3 className="font-bold text-gray-900 text-lg">Riwayat Gaji & Pajak: {selectedWorker.name}</h3>
-                <p className="text-xs text-gray-500">Anda dapat menyimpan hasil dari Kalkulator PPh 21 ke daftar riwayat ini secara otomatis.</p>
+                <p className="text-xs text-gray-500">Catatan pribadi gaji bulanan. Tidak mempengaruhi jurnal/pembukuan.</p>
               </div>
-              <button onClick={() => setSelectedWorker(null)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => {
+                    setShowHistoryForm(!showHistoryForm);
+                    if (!showHistoryForm) {
+                      setHistoryForm({
+                        period_month: new Date().toISOString().slice(0, 7),
+                        project_id: '',
+                        gross_salary: selectedWorker.base_salary || 0,
+                        tax_amount: 0,
+                        net_salary: selectedWorker.base_salary || 0
+                      });
+                    }
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Tambah Catatan
+                </button>
+                <button onClick={() => { setSelectedWorker(null); setShowHistoryForm(false); }} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            
+
             <div className="p-4 overflow-y-auto flex-1">
-              {selectedWorker.history.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  Belum ada riwayat gaji yang disimpan dari Kalkulator Pajak.
+              {/* Add History Form */}
+              {showHistoryForm && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-800">Tambah Catatan Gaji Baru</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Periode Bulan</label>
+                      <input 
+                        type="month" 
+                        value={historyForm.period_month} 
+                        onChange={e => setHistoryForm({...historyForm, period_month: e.target.value})} 
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Proyek Penugasan</label>
+                      <select 
+                        value={historyForm.project_id} 
+                        onChange={e => setHistoryForm({...historyForm, project_id: e.target.value})}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                      >
+                        <option value="">- Head Office / Overhead -</option>
+                        {projects.map(p => (
+                          <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Gaji Bruto (Rp)</label>
+                      <input 
+                        type="text" 
+                        value={formatNumber(historyForm.gross_salary)} 
+                        onChange={e => handleNumberInput(e.target.value, (n) => setHistoryForm(prev => ({...prev, gross_salary: n, net_salary: n - prev.tax_amount})))} 
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                        placeholder="4.500.000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Potongan PPh 21 (Rp)</label>
+                      <input 
+                        type="text" 
+                        value={formatNumber(historyForm.tax_amount)} 
+                        onChange={e => handleNumberInput(e.target.value, (n) => setHistoryForm(prev => ({...prev, tax_amount: n, net_salary: prev.gross_salary - n})))} 
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Gaji Bersih / THP (Rp)</label>
+                      <input 
+                        type="text" 
+                        value={formatNumber(historyForm.net_salary)} 
+                        readOnly
+                        className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm font-mono bg-gray-100 text-success font-bold"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button 
+                      onClick={() => setShowHistoryForm(false)}
+                      className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Batal
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        if (!historyForm.period_month) return alert('Periode bulan wajib diisi');
+                        if (!historyForm.gross_salary) return alert('Gaji bruto wajib diisi');
+                        try {
+                          const res = await fetch('https://lode.annsa.site/api/v1/tax-workers/history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              worker_id: selectedWorker.id,
+                              project_id: historyForm.project_id || null,
+                              period_month: historyForm.period_month,
+                              gross_salary: historyForm.gross_salary,
+                              tax_amount: historyForm.tax_amount,
+                              net_salary: historyForm.net_salary
+                            })
+                          });
+                          if (res.ok) {
+                            await fetchWorkers();
+                            // Refresh selectedWorker data
+                            const updatedWorkers = await (await fetch('https://lode.annsa.site/api/v1/tax-workers')).json();
+                            const updated = updatedWorkers.find((w: TaxWorker) => w.id === selectedWorker.id);
+                            if (updated) setSelectedWorker(updated);
+                            setShowHistoryForm(false);
+                          } else {
+                            alert('Gagal menyimpan catatan');
+                          }
+                        } catch (e) {
+                          console.error(e);
+                          alert('Gagal menyimpan catatan');
+                        }
+                      }}
+                      className="flex items-center gap-1 px-4 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      <Save className="w-3.5 h-3.5" /> Simpan Catatan
+                    </button>
+                  </div>
                 </div>
-              ) : (
+              )}
+
+              {selectedWorker.history.length === 0 && !showHistoryForm ? (
+                <div className="text-center py-12 text-gray-500">
+                  Belum ada catatan gaji. Klik <strong>"+ Tambah Catatan"</strong> untuk mulai mencatat.
+                </div>
+              ) : selectedWorker.history.length > 0 && (
                 <div className="overflow-x-auto border border-gray-200 rounded-md">
                   <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-600 text-xs border-b border-gray-200">
@@ -297,16 +438,37 @@ export function TaxWorkerManager() {
                         <th className="py-2 px-3 text-right">Gaji Bruto</th>
                         <th className="py-2 px-3 text-right">Potongan PPh 21</th>
                         <th className="py-2 px-3 text-right">Gaji Bersih (THP)</th>
+                        <th className="py-2 px-3 text-center w-12">Hapus</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedWorker.history.map((h, i) => (
+                      {selectedWorker.history.map((h) => (
                         <tr key={h.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="py-2 px-3 font-medium text-gray-900">{h.period_month}</td>
                           <td className="py-2 px-3 text-gray-600">{h.project_name}</td>
                           <td className="py-2 px-3 text-right font-mono text-gray-700">{formatCurrency(h.gross_salary)}</td>
                           <td className="py-2 px-3 text-right font-mono text-danger font-medium">-{formatCurrency(h.tax_amount)}</td>
                           <td className="py-2 px-3 text-right font-mono text-success font-bold">{formatCurrency(h.net_salary)}</td>
+                          <td className="py-2 px-3 text-center">
+                            <button 
+                              onClick={async () => {
+                                if (!confirm('Hapus catatan gaji ini?')) return;
+                                try {
+                                  const res = await fetch(`https://lode.annsa.site/api/v1/tax-workers/history/${h.id}`, { method: 'DELETE' });
+                                  if (res.ok) {
+                                    await fetchWorkers();
+                                    const updatedWorkers = await (await fetch('https://lode.annsa.site/api/v1/tax-workers')).json();
+                                    const updated = updatedWorkers.find((w: TaxWorker) => w.id === selectedWorker.id);
+                                    if (updated) setSelectedWorker(updated);
+                                  }
+                                } catch (e) { console.error(e); }
+                              }}
+                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Hapus catatan ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -316,6 +478,7 @@ export function TaxWorkerManager() {
                         <td className="py-3 px-3 text-right font-mono text-gray-900">{formatCurrency(selectedWorker.history.reduce((a,b)=>a+b.gross_salary,0))}</td>
                         <td className="py-3 px-3 text-right font-mono text-danger">-{formatCurrency(selectedWorker.history.reduce((a,b)=>a+b.tax_amount,0))}</td>
                         <td className="py-3 px-3 text-right font-mono text-success">{formatCurrency(selectedWorker.history.reduce((a,b)=>a+b.net_salary,0))}</td>
+                        <td></td>
                       </tr>
                     </tfoot>
                   </table>
