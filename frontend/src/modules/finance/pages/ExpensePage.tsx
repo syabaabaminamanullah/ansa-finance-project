@@ -145,8 +145,8 @@ export function ExpensePage() {
   };
 
   const columns = [
-    { header: 'Expense No', accessor: 'expense_number' as keyof Expense, className: 'font-mono text-primary font-bold' },
-    { header: 'Date', accessor: 'date' as keyof Expense },
+    { header: 'Expense No', accessor: 'expense_number' as keyof Expense, className: 'font-mono text-primary font-bold whitespace-nowrap' },
+    { header: 'Date', accessor: 'date' as keyof Expense, className: 'whitespace-nowrap' },
     { 
       header: 'Project', 
       accessor: (row: Expense) => {
