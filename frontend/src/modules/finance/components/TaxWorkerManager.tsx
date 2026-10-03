@@ -63,6 +63,50 @@ export function TaxWorkerManager() {
     setter(numericString ? parseInt(numericString, 10) : 0);
   };
 
+  const calculateTax = (grossMonthly: number, ptkpStat: string, npwp: boolean) => {
+    let ptkpYearly = 54000000;
+    if (['K/0', 'TK/1'].includes(ptkpStat)) ptkpYearly = 58500000;
+    if (['K/1', 'TK/2'].includes(ptkpStat)) ptkpYearly = 63000000;
+    if (['K/2', 'TK/3'].includes(ptkpStat)) ptkpYearly = 67500000;
+    if (['K/3'].includes(ptkpStat)) ptkpYearly = 72000000;
+
+    const grossYearly = grossMonthly * 12;
+    const biayaJabatan = Math.min(grossYearly * 0.05, 6000000);
+    const netYearly = grossYearly - biayaJabatan;
+    const pkp = Math.floor(Math.max(0, netYearly - ptkpYearly) / 1000) * 1000;
+    
+    let taxYearly = 0;
+    let sisaPkp = pkp;
+
+    if (sisaPkp > 0) {
+      const layer1 = Math.min(sisaPkp, 60000000);
+      taxYearly += layer1 * 0.05;
+      sisaPkp -= layer1;
+    }
+    if (sisaPkp > 0) {
+      const layer2 = Math.min(sisaPkp, 190000000);
+      taxYearly += layer2 * 0.15;
+      sisaPkp -= layer2;
+    }
+    if (sisaPkp > 0) {
+      const layer3 = Math.min(sisaPkp, 250000000);
+      taxYearly += layer3 * 0.25;
+      sisaPkp -= layer3;
+    }
+    if (sisaPkp > 0) {
+      const layer4 = Math.min(sisaPkp, 4500000000);
+      taxYearly += layer4 * 0.30;
+      sisaPkp -= layer4;
+    }
+    if (sisaPkp > 0) {
+      taxYearly += sisaPkp * 0.35;
+    }
+
+    if (!npwp) taxYearly = taxYearly * 1.2;
+
+    return taxYearly / 12;
+  };
+
   useEffect(() => {
     fetchWorkers();
     fetchProjects();
@@ -300,12 +344,15 @@ export function TaxWorkerManager() {
                   onClick={() => {
                     setShowHistoryForm(!showHistoryForm);
                     if (!showHistoryForm) {
+                      const initialGross = selectedWorker.base_salary || 0;
+                      const hasNpwp = !!selectedWorker.npwp;
+                      const initialTax = calculateTax(initialGross, selectedWorker.ptkp_status || 'TK/0', hasNpwp);
                       setHistoryForm({
                         period_month: new Date().toISOString().slice(0, 7),
                         project_id: '',
-                        gross_salary: selectedWorker.base_salary || 0,
-                        tax_amount: 0,
-                        net_salary: selectedWorker.base_salary || 0
+                        gross_salary: initialGross,
+                        tax_amount: initialTax,
+                        net_salary: initialGross - initialTax
                       });
                     }
                   }}
@@ -352,7 +399,11 @@ export function TaxWorkerManager() {
                       <input 
                         type="text" 
                         value={formatNumber(historyForm.gross_salary)} 
-                        onChange={e => handleNumberInput(e.target.value, (n) => setHistoryForm(prev => ({...prev, gross_salary: n, net_salary: n - prev.tax_amount})))} 
+                        onChange={e => handleNumberInput(e.target.value, (n) => {
+                          const hasNpwp = !!selectedWorker?.npwp;
+                          const newTax = calculateTax(n, selectedWorker?.ptkp_status || 'TK/0', hasNpwp);
+                          setHistoryForm(prev => ({...prev, gross_salary: n, tax_amount: newTax, net_salary: n - newTax}));
+                        })} 
                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                         placeholder="4.500.000"
                       />
