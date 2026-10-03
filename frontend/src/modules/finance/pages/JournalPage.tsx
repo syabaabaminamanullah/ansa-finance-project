@@ -164,8 +164,8 @@ export function JournalPage() {
   }, []);
 
   const columns = [
-    { header: 'Journal No.', accessor: 'journal_number' as keyof Journal, className: 'font-mono text-primary font-bold' },
-    { header: 'Date', accessor: 'date' as keyof Journal },
+    { header: 'Journal No.', accessor: 'journal_number' as keyof Journal, className: 'font-mono text-primary font-bold whitespace-nowrap' },
+    { header: 'Date', accessor: 'date' as keyof Journal, className: 'whitespace-nowrap' },
     { header: 'Description', accessor: 'description' as keyof Journal },
     {
       header: 'Tag Proyek / Lokasi',
