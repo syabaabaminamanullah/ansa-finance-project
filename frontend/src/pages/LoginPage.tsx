@@ -24,9 +24,28 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center relative overflow-hidden font-sans">
       {/* Background Neomorphic Elements & Waves (Coretax inspired) */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        {/* Neomorphic Circles Background (Right Side) */}
-        <div className="absolute -right-[15%] top-[5%] w-[900px] h-[900px] rounded-full border-[80px] border-[#F0F4F8] shadow-[10px_10px_20px_#d9dfe5,-10px_-10px_20px_#ffffff,inset_10px_10px_20px_#d9dfe5,inset_-10px_-10px_20px_#ffffff] opacity-80"></div>
-        <div className="absolute right-[5%] top-[30%] w-[400px] h-[400px] rounded-full bg-[#F0F4F8] shadow-[10px_10px_20px_#d9dfe5,-10px_-10px_20px_#ffffff] opacity-80"></div>
+        
+        {/* Neomorphic ANSA Logo Background (Right Side) */}
+        <div 
+          className="absolute -right-[5%] top-[10%] w-[800px] h-[800px] opacity-[0.85] animate-[pulse_10s_ease-in-out_infinite]"
+          style={{ filter: 'drop-shadow(20px 20px 40px #d1d9e6) drop-shadow(-20px -20px 40px #ffffff)' }}
+        >
+          <div 
+            className="w-full h-full"
+            style={{
+              maskImage: 'url("/ansa-icon.png")',
+              maskSize: 'contain',
+              maskRepeat: 'no-repeat',
+              maskPosition: 'center',
+              WebkitMaskImage: 'url("/ansa-icon.png")',
+              WebkitMaskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              backgroundColor: '#F0F4F8',
+              boxShadow: 'inset 15px 15px 30px #d1d9e6, inset -15px -15px 30px #ffffff'
+            }}
+          ></div>
+        </div>
         
         {/* Elegant Abstract Wave Bottom Left */}
         <svg className="absolute bottom-0 left-0 w-full h-[60vh] opacity-60 text-gray-200" preserveAspectRatio="none" viewBox="0 0 1440 400" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -89,7 +108,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 <label className="block text-[13px] font-semibold text-gray-700 mb-2">ID Pengguna</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <User className="h-[18px] w-[18px] text-[#20a76a]" />
+                    <User className="h-[18px] w-[18px] text-[#1A2C4D]" />
                   </div>
                   <input
                     type="text"
@@ -107,7 +126,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 <label className="block text-[13px] font-semibold text-gray-700 mb-2">Kata Sandi</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Lock className="h-[18px] w-[18px] text-[#20a76a]" />
+                    <Lock className="h-[18px] w-[18px] text-[#1A2C4D]" />
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
