@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, User, AlertCircle } from 'lucide-react';
 
 interface LoginPageProps {
@@ -21,15 +21,27 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FB] flex items-center justify-center relative overflow-hidden font-sans">
-      {/* Background Animated Waves (Coretax inspired) */}
-      <div className="absolute inset-0 z-0 opacity-70 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-gradient-to-br from-[#E8F0FE] to-transparent rounded-full mix-blend-multiply blur-3xl opacity-50 animate-pulse" style={{ animationDuration: '8s' }}></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-gradient-to-tl from-[#FDE8D0]/60 to-transparent rounded-full mix-blend-multiply blur-3xl opacity-50 animate-pulse" style={{ animationDuration: '12s', animationDelay: '1s' }}></div>
+    <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center relative overflow-hidden font-sans">
+      {/* Background Neomorphic Elements & Waves (Coretax inspired) */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* Neomorphic Circles Background (Right Side) */}
+        <div className="absolute -right-[15%] top-[5%] w-[900px] h-[900px] rounded-full border-[80px] border-[#F0F4F8] shadow-[10px_10px_20px_#d9dfe5,-10px_-10px_20px_#ffffff,inset_10px_10px_20px_#d9dfe5,inset_-10px_-10px_20px_#ffffff] opacity-80"></div>
+        <div className="absolute right-[5%] top-[30%] w-[400px] h-[400px] rounded-full bg-[#F0F4F8] shadow-[10px_10px_20px_#d9dfe5,-10px_-10px_20px_#ffffff] opacity-80"></div>
         
-        {/* Soft SVG Waves at bottom */}
-        <svg className="absolute bottom-0 w-full h-[40vh] text-white opacity-40" preserveAspectRatio="none" viewBox="0 0 1440 320" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0,256L48,245.3C96,235,192,213,288,208C384,203,480,213,576,213.3C672,213,768,203,864,181.3C960,160,1056,128,1152,133.3C1248,139,1344,181,1392,202.7L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        {/* Elegant Abstract Wave Bottom Left */}
+        <svg className="absolute bottom-0 left-0 w-full h-[60vh] opacity-60 text-gray-200" preserveAspectRatio="none" viewBox="0 0 1440 400" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad1" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" style={{stopColor: '#D1D9E6', stopOpacity: 0.8}} />
+              <stop offset="100%" style={{stopColor: '#F0F4F8', stopOpacity: 0.1}} />
+            </linearGradient>
+            <linearGradient id="grad2" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" style={{stopColor: '#ffffff', stopOpacity: 0.6}} />
+              <stop offset="100%" style={{stopColor: '#F0F4F8', stopOpacity: 0.1}} />
+            </linearGradient>
+          </defs>
+          <path fill="url(#grad1)" d="M0,320L60,309.3C120,299,240,277,360,266.7C480,256,600,256,720,261.3C840,267,960,277,1080,266.7C1200,256,1320,224,1380,208L1440,192L1440,400L1380,400C1320,400,1200,400,1080,400C960,400,840,400,720,400C600,400,480,400,360,400C240,400,120,400,60,400L0,400Z"></path>
+          <path fill="url(#grad2)" d="M0,256L60,266.7C120,277,240,299,360,288C480,277,600,235,720,224C840,213,960,235,1080,234.7C1200,235,1320,213,1380,202.7L1440,192L1440,400L1380,400C1320,400,1200,400,1080,400C960,400,840,400,720,400C600,400,480,400,360,400C240,400,120,400,60,400L0,400Z"></path>
         </svg>
       </div>
 
@@ -38,49 +50,52 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         {/* Left Side: Branding */}
         <div className="w-full lg:w-1/2 mb-12 lg:mb-0 lg:pr-16 flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center font-bold text-2xl shadow-sm border border-gray-100">
-              <span className="text-[#1A2C4D]">A</span><span className="text-primary">E</span>
-            </div>
+            <img src="/ansa-icon.png" alt="ANSA Logo" className="w-[42px] h-[42px] object-contain drop-shadow-md" />
             <div>
-              <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-1">
+              <h1 className="text-[26px] font-extrabold tracking-tight flex items-center gap-1.5">
                 <span className="text-[#1A2C4D]">ANSA</span> 
                 <span className="text-primary">Enterprise</span>
               </h1>
             </div>
           </div>
           
-          <h2 className="text-[2.75rem] font-bold text-[#1A2C4D] leading-[1.1] mb-5 tracking-tight">
-            Sistem Inti<br/>Administrasi<br/>Keuangan
+          <h2 className="text-[3rem] font-bold text-[#1A2C4D] leading-[1.1] mb-6 tracking-tight">
+            Sistem Inti<br/>Administrasi<br/>
+            <span className="relative inline-block mt-2">
+              Keuangan
+              {/* Yellow Underline */}
+              <span className="absolute -bottom-2 left-0 w-16 h-1.5 bg-[#FFC107] rounded-full"></span>
+            </span>
           </h2>
-          <p className="text-lg text-gray-600 font-medium">
-            Tumbuh Bersama, ANSA Tangguh
+          <p className="text-[17px] text-gray-500 font-medium mt-6">
+            Pajak Tumbuh, Indonesia Tangguh
           </p>
         </div>
 
         {/* Right Side: Login Form */}
         <div className="w-full lg:w-[420px]">
-          <div className="bg-white/95 backdrop-blur-xl p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white">
-            <h3 className="text-2xl font-bold text-gray-900 mb-1.5">Selamat Datang!</h3>
-            <p className="text-gray-500 text-sm mb-7">Masuk untuk mengakses Layanan ANSA Finance</p>
+          <div className="bg-white/90 backdrop-blur-xl p-9 rounded-[32px] shadow-[0_20px_60px_rgb(0,0,0,0.06)] border border-white">
+            <h3 className="text-[26px] font-bold text-gray-900 mb-1.5">Selamat Datang!</h3>
+            <p className="text-gray-500 text-[13px] font-medium mb-8">Masuk untuk mengakses Layanan ANSA Finance</p>
 
             {error && (
-              <div className="mb-5 p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm flex items-center gap-2">
+              <div className="mb-5 p-3.5 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" /> {error}
               </div>
             )}
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">ID Pengguna</label>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-2">ID Pengguna</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <User className="h-[18px] w-[18px] text-green-500" />
+                    <User className="h-[18px] w-[18px] text-[#20a76a]" />
                   </div>
                   <input
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-[#F9FAFB] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm font-medium"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm font-medium shadow-sm"
                     placeholder="Masukkan ID Pengguna"
                     autoComplete="off"
                     spellCheck="false"
@@ -89,16 +104,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               </div>
 
               <div>
-                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">Kata Sandi</label>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-2">Kata Sandi</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Lock className="h-[18px] w-[18px] text-green-500" />
+                    <Lock className="h-[18px] w-[18px] text-[#20a76a]" />
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl bg-[#F9FAFB] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm font-medium"
+                    className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all sm:text-sm font-medium shadow-sm"
                     placeholder="Masukkan Kata Sandi"
                     autoComplete="new-password"
                     spellCheck="false"
@@ -108,27 +123,27 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
                   </button>
                 </div>
               </div>
 
               {/* Fake captcha/verification */}
-              <div className="pt-2">
+              <div className="pt-3">
                 <p className="text-[13px] font-semibold text-gray-700 mb-2">Verifikasi</p>
                 <div className="flex items-center gap-3 p-3.5 border border-gray-200 rounded-xl bg-white shadow-sm">
-                  <input type="checkbox" id="verify" className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary cursor-pointer" required />
-                  <label htmlFor="verify" className="text-sm font-medium text-gray-700 select-none cursor-pointer">Terverifikasi</label>
+                  <input type="checkbox" id="verify" className="w-[18px] h-[18px] text-[#1A2C4D] rounded border-gray-300 focus:ring-[#1A2C4D] cursor-pointer" required />
+                  <label htmlFor="verify" className="text-[13px] font-medium text-gray-700 select-none cursor-pointer">Terverifikasi</label>
                 </div>
               </div>
 
-              <div className="flex justify-between items-center mt-2">
+              <div className="flex justify-between items-center mt-2 pt-1">
                 <a href="#" className="text-[13px] text-gray-500 hover:text-primary transition-colors font-medium">Lupa Kata Sandi?</a>
               </div>
 
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-[#1A2C4D] hover:bg-[#111d33] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1A2C4D] transition-all mt-6"
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-[15px] font-bold text-white bg-[#1A2C4D] hover:bg-[#111d33] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1A2C4D] transition-all mt-6"
               >
                 Masuk
               </button>
