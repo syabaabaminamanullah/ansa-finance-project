@@ -133,16 +133,20 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </div>
           </div>
           
-          <h2 className="text-[3rem] font-bold text-[#1A2C4D] leading-[1.1] mb-6 tracking-tight">
-            Sistem Inti<br/>Administrasi<br/>
+          <div className="mb-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1A2C4D]/5 border border-[#1A2C4D]/10 text-[#1A2C4D] text-xs font-bold tracking-widest uppercase">
+            Sistem LODE
+          </div>
+          <h2 className="text-[2.8rem] font-bold text-[#1A2C4D] leading-[1.15] mb-6 tracking-tight">
+            Lifecycle<br/>Operation Data-Analysis<br/>
             <span className="relative inline-block mt-2">
-              Keuangan
+              Engine
               {/* Yellow Underline */}
               <span className="absolute -bottom-2 left-0 w-16 h-1.5 bg-[#FFC107] rounded-full"></span>
             </span>
           </h2>
-          <p className="text-[17px] text-gray-500 font-medium mt-6">
-            Pajak Tumbuh, Indonesia Tangguh
+          <p className="text-[15px] text-gray-500 font-medium mt-6 leading-relaxed max-w-[90%]">
+            <strong className="text-[#1A2C4D]">Project & Corporate Finance System</strong><br/>
+            Peta urat dana proyek Anda untuk mengidentifikasi aliran modal dan menambang profitabilitas maksimal.
           </p>
         </div>
 
