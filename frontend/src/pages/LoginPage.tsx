@@ -25,27 +25,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       {/* Background Neomorphic Elements & Waves (Coretax inspired) */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         
-        {/* Neomorphic ANSA Logo Background (Right Side) */}
-        <div 
-          className="absolute -right-[5%] top-[10%] w-[800px] h-[800px] opacity-[0.85] animate-[pulse_10s_ease-in-out_infinite]"
-          style={{ filter: 'drop-shadow(20px 20px 40px #d1d9e6) drop-shadow(-20px -20px 40px #ffffff)' }}
-        >
-          <div 
-            className="w-full h-full"
-            style={{
-              maskImage: 'url("/ansa-icon.png")',
-              maskSize: 'contain',
-              maskRepeat: 'no-repeat',
-              maskPosition: 'center',
-              WebkitMaskImage: 'url("/ansa-icon.png")',
-              WebkitMaskSize: 'contain',
-              WebkitMaskRepeat: 'no-repeat',
-              WebkitMaskPosition: 'center',
-              backgroundColor: '#F0F4F8',
-              boxShadow: 'inset 15px 15px 30px #d1d9e6, inset -15px -15px 30px #ffffff'
-            }}
-          ></div>
-        </div>
+        {/* Neomorphic Circles Background (Right Side) - True Glassmorphism */}
+        <div className="absolute -right-[15%] top-[5%] w-[900px] h-[900px] rounded-full border-[80px] border-[#F0F4F8] shadow-[12px_12px_24px_#d1d9e6,-12px_-12px_24px_#ffffff,inset_12px_12px_24px_#d1d9e6,inset_-12px_-12px_24px_#ffffff] opacity-90 animate-[pulse_12s_ease-in-out_infinite]"></div>
+        
+        <div className="absolute right-[10%] top-[15%] w-[600px] h-[600px] rounded-full border-[40px] border-[#F0F4F8] shadow-[12px_12px_24px_#d1d9e6,-12px_-12px_24px_#ffffff,inset_12px_12px_24px_#d1d9e6,inset_-12px_-12px_24px_#ffffff] opacity-80 animate-[pulse_10s_ease-in-out_infinite]"></div>
+        
+        <div className="absolute right-[5%] top-[35%] w-[350px] h-[350px] rounded-full bg-[#F0F4F8] shadow-[12px_12px_24px_#d1d9e6,-12px_-12px_24px_#ffffff,inset_12px_12px_24px_#d1d9e6,inset_-12px_-12px_24px_#ffffff] opacity-90 animate-[pulse_8s_ease-in-out_infinite]"></div>
         
         {/* Elegant Abstract Wave Bottom Left */}
         <svg className="absolute bottom-0 left-0 w-full h-[60vh] opacity-60 text-gray-200" preserveAspectRatio="none" viewBox="0 0 1440 400" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
