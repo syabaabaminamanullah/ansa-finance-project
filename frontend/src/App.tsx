@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useThemeStore } from './store/themeStore';
 import { Screensaver } from './components/ui/Screensaver';
@@ -85,9 +85,18 @@ import { TaxCalculatorPage } from './modules/finance/pages/TaxCalculatorPage';
 import { EquipmentDashboard } from './modules/equipment/pages/EquipmentDashboard';
 import { EquipmentListPage } from './modules/equipment/pages/EquipmentListPage';
 import { EquipmentDispatchPage } from './modules/equipment/pages/EquipmentDispatchPage';
+import { LoginPage } from './pages/LoginPage';
 
 function App() {
   const theme = useThemeStore((state) => state.theme);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('ansa_auth') === 'true';
+  });
+
+  const handleLogin = () => {
+    sessionStorage.setItem('ansa_auth', 'true');
+    setIsAuthenticated(true);
+  };
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -108,6 +117,10 @@ function App() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [theme]);
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
   return (
     <Router>
