@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, User, AlertCircle } from 'lucide-react';
 
 interface LoginPageProps {
@@ -22,15 +22,69 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center relative overflow-hidden font-sans">
-      {/* Background Neomorphic Elements & Waves (Coretax inspired) */}
+      {/* Background Neomorphic Elements & Waves */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         
-        {/* Neomorphic Circles Background (Right Side) - True Glassmorphism */}
-        <div className="absolute -right-[15%] top-[5%] w-[900px] h-[900px] rounded-full border-[80px] border-[#F0F4F8] shadow-[12px_12px_24px_#d1d9e6,-12px_-12px_24px_#ffffff,inset_12px_12px_24px_#d1d9e6,inset_-12px_-12px_24px_#ffffff] opacity-90 animate-[pulse_12s_ease-in-out_infinite]"></div>
-        
-        <div className="absolute right-[10%] top-[15%] w-[600px] h-[600px] rounded-full border-[40px] border-[#F0F4F8] shadow-[12px_12px_24px_#d1d9e6,-12px_-12px_24px_#ffffff,inset_12px_12px_24px_#d1d9e6,inset_-12px_-12px_24px_#ffffff] opacity-80 animate-[pulse_10s_ease-in-out_infinite]"></div>
-        
-        <div className="absolute right-[5%] top-[35%] w-[350px] h-[350px] rounded-full bg-[#F0F4F8] shadow-[12px_12px_24px_#d1d9e6,-12px_-12px_24px_#ffffff,inset_12px_12px_24px_#d1d9e6,inset_-12px_-12px_24px_#ffffff] opacity-90 animate-[pulse_8s_ease-in-out_infinite]"></div>
+        {/* Pure Neomorphic ANSA Spiral Logo (Right Side) */}
+        <div className="absolute -right-[10%] top-[5%] w-[800px] h-[800px] opacity-95 animate-[pulse_12s_ease-in-out_infinite]">
+          <svg width="100%" height="100%" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="pureNeomorph" x="-20%" y="-20%" width="140%" height="140%">
+                {/* Outer Light Shadow */}
+                <feOffset dx="-12" dy="-12" in="SourceAlpha" result="outLightOffset"/>
+                <feGaussianBlur stdDeviation="15" in="outLightOffset" result="outLightBlur"/>
+                <feFlood floodColor="#ffffff" floodOpacity="1"/>
+                <feComposite operator="in" in2="outLightBlur" result="outLight"/>
+                
+                {/* Outer Dark Shadow */}
+                <feOffset dx="15" dy="15" in="SourceAlpha" result="outDarkOffset"/>
+                <feGaussianBlur stdDeviation="20" in="outDarkOffset" result="outDarkBlur"/>
+                <feFlood floodColor="#d1d9e6" floodOpacity="0.9"/>
+                <feComposite operator="in" in2="outDarkBlur" result="outDark"/>
+
+                {/* Inner Dark Shadow */}
+                <feOffset dx="12" dy="12" in="SourceAlpha" result="inDarkOffset"/>
+                <feGaussianBlur stdDeviation="12" in="inDarkOffset" result="inDarkBlur"/>
+                <feComposite operator="out" in="SourceAlpha" in2="inDarkBlur" result="inDarkInverse"/>
+                <feFlood floodColor="#c0cadb" floodOpacity="0.8"/>
+                <feComposite operator="in" in2="inDarkInverse" result="inDark"/>
+                <feComposite operator="in" in="inDark" in2="SourceAlpha" result="inDarkFinal"/>
+
+                {/* Inner Light Shadow */}
+                <feOffset dx="-12" dy="-12" in="SourceAlpha" result="inLightOffset"/>
+                <feGaussianBlur stdDeviation="12" in="inLightOffset" result="inLightBlur"/>
+                <feComposite operator="out" in="SourceAlpha" in2="inLightBlur" result="inLightInverse"/>
+                <feFlood floodColor="#ffffff" floodOpacity="1"/>
+                <feComposite operator="in" in2="inLightInverse" result="inLight"/>
+                <feComposite operator="in" in="inLight" in2="SourceAlpha" result="inLightFinal"/>
+
+                {/* Merge All */}
+                <feMerge>
+                  <feMergeNode in="outLight"/>
+                  <feMergeNode in="outDark"/>
+                  <feMergeNode in="SourceGraphic"/>
+                  <feMergeNode in="inDarkFinal"/>
+                  <feMergeNode in="inLightFinal"/>
+                </feMerge>
+              </filter>
+            </defs>
+            
+            <g filter="url(#pureNeomorph)">
+              <path 
+                d="M 600 400 
+                   A 200 200 0 0 0 200 400
+                   A 150 150 0 0 0 500 400
+                   A 100 100 0 0 0 300 400
+                   A 50 50 0 0 0 400 400"
+                fill="none" 
+                stroke="#F0F4F8" 
+                strokeWidth="75" 
+                strokeLinecap="round"
+                transform="rotate(-20 400 400)" 
+              />
+            </g>
+          </svg>
+        </div>
         
         {/* Elegant Abstract Wave Bottom Left */}
         <svg className="absolute bottom-0 left-0 w-full h-[60vh] opacity-60 text-gray-200" preserveAspectRatio="none" viewBox="0 0 1440 400" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
