@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Package,
-  Folder
+  Folder,
+  LogOut
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -157,28 +158,46 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
-      <div className="p-4 border-t border-border">
-        <button 
-          onClick={() => setIsProfileModalOpen(true)}
-          className={clsx(
-            "w-full flex items-center gap-3 text-left hover:bg-secondary/10 p-2 rounded-xl transition-colors",
-            isCollapsed ? "justify-center" : ""
-          )}
-        >
-          <div className="w-8 h-8 rounded-full bg-secondary text-primary flex items-center justify-center font-bold flex-shrink-0 overflow-hidden">
-            {profile.photo ? (
-              <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
-            ) : (
-              getInitials(profile.name)
+      <div className="p-4 border-t border-border flex flex-col gap-2">
+        <div className={clsx("flex gap-1 w-full", isCollapsed ? "flex-col items-center" : "items-center")}>
+          <button 
+            onClick={() => setIsProfileModalOpen(true)}
+            className={clsx(
+              "flex-1 flex items-center gap-3 text-left hover:bg-secondary/10 p-2 rounded-xl transition-colors",
+              isCollapsed ? "justify-center" : ""
             )}
-          </div>
-          {!isCollapsed && (
-            <div className="overflow-hidden">
-              <p className="text-sm font-medium text-textPrimary truncate">{profile.name}</p>
-              <p className="text-xs text-textSecondary truncate">{profile.email}</p>
+          >
+            <div className="w-8 h-8 rounded-full bg-secondary text-primary flex items-center justify-center font-bold flex-shrink-0 overflow-hidden">
+              {profile.photo ? (
+                <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
+              ) : (
+                getInitials(profile.name)
+              )}
             </div>
-          )}
-        </button>
+            {!isCollapsed && (
+              <div className="overflow-hidden">
+                <p className="text-sm font-medium text-textPrimary truncate">{profile.name}</p>
+                <p className="text-xs text-textSecondary truncate">{profile.email}</p>
+              </div>
+            )}
+          </button>
+          
+          <button
+            onClick={() => {
+              if(confirm('Apakah Anda yakin ingin keluar?')) {
+                sessionStorage.removeItem('ansa_auth');
+                window.location.reload();
+              }
+            }}
+            className={clsx(
+              "p-2 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors shrink-0",
+              isCollapsed ? "w-full flex justify-center mt-2" : ""
+            )}
+            title="Keluar / Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <ProfileModal 
