@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, User, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, Lock, User, AlertCircle, ShieldCheck } from 'lucide-react';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -85,6 +85,22 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </g>
           </svg>
         </div>
+        
+        {/* Floating Neomorphic Bubbles (Bottom Left) */}
+        <div 
+          className="absolute left-[8%] bottom-[20%] w-24 h-24 rounded-full border-[10px] border-[#F0F4F8] opacity-80 animate-[pulse_8s_ease-in-out_infinite] flex items-center justify-center bg-[#F0F4F8]"
+          style={{ boxShadow: '10px 10px 20px #d1d9e6, -10px -10px 20px #ffffff, inset 8px 8px 16px #d1d9e6, inset -8px -8px 16px #ffffff' }}
+        >
+          <ShieldCheck className="w-8 h-8 text-[#1A2C4D] opacity-60" />
+        </div>
+        <div 
+          className="absolute left-[20%] bottom-[12%] w-12 h-12 rounded-full bg-[#F0F4F8] opacity-90 animate-[pulse_6s_ease-in-out_infinite_reverse]"
+          style={{ boxShadow: '6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff, inset 6px 6px 12px #d1d9e6, inset -6px -6px 12px #ffffff' }}
+        ></div>
+        <div 
+          className="absolute left-[4%] bottom-[8%] w-6 h-6 rounded-full bg-[#F0F4F8] opacity-70 animate-[pulse_10s_ease-in-out_infinite]"
+          style={{ boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff' }}
+        ></div>
         
         {/* Elegant Abstract Wave Bottom Left */}
         <svg className="absolute bottom-0 left-0 w-full h-[60vh] opacity-60 text-gray-200" preserveAspectRatio="none" viewBox="0 0 1440 400" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
