@@ -20,6 +20,7 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfileModal } from './ProfileModal';
+import { Modal } from '../ui/Modal';
 import { useProfileStore } from '../../store/profileStore';
 
 const menuItems = [
@@ -40,6 +41,7 @@ export function Sidebar() {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const { profile, fetchProfile } = useProfileStore();
 
   useEffect(() => {
@@ -159,51 +161,79 @@ export function Sidebar() {
         </ul>
       </nav>
       <div className="p-4 border-t border-border flex flex-col gap-2">
-        <div className={clsx("flex gap-1 w-full", isCollapsed ? "flex-col items-center" : "items-center")}>
-          <button 
-            onClick={() => setIsProfileModalOpen(true)}
-            className={clsx(
-              "flex-1 flex items-center gap-3 text-left hover:bg-secondary/10 p-2 rounded-xl transition-colors",
-              isCollapsed ? "justify-center" : ""
+        <button 
+          onClick={() => setIsProfileModalOpen(true)}
+          className={clsx(
+            "w-full flex items-center gap-3 text-left hover:bg-secondary/10 p-2 rounded-xl transition-colors",
+            isCollapsed ? "justify-center" : ""
+          )}
+        >
+          <div className="w-8 h-8 rounded-full bg-secondary text-primary flex items-center justify-center font-bold flex-shrink-0 overflow-hidden">
+            {profile.photo ? (
+              <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
+            ) : (
+              getInitials(profile.name)
             )}
-          >
-            <div className="w-8 h-8 rounded-full bg-secondary text-primary flex items-center justify-center font-bold flex-shrink-0 overflow-hidden">
-              {profile.photo ? (
-                <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
-              ) : (
-                getInitials(profile.name)
-              )}
+          </div>
+          {!isCollapsed && (
+            <div className="overflow-hidden">
+              <p className="text-sm font-medium text-textPrimary truncate">{profile.name}</p>
+              <p className="text-xs text-textSecondary truncate">{profile.email}</p>
             </div>
-            {!isCollapsed && (
-              <div className="overflow-hidden">
-                <p className="text-sm font-medium text-textPrimary truncate">{profile.name}</p>
-                <p className="text-xs text-textSecondary truncate">{profile.email}</p>
-              </div>
-            )}
-          </button>
-          
-          <button
-            onClick={() => {
-              if(confirm('Apakah Anda yakin ingin keluar?')) {
-                sessionStorage.removeItem('ansa_auth');
-                window.location.reload();
-              }
-            }}
-            className={clsx(
-              "p-2 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors shrink-0",
-              isCollapsed ? "w-full flex justify-center mt-2" : ""
-            )}
-            title="Keluar / Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
+          )}
+        </button>
+        
+        <button
+          onClick={() => setIsLogoutModalOpen(true)}
+          className={clsx(
+            "w-full flex items-center gap-2 p-2 rounded-xl transition-colors text-red-600 bg-red-50 hover:bg-red-100",
+            isCollapsed ? "justify-center" : "justify-center font-medium"
+          )}
+          title="Keluar / Logout"
+        >
+          <LogOut className="w-4 h-4" />
+          {!isCollapsed && "Keluar"}
+        </button>
       </div>
 
       <ProfileModal 
         isOpen={isProfileModalOpen} 
         onClose={() => setIsProfileModalOpen(false)} 
       />
+
+      <Modal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        title="Konfirmasi Logout"
+        maxWidth="max-w-sm"
+      >
+        <div className="text-center py-4">
+          <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <LogOut className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Keluar dari Akun?</h3>
+          <p className="text-sm text-gray-500 mb-6">
+            Apakah Anda yakin ingin keluar dari sistem? Anda harus masuk kembali untuk melanjutkan.
+          </p>
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={() => setIsLogoutModalOpen(false)}
+              className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('ansa_auth');
+                window.location.reload();
+              }}
+              className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Ya, Keluar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </aside>
   );
 }
