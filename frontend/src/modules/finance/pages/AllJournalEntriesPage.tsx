@@ -84,7 +84,8 @@ function AttachmentModal({
     const MAX_SIZE = 4.5 * 1024 * 1024; // 4.5MB limit
     if (file.type.startsWith('image/')) {
       try {
-        return await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true });
+        const compressedBlob = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true });
+        return new File([compressedBlob], file.name, { type: file.type });
       } catch (error) {
         console.error('Error compressing image:', error);
       }

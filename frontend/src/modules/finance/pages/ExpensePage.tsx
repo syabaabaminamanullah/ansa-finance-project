@@ -293,7 +293,9 @@ export function ExpensePage() {
         useWebWorker: true
       };
       try {
-        return await imageCompression(file, options);
+        const compressedBlob = await imageCompression(file, options);
+        // Force preserve original filename so backend doesn't fallback to .pdf
+        return new File([compressedBlob], file.name, { type: file.type });
       } catch (error) {
         console.error('Error compressing image:', error);
         // Fallback to original
