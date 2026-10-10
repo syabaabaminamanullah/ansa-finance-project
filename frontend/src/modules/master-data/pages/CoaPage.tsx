@@ -61,6 +61,7 @@ export function CoaPage() {
         a.account_code.localeCompare(b.account_code)
       );
       setCoas(sorted);
+      try { sessionStorage.setItem('ansa_coas_cache', JSON.stringify(sorted)); } catch (e) {}
     } catch (error) {
       console.error('Failed to fetch data:', error);
       addToast('error', 'Connection Error', 'Failed to fetch COA data. Ensure backend is running.');
