@@ -369,13 +369,17 @@ export function JournalPage() {
 
     setIsSaving(true);
     try {
+      const headerProjectId = formData.project_id || undefined;
+      const headerRabId = formData.project_rab_id || undefined;
+
       const payload = {
         ...formData,
         description: formData.description || undefined,
         lines: formData.lines.map(line => ({
           ...line,
-          project_id: line.project_id === '' ? undefined : line.project_id,
-          project_rab_id: line.project_rab_id === '' ? undefined : line.project_rab_id,
+          // Propagate header-level project to every line that has no explicit project override
+          project_id: (line.project_id && line.project_id !== '') ? line.project_id : (headerProjectId || undefined),
+          project_rab_id: (line.project_rab_id && line.project_rab_id !== '') ? line.project_rab_id : (headerRabId || undefined),
           cost_center_id: (line as any).cost_center_id === '' ? undefined : (line as any).cost_center_id,
           description: line.description || undefined
         }))
