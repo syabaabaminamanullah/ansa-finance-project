@@ -6,6 +6,7 @@ import { ArrowLeft, Filter, Download, Paperclip, Upload, Eye, X, FileText, Image
 import { Link } from 'react-router-dom';
 import { api, financeApi, financialsApi, projectsApi } from '../../../services/api';
 import { useToastStore } from '../../../store/toastStore';
+import imageCompression from 'browser-image-compression';
 
 const API_BASE = (api.defaults.baseURL || '/api/v1') + '/finance';
 
@@ -79,13 +80,27 @@ function AttachmentModal({
   const isPdf = currentPath?.toLowerCase().endsWith('.pdf');
   const title = fieldType === 'attachment_path' ? 'Bukti Pengeluaran Kas (Transfer)' : 'Dokumen Dasar (Invoice/SPD)';
 
+  const processFileForUpload = async (file: File) => {
+    const MAX_SIZE = 4.5 * 1024 * 1024; // 4.5MB limit
+    if (file.type.startsWith('image/')) {
+      try {
+        return await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true });
+      } catch (error) {
+        console.error('Error compressing image:', error);
+      }
+    }
+    if (file.size > MAX_SIZE) {
+      throw new Error(`File terlalu besar (${(file.size / (1024*1024)).toFixed(1)}MB). Maksimal 4MB.`);
+    }
+    return file;
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
-    const file = e.target.files[0];
-    
     setIsUploading(true);
     try {
-      const res = await financeApi.uploadFile(file);
+      const processedFile = await processFileForUpload(e.target.files[0]);
+      const res = await financeApi.uploadFile(processedFile);
       const url = res.data.url;
       await financeApi.updateJournalPartial(journal.journal_id, { [fieldType]: url });
 
@@ -93,7 +108,8 @@ function AttachmentModal({
       onUploaded();
       onClose(); // Just close to refresh
     } catch (err: any) {
-      addToast('error', 'Upload Gagal', err.message || 'Gagal mengupload file.');
+      const errorMsg = err.message?.includes('413') ? 'File terlalu besar. Maksimal 4.5MB (Limit Server).' : (err.message || 'Gagal mengupload file.');
+      addToast('error', 'Upload Gagal', errorMsg);
     } finally {
       setIsUploading(false);
     }

@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { financeApi, financialsApi, projectsApi, rabApi } from '../../../services/api';
 import { useToastStore } from '../../../store/toastStore';
 import { TaxHintHelper } from '../components/TaxHintHelper';
+import imageCompression from 'browser-image-compression';
 
 interface JournalLine {
   id?: string;
@@ -293,15 +294,32 @@ export function JournalPage() {
 
   const [isUploading, setIsUploading] = useState(false);
 
+  const processFileForUpload = async (file: File) => {
+    const MAX_SIZE = 4.5 * 1024 * 1024;
+    if (file.type.startsWith('image/')) {
+      try {
+        return await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true });
+      } catch (error) {
+        console.error('Error compressing image:', error);
+      }
+    }
+    if (file.size > MAX_SIZE) {
+      throw new Error(`File terlalu besar (${(file.size / (1024*1024)).toFixed(1)}MB). Maksimal 4MB.`);
+    }
+    return file;
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'attachment_path' | 'attachment_path_2') => {
     if (!e.target.files || !e.target.files[0]) return;
     setIsUploading(true);
     try {
-      const res = await financeApi.uploadFile(e.target.files[0]);
+      const processedFile = await processFileForUpload(e.target.files[0]);
+      const res = await financeApi.uploadFile(processedFile);
       setFormData(prev => ({ ...prev, [field]: res.data.url }));
       addToast('success', 'Upload Success', 'File attached successfully.');
     } catch (err: any) {
-      addToast('error', 'Upload Failed', err.message);
+      const errorMsg = err.message?.includes('413') ? 'File terlalu besar. Maksimal 4.5MB (Limit Server).' : (err.message || 'Gagal mengupload file.');
+      addToast('error', 'Upload Gagal', errorMsg);
     } finally {
       setIsUploading(false);
     }
@@ -311,7 +329,8 @@ export function JournalPage() {
     if (!e.target.files || !e.target.files[0]) return;
     setIsUploading(true);
     try {
-      const res = await financeApi.uploadFile(e.target.files[0]);
+      const processedFile = await processFileForUpload(e.target.files[0]);
+      const res = await financeApi.uploadFile(processedFile);
       const url = res.data.url;
       // Update via API
       if (false) {
@@ -323,7 +342,8 @@ export function JournalPage() {
       addToast('success', 'Upload Success', 'File attached successfully.');
       fetchData();
     } catch (err: any) {
-      addToast('error', 'Upload Failed', err.message);
+      const errorMsg = err.message?.includes('413') ? 'File terlalu besar. Maksimal 4.5MB (Limit Server).' : (err.message || 'Gagal mengupload file.');
+      addToast('error', 'Upload Gagal', errorMsg);
     } finally {
       setIsUploading(false);
     }
