@@ -112,7 +112,9 @@ export function ExpensePage() {
       const [expRes, projRes, coasRes] = await Promise.all(promises);
 
       const sortedExpenses = (expRes.data || []).sort((a: Expense, b: Expense) => {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return (b.expense_number || '').localeCompare(a.expense_number || '');
       });
       setExpenses(sortedExpenses);
 
