@@ -1779,7 +1779,15 @@ export const generateWeeklyCashflowPDF = (
       }
     });
 
-    const finalY1 = (doc as any).lastAutoTable.finalY;
+    // --- HALAMAN LANDSCAPE BARU UNTUK TABEL 2 (BAGIAN 2) ---
+    doc.addPage('a4', 'landscape');
+    let landscapeY2 = addReportHeader(
+      doc,
+      'LAPORAN ARUS KAS PROYEK',
+      `PROYEK: ${cleanProjectName}`,
+      data.period.start,
+      data.period.end
+    );
 
     // --- TABEL 2 (BAGIAN 2 & TOTAL KUMULATIF) ---
     doc.setFontSize(9.5);
@@ -1787,10 +1795,10 @@ export const generateWeeklyCashflowPDF = (
     doc.setTextColor(140, 95, 52);
     doc.text(
       isCoa
-        ? `BAGIAN 2: AKUN COA (W${mid + 1} – W${numWeeks}) & TOTAL KUMULATIF PROYEK`
-        : `BAGIAN 2: KATEGORI (W${mid + 1} – W${numWeeks}) & TOTAL KUMULATIF PROYEK`,
+        ? `3. MATRIKS ARUS KAS PROYEK BERDASARKAN AKUN COA - BAGIAN 2 (W${mid + 1} – W${numWeeks}) & TOTAL KUMULATIF`
+        : `3. MATRIKS ARUS KAS PROYEK BERDASARKAN KATEGORI - BAGIAN 2 (W${mid + 1} – W${numWeeks}) & TOTAL KUMULATIF`,
       8, 
-      finalY1 + 5.5
+      landscapeY2 + 4
     );
 
     const headP2 = isCoa
@@ -1860,7 +1868,7 @@ export const generateWeeklyCashflowPDF = (
 
     autoTable(doc, {
       theme: 'plain',
-      startY: finalY1 + 8,
+      startY: landscapeY2 + 6.5,
       margin: { left: 8, right: 8 },
       head: [headP2],
       headStyles: {
