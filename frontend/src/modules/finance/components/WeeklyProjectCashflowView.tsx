@@ -907,7 +907,6 @@ export function WeeklyProjectCashflowView({
                     <td className="py-2 px-3 text-center font-mono text-[10px] text-textSecondary">{row.code}</td>
                     <td className="py-2 px-3 font-medium text-textPrimary">
                       {row.category}
-                      {row.is_new && <span className="ml-1 text-[9px] px-1 rounded bg-amber-500/20 text-amber-600 font-bold">*baru</span>}
                     </td>
                     {activeData.weeks.map((w: any) => {
                       const val = row.weeks[`W${w.week_num}`] || 0;
@@ -1029,11 +1028,7 @@ export function WeeklyProjectCashflowView({
                       <td className="py-2 px-3 text-center font-bold text-primary">W{t.week_num}</td>
                       <td className="py-2 px-3 whitespace-nowrap text-textSecondary">{t.date}</td>
                       <td className="py-2 px-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                          t.is_new 
-                            ? 'bg-amber-500/15 text-amber-600' 
-                            : 'bg-primary/10 text-primary'
-                        }`}>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary">
                           {t.category}
                         </span>
                       </td>
@@ -1048,10 +1043,10 @@ export function WeeklyProjectCashflowView({
                           </span>
                         </div>
                       </td>
-                      <td className="py-2 px-3 text-right font-mono text-success font-semibold">
+                      <td className="py-2 px-3 text-right font-mono text-success font-semibold whitespace-nowrap">
                         {isInf ? formatCurrency(t.amount) : '-'}
                       </td>
-                      <td className="py-2 px-3 text-right font-mono text-danger font-semibold">
+                      <td className="py-2 px-3 text-right font-mono text-danger font-semibold whitespace-nowrap">
                         {!isInf ? formatCurrency(t.amount) : '-'}
                       </td>
                     </tr>

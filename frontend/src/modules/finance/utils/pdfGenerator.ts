@@ -311,9 +311,6 @@ const addPDFFooter = (doc: jsPDF) => {
     // Line 1: Tanggal Cetak (Kiri) dan Nomor Halaman (Kanan) sejajar horizontal
     doc.text(`Dicetak tanggal: ${today}`, 14, footerY);
     doc.text(`Halaman ${i} dari ${pageCount}`, rightMargin, footerY, { align: 'right' });
-    
-    // Line 2: Keterangan Sistem ANSA seragam di SELURUH halaman
-    doc.text('(dibuat dan didukung oleh ANSA - Digital Product Developer.)', 14, footerY + 4.5);
   }
 };
 
@@ -1349,11 +1346,29 @@ export const generateWeeklyCashflowPDF = (
   const fmt = (n: number) => formatAccVal(n);
   const fmtFull = (n: number) => formatCurrency(n);
 
+  // Clean project name: remove code prefix and mode suffix
+  const cleanProjectName = (data.project?.name || 'Borpile & Struktur - IKPT Solok Selatan')
+    .replace(/^[0-9A-Z_-]+\s*-\s*/, '')
+    .trim() || 'Borpile & Struktur - IKPT Solok Selatan';
+
+  // Helper to remove "[BARU]" and "*" artifacts
+  const cleanName = (str: string) => {
+    if (!str) return '';
+    return str.replace(/\[BARU\]\s*/gi, '').replace(/\s*\*$/g, '').trim();
+  };
+
+  // Helper for non-breaking currency formatting to prevent digits wrapping
+  const formatTxVal = (val: number) => {
+    if (!val || val === 0) return '-';
+    const formatted = formatCurrency(Math.abs(val)).replace(/\s+/g, '\u00A0');
+    return val < 0 ? `(${formatted})` : formatted;
+  };
+
   // === PAGE 1: RINGKASAN EKSEKUTIF & KOMPARASI KATEGORI / COA ===
   let currentY = addReportHeader(
     doc,
     'LAPORAN ARUS KAS MINGGUAN',
-    `PROYEK: ${data.project.code} - ${data.project.name} (${isCoa ? 'MODE: AKUN COA BUKU BESAR' : 'MODE: KATEGORI OPERASIONAL'})`,
+    `PROYEK: ${cleanProjectName}`,
     data.period.start,
     data.period.end
   );
@@ -1375,7 +1390,7 @@ export const generateWeeklyCashflowPDF = (
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
-  doc.text('2 Termin Pembayaran IKPT', 20, currentY + 20);
+  doc.text('Termin Pembayaran Proyek', 20, currentY + 20);
 
   // Divider 1
   doc.setDrawColor(203, 213, 225);
@@ -1409,8 +1424,8 @@ export const generateWeeklyCashflowPDF = (
   doc.text((data.kpi.net_cashflow >= 0 ? '+ ' : '') + fmtFull(data.kpi.net_cashflow), 140, currentY + 14);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(22, 101, 52);
-  doc.text('SURPLUS KAS POSITIF', 140, currentY + 20);
+  doc.setTextColor(data.kpi.net_cashflow >= 0 ? 22 : 185, data.kpi.net_cashflow >= 0 ? 101 : 28, data.kpi.net_cashflow >= 0 ? 52 : 28);
+  doc.text(data.kpi.net_cashflow >= 0 ? 'SURPLUS KAS POSITIF' : 'DEFISIT KAS OPERASIONAL', 140, currentY + 20);
 
   currentY += 34;
 
@@ -1431,27 +1446,63 @@ export const generateWeeklyCashflowPDF = (
   const catRows: any[][] = [];
   const summaryList = isCoa ? (data.coa_summary || []) : data.categories_summary;
   summaryList.forEach((item: any, idx: number) => {
-    const isNew = item.is_new;
-    catRows.push([
-      idx + 1,
-      item.code,
-      isCoa ? item.name : (isNew ? `${item.name} *` : item.name),
-      fmt(item.amount),
-      `${item.percentage.toFixed(2)}%`
-    ]);
+    const displayName = cleanName(item.name);
+    if (isCoa) {
+      catRows.push([
+        idx + 1,
+        item.code,
+        displayName,
+        fmt(item.amount),
+        `${item.percentage.toFixed(2)}%`
+      ]);
+    } else {
+      catRows.push([
+        idx + 1,
+        displayName,
+        fmt(item.amount),
+        `${item.percentage.toFixed(2)}%`
+      ]);
+    }
   });
 
-  catRows.push([
-    { content: 'TOTAL KAS KELUAR OPERASIONAL', colSpan: 3, styles: { fontStyle: 'bold', textColor: [20, 35, 60] } },
-    { content: fmt(data.kpi.total_outflow), styles: { fontStyle: 'bold', halign: 'right', textColor: [20, 35, 60] } },
-    { content: '100.00%', styles: { fontStyle: 'bold', halign: 'right', textColor: [20, 35, 60] } }
-  ]);
+  if (isCoa) {
+    catRows.push([
+      { content: 'TOTAL KAS KELUAR OPERASIONAL', colSpan: 3, styles: { fontStyle: 'bold', textColor: [20, 35, 60] } },
+      { content: fmt(data.kpi.total_outflow), styles: { fontStyle: 'bold', halign: 'right', textColor: [20, 35, 60] } },
+      { content: '100.00%', styles: { fontStyle: 'bold', halign: 'right', textColor: [20, 35, 60] } }
+    ]);
+  } else {
+    catRows.push([
+      { content: 'TOTAL KAS KELUAR OPERASIONAL', colSpan: 2, styles: { fontStyle: 'bold', textColor: [20, 35, 60] } },
+      { content: fmt(data.kpi.total_outflow), styles: { fontStyle: 'bold', halign: 'right', textColor: [20, 35, 60] } },
+      { content: '100.00%', styles: { fontStyle: 'bold', halign: 'right', textColor: [20, 35, 60] } }
+    ]);
+  }
+
+  const tableHead = isCoa
+    ? [['No', 'Kode', 'Akun Buku Besar (COA)', 'Total Nominal (IDR)', 'Porsi (%)']]
+    : [['No', 'Kategori Pengeluaran', 'Total Nominal (IDR)', 'Porsi (%)']];
+
+  const tableColStyles = isCoa
+    ? {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 24, halign: 'center', textColor: [100, 116, 139] },
+        2: { cellWidth: 84, halign: 'left' },
+        3: { cellWidth: 42, halign: 'right' },
+        4: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
+      }
+    : {
+        0: { cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 104, halign: 'left', fontStyle: 'bold' },
+        2: { cellWidth: 44, halign: 'right' },
+        3: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
+      };
 
   autoTable(doc, {
     theme: 'plain',
     startY: currentY,
     margin: { left: 14, right: 14 },
-    head: [['No', 'Kode', isCoa ? 'Akun Buku Besar (COA)' : 'Kategori Pengeluaran', 'Total Nominal (IDR)', 'Porsi (%)']],
+    head: tableHead,
     headStyles: {
       fillColor: [241, 245, 249],
       textColor: [71, 85, 105],
@@ -1467,13 +1518,7 @@ export const generateWeeklyCashflowPDF = (
       cellPadding: { top: 1.8, bottom: 1.8, left: 2, right: 2 },
       lineWidth: 0
     },
-    columnStyles: {
-      0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 24, halign: 'center', textColor: [100, 116, 139] },
-      2: { cellWidth: 84, halign: 'left' },
-      3: { cellWidth: 42, halign: 'right' },
-      4: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
-    },
+    columnStyles: tableColStyles,
     willDrawPage: () => {
       drawWatermark(doc);
     },
@@ -1570,7 +1615,7 @@ export const generateWeeklyCashflowPDF = (
   let landscapeY = addReportHeader(
     doc,
     'LAPORAN ARUS KAS MINGGUAN',
-    'WEEKLY CASH FLOW STATEMENT',
+    `PROYEK: ${cleanProjectName}`,
     data.period.start,
     data.period.end
   );
@@ -1595,26 +1640,39 @@ export const generateWeeklyCashflowPDF = (
     return val < 0 ? `(${formatted})` : formatted;
   };
 
-  const matrixHead = ['Kode', isCoa ? 'Akun Buku Besar (COA)' : 'Kategori Transaksi', ...data.weeks.map((w: any) => `W${w.week_num}`), 'TOTAL'];
+  const matrixHead = isCoa
+    ? ['Kode', 'Akun Buku Besar (COA)', ...data.weeks.map((w: any) => `W${w.week_num}`), 'TOTAL']
+    : ['Kategori Transaksi', ...data.weeks.map((w: any) => `W${w.week_num}`), 'TOTAL'];
+
   const matrixRows: any[][] = [];
   const matrixSource = isCoa ? (data.coa_matrix || []) : data.matrix;
 
   matrixSource.forEach((row: any) => {
     const isInf = row.flow === 'INFLOW';
-    const rowData: any[] = [
-      row.code,
-      row.category,
-      ...data.weeks.map((w: any) => {
-        const val = row.weeks[`W${w.week_num}`] || 0;
-        return formatMatrixVal(val);
-      }),
-      { content: formatMatrixVal(row.total), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
-    ];
+    const catDisplayName = cleanName(row.category);
+    const rowData: any[] = isCoa
+      ? [
+          row.code,
+          catDisplayName,
+          ...data.weeks.map((w: any) => {
+            const val = row.weeks[`W${w.week_num}`] || 0;
+            return formatMatrixVal(val);
+          }),
+          { content: formatMatrixVal(row.total), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
+        ]
+      : [
+          catDisplayName,
+          ...data.weeks.map((w: any) => {
+            const val = row.weeks[`W${w.week_num}`] || 0;
+            return formatMatrixVal(val);
+          }),
+          { content: formatMatrixVal(row.total), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
+        ];
     matrixRows.push(rowData);
   });
 
   // Matrix Outflow Totals
-  const totalOutRow = ['-', 'TOTAL KAS KELUAR'];
+  const totalOutRow = isCoa ? ['-', 'TOTAL KAS KELUAR'] : ['TOTAL KAS KELUAR'];
   data.weeks.forEach((w: any) => {
     totalOutRow.push(w.outflow > 0 ? formatMatrixVal(w.outflow) : '-');
   });
@@ -1622,28 +1680,38 @@ export const generateWeeklyCashflowPDF = (
   matrixRows.push(totalOutRow);
 
   // Matrix Net Cashflow
-  const netRow = ['-', 'NET CASH FLOW'];
-    data.weeks.forEach((w: any) => {
-      netRow.push(w.cumulative !== 0 ? formatMatrixVal(w.cumulative) : '-');
-    });
+  const netRow = isCoa ? ['-', 'NET CASH FLOW'] : ['NET CASH FLOW'];
+  data.weeks.forEach((w: any) => {
+    netRow.push(w.cumulative !== 0 ? formatMatrixVal(w.cumulative) : '-');
+  });
   netRow.push(formatMatrixVal(data.kpi.net_cashflow));
   matrixRows.push(netRow);
 
   // Width calculations for Landscape A4: Page Width 297mm - Margins (8mm + 8mm) = 281mm usable
-  const codeWidth = 15;
-  const catWidth = isCoa ? 42 : 36;
-  const totalWidth = 24;
-  const remainingForWeeks = 281 - codeWidth - catWidth - totalWidth;
-  const weekColWidth = Math.max(16, Math.floor((remainingForWeeks / numWeeks) * 10) / 10);
-
-  const colStyles: any = {
-    0: { cellWidth: codeWidth, halign: 'center', textColor: [100, 116, 139], overflow: 'visible' },
-    1: { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' }
-  };
-  data.weeks.forEach((_: any, idx: number) => {
-    colStyles[idx + 2] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
-  });
-  colStyles[data.weeks.length + 2] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
+  const colStyles: any = {};
+  if (isCoa) {
+    const codeWidth = 15;
+    const catWidth = 42;
+    const totalWidth = 24;
+    const remainingForWeeks = 281 - codeWidth - catWidth - totalWidth;
+    const weekColWidth = Math.max(16, Math.floor((remainingForWeeks / numWeeks) * 10) / 10);
+    colStyles[0] = { cellWidth: codeWidth, halign: 'center', textColor: [100, 116, 139], overflow: 'visible' };
+    colStyles[1] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
+    data.weeks.forEach((_: any, idx: number) => {
+      colStyles[idx + 2] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
+    });
+    colStyles[data.weeks.length + 2] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
+  } else {
+    const catWidth = 44;
+    const totalWidth = 25;
+    const remainingForWeeks = 281 - catWidth - totalWidth;
+    const weekColWidth = Math.max(18, Math.floor((remainingForWeeks / numWeeks) * 10) / 10);
+    colStyles[0] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
+    data.weeks.forEach((_: any, idx: number) => {
+      colStyles[idx + 1] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
+    });
+    colStyles[data.weeks.length + 1] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
+  }
 
   autoTable(doc, {
     theme: 'plain',
@@ -1682,7 +1750,7 @@ export const generateWeeklyCashflowPDF = (
         doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
         
         const rawRow = hookData.row.raw as any;
-        const raw1 = String(rawRow?.[1]?.content || rawRow?.[1] || '');
+        const raw1 = String(rawRow?.[1]?.content || rawRow?.[1] || rawRow?.[0]?.content || rawRow?.[0] || '');
         if (raw1.startsWith('TOTAL KAS KELUAR') || raw1.startsWith('NET CASH FLOW')) {
           doc.setDrawColor(50, 65, 80);
           doc.setLineWidth(0.3);
@@ -1696,8 +1764,8 @@ export const generateWeeklyCashflowPDF = (
   doc.addPage('a4', 'portrait');
   let detailY = addReportHeader(
     doc,
-    'AUDIT TRAIL TRANSAKSI KAS MINGGUAN',
-    `VERIFIKASI COA & DESKRIPSI: ${data.project.code}`,
+    'RINCIAN TRANSAKSI ARUS KAS MINGGUAN',
+    `PROYEK: ${cleanProjectName}`,
     data.period.start,
     data.period.end
   );
@@ -1705,7 +1773,7 @@ export const generateWeeklyCashflowPDF = (
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(140, 95, 52);
-  doc.text('4. RINCIAN TRANSAKSI LENGKAP PER MINGGU (VERIFIED TRANSACTIONS)', 14, detailY);
+  doc.text('3. RINCIAN TRANSAKSI LENGKAP PER MINGGU', 14, detailY);
   detailY += 4;
 
   const txRows: any[][] = [];
@@ -1717,11 +1785,11 @@ export const generateWeeklyCashflowPDF = (
     txRows.push([
       `W${t.week_num}`,
       t.date,
-      t.category,
+      cleanName(t.category),
       `${t.coa_code} ${t.coa_name}`,
       t.description,
-      t.flow === 'INFLOW' ? fmt(t.amount) : '-',
-      t.flow === 'OUTFLOW' ? fmt(t.amount) : '-'
+      t.flow === 'INFLOW' ? formatTxVal(t.amount) : '-',
+      t.flow === 'OUTFLOW' ? formatTxVal(t.amount) : '-'
     ]);
   });
 
@@ -1729,30 +1797,30 @@ export const generateWeeklyCashflowPDF = (
     theme: 'plain',
     startY: detailY,
     margin: { left: 14, right: 14 },
-    head: [['Wk', 'Tanggal', 'Kategori Terverifikasi', 'Akun COA Terdaftar', 'Keterangan Transaksi Asli', 'Inflow', 'Outflow']],
+    head: [['Wk', 'Tanggal', 'Kategori', 'Akun COA', 'Keterangan Transaksi', 'Inflow', 'Outflow']],
     headStyles: {
       fillColor: [241, 245, 249],
       textColor: [71, 85, 105],
       fontStyle: 'bold',
-      fontSize: 7.5,
-      cellPadding: { top: 2.5, bottom: 2.5, left: 1.5, right: 1.5 }
+      fontSize: 7.2,
+      cellPadding: { top: 2.5, bottom: 2.5, left: 1.2, right: 1.2 }
     },
     body: txRows,
     styles: {
-      fontSize: 6.8,
+      fontSize: 6.5,
       font: 'helvetica',
       textColor: [35, 35, 35],
-      cellPadding: { top: 1.8, bottom: 1.8, left: 1.5, right: 1.5 },
+      cellPadding: { top: 1.8, bottom: 1.8, left: 1.2, right: 1.2 },
       lineWidth: 0
     },
     columnStyles: {
-      0: { cellWidth: 10, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 18, halign: 'center' },
-      2: { cellWidth: 32, halign: 'left', fontStyle: 'bold' },
-      3: { cellWidth: 32, halign: 'left', textColor: [100, 116, 139] },
-      4: { cellWidth: 50, halign: 'left' },
-      5: { cellWidth: 20, halign: 'right', textColor: [22, 101, 52] },
-      6: { cellWidth: 20, halign: 'right', textColor: [185, 28, 28] }
+      0: { cellWidth: 8, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 16, halign: 'center' },
+      2: { cellWidth: 26, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' },
+      3: { cellWidth: 28, halign: 'left', textColor: [100, 116, 139], overflow: 'linebreak' },
+      4: { cellWidth: 48, halign: 'left', overflow: 'linebreak' },
+      5: { cellWidth: 28, halign: 'right', textColor: [22, 101, 52], overflow: 'visible' },
+      6: { cellWidth: 28, halign: 'right', textColor: [185, 28, 28], overflow: 'visible' }
     },
     willDrawPage: () => {
       drawWatermark(doc);

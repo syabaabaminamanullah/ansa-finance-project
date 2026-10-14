@@ -832,7 +832,7 @@ def get_project_weekly_cashflow(
 
     # Category definitions & ordering
     CATEGORY_ORDER = [
-        {"code": "INFLOW-01", "name": "[BARU] Penerimaan Kas (Termin Proyek)", "is_new": True, "flow": "INFLOW"},
+        {"code": "INFLOW-01", "name": "Penerimaan Kas (Termin Proyek)", "is_new": False, "flow": "INFLOW"},
         {"code": "KAT-01", "name": "MCU + BPJS", "is_new": False, "flow": "OUTFLOW"},
         {"code": "KAT-02", "name": "Sucofindo + Uji Material", "is_new": False, "flow": "OUTFLOW"},
         {"code": "KAT-03", "name": "Preparasi Rig", "is_new": False, "flow": "OUTFLOW"},
@@ -844,7 +844,7 @@ def get_project_weekly_cashflow(
         {"code": "KAT-09", "name": "Consumable", "is_new": False, "flow": "OUTFLOW"},
         {"code": "KAT-10", "name": "Operasional", "is_new": False, "flow": "OUTFLOW"},
         {"code": "KAT-11", "name": "Lain-Lain", "is_new": False, "flow": "OUTFLOW"},
-        {"code": "KAT-BARU-01", "name": "[BARU] Kasbon Personil / Tim Lapangan", "is_new": True, "flow": "OUTFLOW"},
+        {"code": "KAT-12", "name": "Kasbon Personil / Tim Lapangan", "is_new": False, "flow": "OUTFLOW"},
     ]
 
     transactions = []
@@ -909,9 +909,9 @@ def get_project_weekly_cashflow(
         if cash_line.debit and cash_line.debit > 0:
             flow = "INFLOW"
             amount = float(cash_line.debit)
-            category = "[BARU] Penerimaan Kas (Termin Proyek)"
+            category = "Penerimaan Kas (Termin Proyek)"
             cat_code = "INFLOW-01"
-            is_new = True
+            is_new = False
         else:
             flow = "OUTFLOW"
             amount = float(cash_line.credit or 0.0)
@@ -968,9 +968,9 @@ def get_project_weekly_cashflow(
                 category = "Gaji Personil"
                 cat_code = "KAT-08"
             elif 'kasbon' in full_text:
-                category = "[BARU] Kasbon Personil / Tim Lapangan"
-                cat_code = "KAT-BARU-01"
-                is_new = True
+                category = "Kasbon Personil / Tim Lapangan"
+                cat_code = "KAT-12"
+                is_new = False
             elif 'consumable' in full_text or 'spillbak' in full_text:
                 category = "Consumable"
                 cat_code = "KAT-09"
@@ -1131,7 +1131,7 @@ def get_project_weekly_cashflow(
         for w_data in weeks_list:
             w_id = f"W{w_data['week_num']}"
             if cdef["flow"] == "INFLOW":
-                val = w_data["inflow"] if cname == "[BARU] Penerimaan Kas (Termin Proyek)" else 0.0
+                val = w_data["inflow"] if cname == "Penerimaan Kas (Termin Proyek)" else 0.0
             else:
                 val = w_data["category_amounts"].get(cname, 0.0)
             row["weeks"][w_id] = val

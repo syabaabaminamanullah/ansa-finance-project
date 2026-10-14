@@ -264,7 +264,7 @@ def generate_copy1_data(base_cashflow: Dict[str, Any]) -> Dict[str, Any]:
         return res
 
     CATEGORY_ORDER = [
-        {"code": "INFLOW-01", "name": "[BARU] Penerimaan Kas (Termin Proyek)", "is_new": True, "flow": "INFLOW"},
+        {"code": "INFLOW-01", "name": "Penerimaan Kas (Termin Proyek)", "is_new": False, "flow": "INFLOW"},
         {"code": "KAT-01", "name": "MCU + BPJS", "is_new": False, "flow": "OUTFLOW"},
         {"code": "KAT-02", "name": "Sucofindo + Uji Material", "is_new": False, "flow": "OUTFLOW"},
         {"code": "KAT-03", "name": "Preparasi Rig", "is_new": False, "flow": "OUTFLOW"},
@@ -276,7 +276,7 @@ def generate_copy1_data(base_cashflow: Dict[str, Any]) -> Dict[str, Any]:
         {"code": "KAT-09", "name": "Consumable", "is_new": False, "flow": "OUTFLOW"},
         {"code": "KAT-10", "name": "Operasional", "is_new": False, "flow": "OUTFLOW"},
         {"code": "KAT-11", "name": "Lain-Lain", "is_new": False, "flow": "OUTFLOW"},
-        {"code": "KAT-BARU-01", "name": "[BARU] Kasbon Personil / Tim Lapangan", "is_new": True, "flow": "OUTFLOW"},
+        {"code": "KAT-12", "name": "Kasbon Personil / Tim Lapangan", "is_new": False, "flow": "OUTFLOW"},
     ]
 
     # 1. Parse LPJ Actual Expenses
@@ -581,8 +581,8 @@ def generate_copy1_data(base_cashflow: Dict[str, Any]) -> Dict[str, Any]:
     matrix = []
     matrix.append({
         "code": "INFLOW-01",
-        "category": "[BARU] Penerimaan Kas (Termin Proyek)",
-        "is_new": True,
+        "category": "Penerimaan Kas (Termin Proyek)",
+        "is_new": False,
         "flow": "INFLOW",
         "weeks": {f"W{w['week_num']}": w["inflow"] for w in weeks_list},
         "total": tot_inflow
