@@ -1645,125 +1645,386 @@ export const generateWeeklyCashflowPDF = (
     return val < 0 ? `(${formatted})` : formatted;
   };
 
-  const matrixHead = isCoa
-    ? ['Kode', 'Akun Buku Besar (COA)', ...data.weeks.map((w: any) => `W${w.week_num}`), 'TOTAL']
-    : ['Kategori Transaksi', ...data.weeks.map((w: any) => `W${w.week_num}`), 'TOTAL'];
-
-  const matrixRows: any[][] = [];
   const matrixSource = isCoa ? (data.coa_matrix || []) : data.matrix;
 
-  matrixSource.forEach((row: any) => {
-    const isInf = row.flow === 'INFLOW';
-    const catDisplayName = cleanName(row.category);
-    const rowData: any[] = isCoa
-      ? [
-          row.code,
-          catDisplayName,
-          ...data.weeks.map((w: any) => {
-            const val = row.weeks[`W${w.week_num}`] || 0;
-            return formatMatrixVal(val);
-          }),
-          { content: formatMatrixVal(row.total), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
-        ]
-      : [
-          catDisplayName,
-          ...data.weeks.map((w: any) => {
-            const val = row.weeks[`W${w.week_num}`] || 0;
-            return formatMatrixVal(val);
-          }),
-          { content: formatMatrixVal(row.total), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
-        ];
-    matrixRows.push(rowData);
-  });
+  if (numWeeks > 8) {
+    // === 2 TABEL BERTINGKAT DALAM 1 HALAMAN LANDSCAPE (BAGIAN 1: W1–W7, BAGIAN 2: W8–W14 + TOTAL) ===
+    const mid = Math.ceil(numWeeks / 2);
+    const weeksP1 = data.weeks.slice(0, mid);
+    const weeksP2 = data.weeks.slice(mid);
 
-  // Matrix Outflow Totals
-  const totalOutRow = isCoa ? ['-', 'TOTAL KAS KELUAR'] : ['TOTAL KAS KELUAR'];
-  data.weeks.forEach((w: any) => {
-    totalOutRow.push(w.outflow > 0 ? formatMatrixVal(w.outflow) : '-');
-  });
-  totalOutRow.push(formatMatrixVal(data.kpi.total_outflow));
-  matrixRows.push(totalOutRow);
+    // --- TABEL 1 (BAGIAN 1) ---
+    doc.setFontSize(9.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(140, 95, 52);
+    doc.text(
+      isCoa
+        ? `3. MATRIKS ARUS KAS PROYEK BERDASARKAN AKUN COA - BAGIAN 1 (W1 – W${mid})`
+        : `3. MATRIKS ARUS KAS PROYEK BERDASARKAN KATEGORI - BAGIAN 1 (W1 – W${mid})`,
+      8, 
+      landscapeY + 4
+    );
 
-  // Matrix Net Cashflow
-  const netRow = isCoa ? ['-', 'NET CASH FLOW'] : ['NET CASH FLOW'];
-  data.weeks.forEach((w: any) => {
-    netRow.push(w.cumulative !== 0 ? formatMatrixVal(w.cumulative) : '-');
-  });
-  netRow.push(formatMatrixVal(data.kpi.net_cashflow));
-  matrixRows.push(netRow);
+    const headP1 = isCoa
+      ? ['Kode', 'Akun Buku Besar (COA)', ...weeksP1.map((w: any) => `W${w.week_num}`), `SUBTOTAL (W1–W${mid})`]
+      : ['Kategori Transaksi', ...weeksP1.map((w: any) => `W${w.week_num}`), `SUBTOTAL (W1–W${mid})`];
 
-  // Width calculations for Landscape A4: Page Width 297mm - Margins (8mm + 8mm) = 281mm usable
-  const colStyles: any = {};
-  if (isCoa) {
-    const codeWidth = 15;
-    const catWidth = 42;
-    const totalWidth = 24;
-    const remainingForWeeks = 281 - codeWidth - catWidth - totalWidth;
-    const weekColWidth = Math.max(16, Math.floor((remainingForWeeks / numWeeks) * 10) / 10);
-    colStyles[0] = { cellWidth: codeWidth, halign: 'center', textColor: [100, 116, 139], overflow: 'visible' };
-    colStyles[1] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
-    data.weeks.forEach((_: any, idx: number) => {
-      colStyles[idx + 2] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
+    const rowsP1: any[][] = [];
+    matrixSource.forEach((row: any) => {
+      const isInf = row.flow === 'INFLOW';
+      const catDisplayName = cleanName(row.category);
+      const subtotalP1 = weeksP1.reduce((sum: number, w: any) => sum + (row.weeks[`W${w.week_num}`] || 0), 0);
+      const rowData: any[] = isCoa
+        ? [
+            row.code,
+            catDisplayName,
+            ...weeksP1.map((w: any) => formatMatrixVal(row.weeks[`W${w.week_num}`] || 0)),
+            { content: formatMatrixVal(subtotalP1), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
+          ]
+        : [
+            catDisplayName,
+            ...weeksP1.map((w: any) => formatMatrixVal(row.weeks[`W${w.week_num}`] || 0)),
+            { content: formatMatrixVal(subtotalP1), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
+          ];
+      rowsP1.push(rowData);
     });
-    colStyles[data.weeks.length + 2] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
-  } else {
-    const catWidth = 44;
-    const totalWidth = 25;
-    const remainingForWeeks = 281 - catWidth - totalWidth;
-    const weekColWidth = Math.max(18, Math.floor((remainingForWeeks / numWeeks) * 10) / 10);
-    colStyles[0] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
-    data.weeks.forEach((_: any, idx: number) => {
-      colStyles[idx + 1] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
-    });
-    colStyles[data.weeks.length + 1] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
-  }
 
-  autoTable(doc, {
-    theme: 'plain',
-    startY: landscapeY + 8,
-    margin: { left: 8, right: 8 },
-    head: [matrixHead],
-    headStyles: {
-      fillColor: [241, 245, 249],
-      textColor: [71, 85, 105],
-      fontStyle: 'bold',
-      fontSize: 6.2,
-      halign: 'center',
-      cellPadding: { top: 2, bottom: 2, left: 0.3, right: 0.3 }
-    },
-    body: matrixRows,
-    styles: {
-      fontSize: 5.2,
-      font: 'helvetica',
-      textColor: [35, 35, 35],
-      cellPadding: { top: 1.8, bottom: 1.8, left: 0.3, right: 0.3 },
-      lineWidth: 0
-    },
-    columnStyles: colStyles,
-    willDrawPage: () => {
-      drawWatermark(doc);
-    },
-    didDrawCell: (hookData) => {
-      if (hookData.section === 'head') {
-        doc.setDrawColor(212, 175, 55);
-        doc.setLineWidth(0.4);
-        doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
-      }
-      if (hookData.section === 'body') {
-        doc.setDrawColor(241, 245, 249);
-        doc.setLineWidth(0.2);
-        doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
-        
-        const rawRow = hookData.row.raw as any;
-        const raw1 = String(rawRow?.[1]?.content || rawRow?.[1] || rawRow?.[0]?.content || rawRow?.[0] || '');
-        if (raw1.startsWith('TOTAL KAS KELUAR') || raw1.startsWith('NET CASH FLOW')) {
-          doc.setDrawColor(50, 65, 80);
-          doc.setLineWidth(0.3);
-          doc.line(hookData.cell.x, hookData.cell.y, hookData.cell.x + hookData.cell.width, hookData.cell.y);
+    // Outflow Totals P1
+    const subtotalOutP1 = weeksP1.reduce((sum: number, w: any) => sum + (w.outflow || 0), 0);
+    const totalOutRowP1 = isCoa ? ['-', 'TOTAL KAS KELUAR'] : ['TOTAL KAS KELUAR'];
+    weeksP1.forEach((w: any) => {
+      totalOutRowP1.push(w.outflow > 0 ? formatMatrixVal(w.outflow) : '-');
+    });
+    totalOutRowP1.push(formatMatrixVal(subtotalOutP1));
+    rowsP1.push(totalOutRowP1);
+
+    // Net Cashflow P1
+    const netRowP1 = isCoa ? ['-', 'NET CASH FLOW'] : ['NET CASH FLOW'];
+    weeksP1.forEach((w: any) => {
+      netRowP1.push(w.cumulative !== 0 ? formatMatrixVal(w.cumulative) : '-');
+    });
+    netRowP1.push(formatMatrixVal(weeksP1[weeksP1.length - 1]?.cumulative || 0));
+    rowsP1.push(netRowP1);
+
+    // Width calculations P1: 281mm usable
+    const colStylesP1: any = {};
+    if (isCoa) {
+      const codeWidth = 15;
+      const catWidth = 42;
+      const totalWidth = 32;
+      const remainingForWeeks = 281 - codeWidth - catWidth - totalWidth;
+      const weekColWidth = Math.floor((remainingForWeeks / weeksP1.length) * 10) / 10;
+      colStylesP1[0] = { cellWidth: codeWidth, halign: 'center', textColor: [100, 116, 139], overflow: 'visible' };
+      colStylesP1[1] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
+      weeksP1.forEach((_: any, idx: number) => {
+        colStylesP1[idx + 2] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
+      });
+      colStylesP1[weeksP1.length + 2] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
+    } else {
+      const catWidth = 48;
+      const totalWidth = 33;
+      const remainingForWeeks = 281 - catWidth - totalWidth;
+      const weekColWidth = Math.floor((remainingForWeeks / weeksP1.length) * 10) / 10;
+      colStylesP1[0] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
+      weeksP1.forEach((_: any, idx: number) => {
+        colStylesP1[idx + 1] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
+      });
+      colStylesP1[weeksP1.length + 1] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
+    }
+
+    autoTable(doc, {
+      theme: 'plain',
+      startY: landscapeY + 6.5,
+      margin: { left: 8, right: 8 },
+      head: [headP1],
+      headStyles: {
+        fillColor: [241, 245, 249],
+        textColor: [71, 85, 105],
+        fontStyle: 'bold',
+        fontSize: 5.8,
+        halign: 'center',
+        cellPadding: { top: 1.2, bottom: 1.2, left: 0.4, right: 0.4 }
+      },
+      body: rowsP1,
+      styles: {
+        fontSize: 5.0,
+        font: 'helvetica',
+        textColor: [35, 35, 35],
+        cellPadding: { top: 1.0, bottom: 1.0, left: 0.4, right: 0.4 },
+        lineWidth: 0
+      },
+      columnStyles: colStylesP1,
+      willDrawPage: () => {
+        drawWatermark(doc);
+      },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+        if (hookData.section === 'body') {
+          doc.setDrawColor(241, 245, 249);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+          
+          const rawRow = hookData.row.raw as any;
+          const raw1 = String(rawRow?.[1]?.content || rawRow?.[1] || rawRow?.[0]?.content || rawRow?.[0] || '');
+          if (raw1.startsWith('TOTAL KAS KELUAR') || raw1.startsWith('NET CASH FLOW')) {
+            doc.setDrawColor(50, 65, 80);
+            doc.setLineWidth(0.3);
+            doc.line(hookData.cell.x, hookData.cell.y, hookData.cell.x + hookData.cell.width, hookData.cell.y);
+          }
         }
       }
+    });
+
+    const finalY1 = (doc as any).lastAutoTable.finalY;
+
+    // --- TABEL 2 (BAGIAN 2 & TOTAL KUMULATIF) ---
+    doc.setFontSize(9.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(140, 95, 52);
+    doc.text(
+      isCoa
+        ? `BAGIAN 2: AKUN COA (W${mid + 1} – W${numWeeks}) & TOTAL KUMULATIF PROYEK`
+        : `BAGIAN 2: KATEGORI (W${mid + 1} – W${numWeeks}) & TOTAL KUMULATIF PROYEK`,
+      8, 
+      finalY1 + 5.5
+    );
+
+    const headP2 = isCoa
+      ? ['Kode', 'Akun Buku Besar (COA)', ...weeksP2.map((w: any) => `W${w.week_num}`), 'TOTAL KUMULATIF']
+      : ['Kategori Transaksi', ...weeksP2.map((w: any) => `W${w.week_num}`), 'TOTAL KUMULATIF'];
+
+    const rowsP2: any[][] = [];
+    matrixSource.forEach((row: any) => {
+      const isInf = row.flow === 'INFLOW';
+      const catDisplayName = cleanName(row.category);
+      const rowData: any[] = isCoa
+        ? [
+            row.code,
+            catDisplayName,
+            ...weeksP2.map((w: any) => formatMatrixVal(row.weeks[`W${w.week_num}`] || 0)),
+            { content: formatMatrixVal(row.total), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
+          ]
+        : [
+            catDisplayName,
+            ...weeksP2.map((w: any) => formatMatrixVal(row.weeks[`W${w.week_num}`] || 0)),
+            { content: formatMatrixVal(row.total), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
+          ];
+      rowsP2.push(rowData);
+    });
+
+    // Outflow Totals P2
+    const totalOutRowP2 = isCoa ? ['-', 'TOTAL KAS KELUAR'] : ['TOTAL KAS KELUAR'];
+    weeksP2.forEach((w: any) => {
+      totalOutRowP2.push(w.outflow > 0 ? formatMatrixVal(w.outflow) : '-');
+    });
+    totalOutRowP2.push(formatMatrixVal(data.kpi.total_outflow));
+    rowsP2.push(totalOutRowP2);
+
+    // Net Cashflow P2
+    const netRowP2 = isCoa ? ['-', 'NET CASH FLOW'] : ['NET CASH FLOW'];
+    weeksP2.forEach((w: any) => {
+      netRowP2.push(w.cumulative !== 0 ? formatMatrixVal(w.cumulative) : '-');
+    });
+    netRowP2.push(formatMatrixVal(data.kpi.net_cashflow));
+    rowsP2.push(netRowP2);
+
+    // Width calculations P2
+    const colStylesP2: any = {};
+    if (isCoa) {
+      const codeWidth = 15;
+      const catWidth = 42;
+      const totalWidth = 32;
+      const remainingForWeeks = 281 - codeWidth - catWidth - totalWidth;
+      const weekColWidth = Math.floor((remainingForWeeks / weeksP2.length) * 10) / 10;
+      colStylesP2[0] = { cellWidth: codeWidth, halign: 'center', textColor: [100, 116, 139], overflow: 'visible' };
+      colStylesP2[1] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
+      weeksP2.forEach((_: any, idx: number) => {
+        colStylesP2[idx + 2] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
+      });
+      colStylesP2[weeksP2.length + 2] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
+    } else {
+      const catWidth = 48;
+      const totalWidth = 33;
+      const remainingForWeeks = 281 - catWidth - totalWidth;
+      const weekColWidth = Math.floor((remainingForWeeks / weeksP2.length) * 10) / 10;
+      colStylesP2[0] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
+      weeksP2.forEach((_: any, idx: number) => {
+        colStylesP2[idx + 1] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
+      });
+      colStylesP2[weeksP2.length + 1] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
     }
-  });
+
+    autoTable(doc, {
+      theme: 'plain',
+      startY: finalY1 + 8,
+      margin: { left: 8, right: 8 },
+      head: [headP2],
+      headStyles: {
+        fillColor: [241, 245, 249],
+        textColor: [71, 85, 105],
+        fontStyle: 'bold',
+        fontSize: 5.8,
+        halign: 'center',
+        cellPadding: { top: 1.2, bottom: 1.2, left: 0.4, right: 0.4 }
+      },
+      body: rowsP2,
+      styles: {
+        fontSize: 5.0,
+        font: 'helvetica',
+        textColor: [35, 35, 35],
+        cellPadding: { top: 1.0, bottom: 1.0, left: 0.4, right: 0.4 },
+        lineWidth: 0
+      },
+      columnStyles: colStylesP2,
+      willDrawPage: () => {
+        drawWatermark(doc);
+      },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+        if (hookData.section === 'body') {
+          doc.setDrawColor(241, 245, 249);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+          
+          const rawRow = hookData.row.raw as any;
+          const raw1 = String(rawRow?.[1]?.content || rawRow?.[1] || rawRow?.[0]?.content || rawRow?.[0] || '');
+          if (raw1.startsWith('TOTAL KAS KELUAR') || raw1.startsWith('NET CASH FLOW')) {
+            doc.setDrawColor(50, 65, 80);
+            doc.setLineWidth(0.3);
+            doc.line(hookData.cell.x, hookData.cell.y, hookData.cell.x + hookData.cell.width, hookData.cell.y);
+          }
+        }
+      }
+    });
+
+  } else {
+    // SINGLE TABLE FOR numWeeks <= 8
+    const matrixHead = isCoa
+      ? ['Kode', 'Akun Buku Besar (COA)', ...data.weeks.map((w: any) => `W${w.week_num}`), 'TOTAL']
+      : ['Kategori Transaksi', ...data.weeks.map((w: any) => `W${w.week_num}`), 'TOTAL'];
+
+    const matrixRows: any[][] = [];
+
+    matrixSource.forEach((row: any) => {
+      const isInf = row.flow === 'INFLOW';
+      const catDisplayName = cleanName(row.category);
+      const rowData: any[] = isCoa
+        ? [
+            row.code,
+            catDisplayName,
+            ...data.weeks.map((w: any) => {
+              const val = row.weeks[`W${w.week_num}`] || 0;
+              return formatMatrixVal(val);
+            }),
+            { content: formatMatrixVal(row.total), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
+          ]
+        : [
+            catDisplayName,
+            ...data.weeks.map((w: any) => {
+              const val = row.weeks[`W${w.week_num}`] || 0;
+              return formatMatrixVal(val);
+            }),
+            { content: formatMatrixVal(row.total), styles: { fontStyle: 'bold', halign: 'right', textColor: isInf ? [22, 101, 52] : [20, 35, 60] } }
+          ];
+      matrixRows.push(rowData);
+    });
+
+    // Matrix Outflow Totals
+    const totalOutRow = isCoa ? ['-', 'TOTAL KAS KELUAR'] : ['TOTAL KAS KELUAR'];
+    data.weeks.forEach((w: any) => {
+      totalOutRow.push(w.outflow > 0 ? formatMatrixVal(w.outflow) : '-');
+    });
+    totalOutRow.push(formatMatrixVal(data.kpi.total_outflow));
+    matrixRows.push(totalOutRow);
+
+    // Matrix Net Cashflow
+    const netRow = isCoa ? ['-', 'NET CASH FLOW'] : ['NET CASH FLOW'];
+    data.weeks.forEach((w: any) => {
+      netRow.push(w.cumulative !== 0 ? formatMatrixVal(w.cumulative) : '-');
+    });
+    netRow.push(formatMatrixVal(data.kpi.net_cashflow));
+    matrixRows.push(netRow);
+
+    const colStyles: any = {};
+    if (isCoa) {
+      const codeWidth = 15;
+      const catWidth = 42;
+      const totalWidth = 30;
+      const remainingForWeeks = 281 - codeWidth - catWidth - totalWidth;
+      const weekColWidth = Math.floor((remainingForWeeks / numWeeks) * 10) / 10;
+      colStyles[0] = { cellWidth: codeWidth, halign: 'center', textColor: [100, 116, 139], overflow: 'visible' };
+      colStyles[1] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
+      data.weeks.forEach((_: any, idx: number) => {
+        colStyles[idx + 2] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
+      });
+      colStyles[data.weeks.length + 2] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
+    } else {
+      const catWidth = 48;
+      const totalWidth = 33;
+      const remainingForWeeks = 281 - catWidth - totalWidth;
+      const weekColWidth = Math.floor((remainingForWeeks / numWeeks) * 10) / 10;
+      colStyles[0] = { cellWidth: catWidth, halign: 'left', fontStyle: 'bold', overflow: 'linebreak' };
+      data.weeks.forEach((_: any, idx: number) => {
+        colStyles[idx + 1] = { cellWidth: weekColWidth, halign: 'right', overflow: 'visible' };
+      });
+      colStyles[data.weeks.length + 1] = { cellWidth: totalWidth, halign: 'right', fontStyle: 'bold', overflow: 'visible' };
+    }
+
+    autoTable(doc, {
+      theme: 'plain',
+      startY: landscapeY + 8,
+      margin: { left: 8, right: 8 },
+      head: [matrixHead],
+      headStyles: {
+        fillColor: [241, 245, 249],
+        textColor: [71, 85, 105],
+        fontStyle: 'bold',
+        fontSize: 6.2,
+        halign: 'center',
+        cellPadding: { top: 2, bottom: 2, left: 0.3, right: 0.3 }
+      },
+      body: matrixRows,
+      styles: {
+        fontSize: 5.2,
+        font: 'helvetica',
+        textColor: [35, 35, 35],
+        cellPadding: { top: 1.8, bottom: 1.8, left: 0.3, right: 0.3 },
+        lineWidth: 0
+      },
+      columnStyles: colStyles,
+      willDrawPage: () => {
+        drawWatermark(doc);
+      },
+      didDrawCell: (hookData) => {
+        if (hookData.section === 'head') {
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.4);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+        }
+        if (hookData.section === 'body') {
+          doc.setDrawColor(241, 245, 249);
+          doc.setLineWidth(0.2);
+          doc.line(hookData.cell.x, hookData.cell.y + hookData.cell.height, hookData.cell.x + hookData.cell.width, hookData.cell.y + hookData.cell.height);
+          
+          const rawRow = hookData.row.raw as any;
+          const raw1 = String(rawRow?.[1]?.content || rawRow?.[1] || rawRow?.[0]?.content || rawRow?.[0] || '');
+          if (raw1.startsWith('TOTAL KAS KELUAR') || raw1.startsWith('NET CASH FLOW')) {
+            doc.setDrawColor(50, 65, 80);
+            doc.setLineWidth(0.3);
+            doc.line(hookData.cell.x, hookData.cell.y, hookData.cell.x + hookData.cell.width, hookData.cell.y);
+          }
+        }
+      }
+    });
+  }
 
   // === PAGE 3: RINCIAN TRANSAKSI TERVERIFIKASI (PORTRAIT) ===
   doc.addPage('a4', 'portrait');
