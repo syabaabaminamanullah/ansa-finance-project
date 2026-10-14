@@ -1626,16 +1626,6 @@ export const generateWeeklyCashflowPDF = (
   );
 
   const numWeeks = data.weeks?.length || 10;
-  doc.setFontSize(10.5);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(140, 95, 52);
-  doc.text(
-    isCoa
-      ? `3. MATRIKS ARUS KAS PROYEK BERDASARKAN AKUN COA (WEEKLY MATRIX W1 – W${numWeeks})`
-      : `3. MATRIKS ARUS KAS PROYEK BERDASARKAN KATEGORI (WEEKLY MATRIX W1 – W${numWeeks})`,
-    8, 
-    landscapeY + 4
-  );
 
   // Dedicated formatter for matrix table: uses non-breaking spaces so numbers never break across lines
   const formatMatrixVal = (val: number) => {
@@ -1743,14 +1733,14 @@ export const generateWeeklyCashflowPDF = (
         fontStyle: 'bold',
         fontSize: 5.8,
         halign: 'center',
-        cellPadding: { top: 1.2, bottom: 1.2, left: 0.4, right: 0.4 }
+        cellPadding: { top: 2.0, bottom: 2.0, left: 0.4, right: 0.4 }
       },
       body: rowsP1,
       styles: {
-        fontSize: 5.0,
+        fontSize: 5.2,
         font: 'helvetica',
         textColor: [35, 35, 35],
-        cellPadding: { top: 1.0, bottom: 1.0, left: 0.4, right: 0.4 },
+        cellPadding: { top: 2.0, bottom: 2.0, left: 0.4, right: 0.4 },
         lineWidth: 0
       },
       columnStyles: colStylesP1,
@@ -1877,14 +1867,14 @@ export const generateWeeklyCashflowPDF = (
         fontStyle: 'bold',
         fontSize: 5.8,
         halign: 'center',
-        cellPadding: { top: 1.2, bottom: 1.2, left: 0.4, right: 0.4 }
+        cellPadding: { top: 2.0, bottom: 2.0, left: 0.4, right: 0.4 }
       },
       body: rowsP2,
       styles: {
-        fontSize: 5.0,
+        fontSize: 5.2,
         font: 'helvetica',
         textColor: [35, 35, 35],
-        cellPadding: { top: 1.0, bottom: 1.0, left: 0.4, right: 0.4 },
+        cellPadding: { top: 2.0, bottom: 2.0, left: 0.4, right: 0.4 },
         lineWidth: 0
       },
       columnStyles: colStylesP2,
