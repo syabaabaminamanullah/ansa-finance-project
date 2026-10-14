@@ -350,13 +350,16 @@ def generate_copy1_data(base_cashflow: Dict[str, Any]) -> Dict[str, Any]:
         ("2026-08-31", 4095500.0),
         ("2026-09-04", 25002500.0),
         ("2026-09-12", 30502500.0),
+        ("2026-09-12", 30425750.0),
     ]
 
     def match_target(t):
-        if t["flow"] != "OUTFLOW":
+        if t.get("flow") != "OUTFLOW":
             return False
+        if t.get("journal_number") == "JV-2609-0010":
+            return True
         for dt, amt in target_lumpsums:
-            if t["date"] == dt and abs(t["amount"] - amt) < 10:
+            if t.get("date") == dt and abs(t.get("amount", 0.0) - amt) < 10:
                 return True
         return False
 
