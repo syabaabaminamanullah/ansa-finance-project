@@ -718,21 +718,29 @@ export function WeeklyProjectCashflowView({
             {displayNetCash >= 0 ? '+ ' : ''}{formatCurrency(displayNetCash)}
           </p>
           <p className="text-[11px] text-textSecondary mt-1">
-            {displayNetCash >= 0 ? 'Surplus Kas Mingguan' : 'Defisit Kas Mingguan'}
+            {displayNetCash >= 0 ? 'Surplus Kas' : 'Defisit Kas'}
           </p>
         </div>
 
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 shadow-xs">
-          <p className="text-xs font-semibold text-primary uppercase tracking-wide">
-            Saldo Kas Kumulatif
-          </p>
-          <p className="text-xl font-bold text-primary mt-1">
-            +{formatCurrency(selectedWeek === 'all' ? activeData.kpi.cumulative_balance : currentWeekData?.cumulative || 0)}
-          </p>
-          <p className="text-[11px] text-success font-semibold mt-1">
-            Posisi Kas Bersih Positif
-          </p>
-        </div>
+        {(() => {
+          const cumBal = selectedWeek === 'all' ? activeData.kpi.cumulative_balance : (currentWeekData?.cumulative || 0);
+          const isPos = cumBal >= 0;
+          return (
+            <div className={`border rounded-xl p-4 shadow-xs ${
+              isPos ? 'bg-primary/5 border-primary/20' : 'bg-rose-500/10 border-rose-500/30'
+            }`}>
+              <p className={`text-xs font-semibold uppercase tracking-wide ${isPos ? 'text-primary' : 'text-rose-500'}`}>
+                Saldo Kas Kumulatif
+              </p>
+              <p className={`text-xl font-bold mt-1 ${isPos ? 'text-primary' : 'text-rose-500'}`}>
+                {isPos ? '+ ' : ''}{formatCurrency(cumBal)}
+              </p>
+              <p className={`text-[11px] font-semibold mt-1 ${isPos ? 'text-success' : 'text-danger'}`}>
+                {isPos ? 'Posisi Kas Bersih Positif' : 'Defisit Kas Kumulatif'}
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* 3. KOMPARASI TOTAL PENGELUARAN (KATEGORI / COA) */}

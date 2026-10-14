@@ -1367,7 +1367,7 @@ export const generateWeeklyCashflowPDF = (
   // === PAGE 1: RINGKASAN EKSEKUTIF & KOMPARASI KATEGORI / COA ===
   let currentY = addReportHeader(
     doc,
-    'LAPORAN ARUS KAS MINGGUAN',
+    'LAPORAN ARUS KAS PROYEK',
     `PROYEK: ${cleanProjectName}`,
     data.period.start,
     data.period.end
@@ -1414,18 +1414,23 @@ export const generateWeeklyCashflowPDF = (
   doc.line(134, currentY + 4, 134, currentY + 24);
 
   // KPI 3: Net Cash
+  const netVal = data.kpi?.net_cashflow || 0;
+  const isSurplus = netVal >= 0;
+  const netColor: [number, number, number] = isSurplus ? [22, 101, 52] : [185, 28, 28];
+  const netLabel = isSurplus ? 'SURPLUS KAS' : 'DEFISIT KAS';
+
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
   doc.text('ARUS KAS BERSIH (NET)', 140, currentY + 7);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(data.kpi.net_cashflow >= 0 ? 22 : 185, data.kpi.net_cashflow >= 0 ? 101 : 28, data.kpi.net_cashflow >= 0 ? 52 : 28);
-  doc.text((data.kpi.net_cashflow >= 0 ? '+ ' : '') + fmtFull(data.kpi.net_cashflow), 140, currentY + 14);
+  doc.setTextColor(...netColor);
+  doc.text((isSurplus ? '+ ' : '') + fmtFull(netVal), 140, currentY + 14);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(data.kpi.net_cashflow >= 0 ? 22 : 185, data.kpi.net_cashflow >= 0 ? 101 : 28, data.kpi.net_cashflow >= 0 ? 52 : 28);
-  doc.text(data.kpi.net_cashflow >= 0 ? 'SURPLUS KAS POSITIF' : 'DEFISIT KAS OPERASIONAL', 140, currentY + 20);
+  doc.setTextColor(...netColor);
+  doc.text(netLabel, 140, currentY + 20);
 
   currentY += 34;
 
@@ -1542,7 +1547,7 @@ export const generateWeeklyCashflowPDF = (
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(140, 95, 52);
-  doc.text('2. REKAPITULASI ARUS KAS MINGGUAN (WEEKLY CASH POSITION)', 14, currentY);
+  doc.text('2. REKAPITULASI ARUS KAS PROYEK', 14, currentY);
   currentY += 4;
 
   const weekSummaryRows: any[][] = [];
@@ -1614,7 +1619,7 @@ export const generateWeeklyCashflowPDF = (
   doc.addPage('a4', 'landscape');
   let landscapeY = addReportHeader(
     doc,
-    'LAPORAN ARUS KAS MINGGUAN',
+    'LAPORAN ARUS KAS PROYEK',
     `PROYEK: ${cleanProjectName}`,
     data.period.start,
     data.period.end
@@ -1626,8 +1631,8 @@ export const generateWeeklyCashflowPDF = (
   doc.setTextColor(140, 95, 52);
   doc.text(
     isCoa
-      ? `3. MATRIKS ARUS KAS MINGGUAN BERDASARKAN AKUN COA (WEEKLY MATRIX W1 – W${numWeeks})`
-      : `3. MATRIKS ARUS KAS MINGGUAN BERDASARKAN KATEGORI (WEEKLY MATRIX W1 – W${numWeeks})`,
+      ? `3. MATRIKS ARUS KAS PROYEK BERDASARKAN AKUN COA (WEEKLY MATRIX W1 – W${numWeeks})`
+      : `3. MATRIKS ARUS KAS PROYEK BERDASARKAN KATEGORI (WEEKLY MATRIX W1 – W${numWeeks})`,
     8, 
     landscapeY + 4
   );
@@ -1764,7 +1769,7 @@ export const generateWeeklyCashflowPDF = (
   doc.addPage('a4', 'portrait');
   let detailY = addReportHeader(
     doc,
-    'RINCIAN TRANSAKSI ARUS KAS MINGGUAN',
+    'RINCIAN TRANSAKSI ARUS KAS PROYEK',
     `PROYEK: ${cleanProjectName}`,
     data.period.start,
     data.period.end
