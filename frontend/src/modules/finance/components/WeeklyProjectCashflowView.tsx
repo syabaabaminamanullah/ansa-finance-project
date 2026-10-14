@@ -577,7 +577,7 @@ export function WeeklyProjectCashflowView({
             <button
               onClick={() => generateWeeklyCashflowPDF(activeData, selectedWeek, groupingMode)}
               className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-xs font-semibold shadow-2xs transition-all active:scale-98 cursor-pointer whitespace-nowrap"
-              title="Unduh Dokumen Laporan Arus Kas Mingguan (PDF)"
+              title="Unduh Dokumen Laporan Arus Kas Proyek (PDF)"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Unduh PDF</span>
