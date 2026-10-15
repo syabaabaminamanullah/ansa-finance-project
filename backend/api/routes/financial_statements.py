@@ -931,49 +931,23 @@ def get_project_weekly_cashflow(
             elif coa_code in ['51200', '51712', '51720'] or any(k in full_text for k in ['toko besi', 'po-1 material', 'pembayaran po-1']):
                 category = "Material"
                 cat_code = "KAT-07"
-            # Kategori standar berbasis COA
-            elif coa_code in ['51731', '51732', '51733', '51734', '51800']: 
+            # Kategori standar berbasis COA & Keterangan Transaksi
+            elif coa_code in ['51731', '51732', '51733', '51734', '51800'] or 'mcu' in full_text or 'bpjs' in full_text: 
                 category = "MCU + BPJS"
                 cat_code = "KAT-01"
-            elif coa_code in ['51210', '51220', '51600', '54200']: 
+            elif coa_code in ['51210', '51220', '51600', '54200'] or 'mobilisasi' in full_text or 'pengiriman material' in full_text: 
                 category = "Mobilisasi Personil, Rig, Material"
                 cat_code = "KAT-04"
-            elif coa_code in ['51900', '54300', '54500', '54600', '54610', '54620', '54630', '54640', '54700', '51745']: 
-                category = "Akomodasi & Meals"
-                cat_code = "KAT-05"
-            elif coa_code in ['51500', '53211', '53212', '53213', '53214', '53221', '53222', '53223', '61100']: 
+            elif coa_code in ['51500', '53211', '53212', '53213', '53214', '53221', '53222', '53223', '61100'] or 'gaji' in full_text or 'kasbon' in full_text or 'upah' in full_text: 
                 category = "Gaji Personil"
                 cat_code = "KAT-08"
-            elif coa_code in ['51510', '51520', '51530', '51540', '51550', '51560', '51611', '51612', '51613', '51614', '51620', '51746', '51747']: 
-                category = "Consumable"
-                cat_code = "KAT-09"
-            elif coa_code in ['51100', '51310', '51320', '51330', '51400', '51410', '51420', '51430', '51700', '51721', '51722', '51723', '51741', '51742', '51743', '51744', '51748', '51750', '51751', '52000', '52100', '52200', '54110', '54120', '54130', '61110', '61120', '61200', '61300', '61400', '61500', '61600', '61700', '61800', '61900', '63160']: 
-                category = "Operasional"
-                cat_code = "KAT-10"
-            # Fallback to keywords for legacy data or missing COA
-            elif 'persiapan drilling' in full_text or 'persiapan rig' in full_text or 'prepare rig' in full_text or 'spare part' in full_text:
-                category = "Preparasi Rig"
-                cat_code = "KAT-03"
-            elif 'travel allowance' in full_text or 'travell allowance' in full_text or 'akomodasi' in full_text or 'meals' in full_text or 'tiket' in full_text or 'flight' in full_text:
+            elif coa_code in ['51900', '54300', '54500', '54600', '54610', '54620', '54630', '54640', '54700', '51745'] or any(k in full_text for k in ['travel allowance', 'travell allowance', 'akomodasi', 'meals', 'tiket', 'flight']): 
                 category = "Akomodasi & Meals"
                 cat_code = "KAT-05"
-            elif 'mobilisasi' in full_text or 'pengiriman material' in full_text:
-                category = "Mobilisasi Personil, Rig, Material"
-                cat_code = "KAT-04"
-            elif 'po-1 material' in full_text or 'toko besi' in full_text:
-                category = "Material"
-                cat_code = "KAT-07"
-            elif 'gaji' in full_text:
-                category = "Gaji Personil"
-                cat_code = "KAT-08"
-            elif 'kasbon' in full_text:
-                category = "Kasbon Personil / Tim Lapangan"
-                cat_code = "KAT-12"
-                is_new = False
-            elif 'consumable' in full_text or 'spillbak' in full_text:
+            elif coa_code in ['51510', '51520', '51530', '51540', '51550', '51560', '51611', '51612', '51613', '51614', '51620', '51746', '51747'] or 'consumable' in full_text or 'spillbak' in full_text: 
                 category = "Consumable"
                 cat_code = "KAT-09"
-            elif 'operasional' in full_text or 'operational' in full_text or 'ops' in full_text or 'meeting' in full_text:
+            elif coa_code in ['51100', '51310', '51320', '51330', '51400', '51410', '51420', '51430', '51700', '51721', '51722', '51723', '51741', '51742', '51743', '51744', '51748', '51750', '51751', '52000', '52100', '52200', '54110', '54120', '54130', '61110', '61120', '61200', '61300', '61400', '61500', '61600', '61700', '61800', '61900', '63160'] or any(k in full_text for k in ['operasional', 'operational', 'ops', 'meeting']): 
                 category = "Operasional"
                 cat_code = "KAT-10"
             else:
