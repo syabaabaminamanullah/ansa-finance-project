@@ -917,25 +917,27 @@ def get_project_weekly_cashflow(
             amount = float(cash_line.credit or 0.0)
             is_new = False
             
-            # Classification logic (STRICT COA-BASED for consistency)
-            if coa_code in ['51731', '51732', '51733', '51734', '51800']: 
-                category = "MCU + BPJS"
-                cat_code = "KAT-01"
-            elif coa_code in ['52101']: 
+            # Classification logic (2-Langkah Verifikasi: COA & Keterangan Transaksi)
+            # Prioritas 1: Verifikasi khusus Sucofindo + Uji Material, Rental Rig, dan Material (baik dari COA maupun Keterangan Transaksi)
+            if coa_code in ['52101'] or any(k in full_text for k in ['sucofindo', 'inspeksi alat', 'labor terpadu', 'pengujian baja']):
                 category = "Sucofindo + Uji Material"
                 cat_code = "KAT-02"
+            elif coa_code in ['51300'] or ((any(k in full_text for k in ['dp drilling rig', 'dp rig', 'pelunasan dp rig', 'dp ke-dua drilling rig', 'diah wulandari'])) and 'persiapan' not in full_text and 'spare part' not in full_text):
+                category = "Rental Rig"
+                cat_code = "KAT-06"
+            elif coa_code in ['51200', '51712', '51720'] or any(k in full_text for k in ['toko besi', 'po-1 material', 'pembayaran po-1']):
+                category = "Material"
+                cat_code = "KAT-07"
+            # Kategori standar berbasis COA
+            elif coa_code in ['51731', '51732', '51733', '51734', '51800']: 
+                category = "MCU + BPJS"
+                cat_code = "KAT-01"
             elif coa_code in ['51210', '51220', '51600', '54200']: 
                 category = "Mobilisasi Personil, Rig, Material"
                 cat_code = "KAT-04"
             elif coa_code in ['51900', '54300', '54500', '54600', '54610', '54620', '54630', '54640', '54700', '51745']: 
                 category = "Akomodasi & Meals"
                 cat_code = "KAT-05"
-            elif coa_code in ['51300']: 
-                category = "Rental Rig"
-                cat_code = "KAT-06"
-            elif coa_code in ['51200', '51712', '51720']: 
-                category = "Material"
-                cat_code = "KAT-07"
             elif coa_code in ['51500', '53211', '53212', '53213', '53214', '53221', '53222', '53223', '61100']: 
                 category = "Gaji Personil"
                 cat_code = "KAT-08"
@@ -946,12 +948,6 @@ def get_project_weekly_cashflow(
                 category = "Operasional"
                 cat_code = "KAT-10"
             # Fallback to keywords for legacy data or missing COA
-            elif 'sucofindo' in full_text or 'inspeksi alat' in full_text or 'pengujian baja' in full_text or 'labor terpadu' in full_text:
-                category = "Sucofindo + Uji Material"
-                cat_code = "KAT-02"
-            elif ('dp drilling rig' in full_text or 'dp rig' in full_text or 'pelunasan dp rig' in full_text or 'dp ke-dua drilling rig' in full_text) and 'persiapan' not in full_text and 'spare part' not in full_text:
-                category = "Rental Rig"
-                cat_code = "KAT-06"
             elif 'persiapan drilling' in full_text or 'persiapan rig' in full_text or 'prepare rig' in full_text or 'spare part' in full_text:
                 category = "Preparasi Rig"
                 cat_code = "KAT-03"
