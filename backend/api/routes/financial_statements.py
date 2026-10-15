@@ -918,8 +918,11 @@ def get_project_weekly_cashflow(
             is_new = False
             
             # Classification logic (2-Langkah Verifikasi: COA & Keterangan Transaksi)
-            # Prioritas 1: Verifikasi khusus Sucofindo + Uji Material, Rental Rig, dan Material (baik dari COA maupun Keterangan Transaksi)
-            if coa_code in ['52101'] or any(k in full_text for k in ['sucofindo', 'inspeksi alat', 'labor terpadu', 'pengujian baja']):
+            # Prioritas 1: Verifikasi khusus Preparasi Rig, Sucofindo + Uji Material, Rental Rig, dan Material (baik dari COA maupun Keterangan Transaksi)
+            if any(k in full_text for k in ['persiapan drilling', 'persiapan rig', 'prepare rig', 'cost persiapan rig']) and 'kasbon' not in full_text and 'upah' not in full_text and 'mobilisasi' not in full_text:
+                category = "Preparasi Rig"
+                cat_code = "KAT-03"
+            elif coa_code in ['52101'] or any(k in full_text for k in ['sucofindo', 'inspeksi alat', 'labor terpadu', 'pengujian baja']):
                 category = "Sucofindo + Uji Material"
                 cat_code = "KAT-02"
             elif coa_code in ['51300'] or ((any(k in full_text for k in ['dp drilling rig', 'dp rig', 'pelunasan dp rig', 'dp ke-dua drilling rig', 'diah wulandari'])) and 'persiapan' not in full_text and 'spare part' not in full_text):
