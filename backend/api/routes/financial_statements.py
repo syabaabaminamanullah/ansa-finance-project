@@ -784,12 +784,13 @@ def get_project_weekly_cashflow(
     contract_val = target_project.contract_value_idr if target_project else 2870121121.0
     client_name = target_project.customer.name if target_project and target_project.customer else ("PT. Inti Karya Persada Tehnik (IKPT)" if (target_project and "IKPT" in (target_project.code or "")) else "-")
 
-    # Strictly query journals belonging to this specific project
+    # Strictly query journals belonging to this specific project (ONLY POSTED)
     subq = db.query(Journal.id).join(JournalLine, Journal.id == JournalLine.journal_id)\
         .join(ChartOfAccount, JournalLine.account_id == ChartOfAccount.id)\
         .filter(
             ChartOfAccount.account_code.like('11%'),
-            JournalLine.project_id == proj_id
+            JournalLine.project_id == proj_id,
+            Journal.status == 'Posted'
         )
 
     if start_date:
@@ -799,8 +800,11 @@ def get_project_weekly_cashflow(
 
     matched_journal_ids = [r[0] for r in subq.distinct().all()]
 
-    # Fetch all lines for these journals
-    journals = db.query(Journal).filter(Journal.id.in_(matched_journal_ids)).order_by(Journal.date.asc(), Journal.journal_number.asc()).all()
+    # Fetch all lines for these journals (ONLY POSTED)
+    journals = db.query(Journal).filter(
+        Journal.id.in_(matched_journal_ids),
+        Journal.status == 'Posted'
+    ).order_by(Journal.date.asc(), Journal.journal_number.asc()).all()
 
     # Define helper to determine week
     from datetime import date as dt_date, timedelta

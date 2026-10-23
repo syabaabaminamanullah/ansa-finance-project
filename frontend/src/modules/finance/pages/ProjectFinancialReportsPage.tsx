@@ -489,9 +489,19 @@ export function ProjectFinancialReportsPage() {
 
     const customer = customers.find(c => c.id === project.customer_id);
 
-    const projExpenses = expenses.filter(e => e.project_id === selectedProjectId);
-    const projAp = apInvoices.filter(i => i.project_id === selectedProjectId);
-    const projAr = arInvoices.filter(i => i.project_id === selectedProjectId);
+    // Strictly filter only POSTED or verified transactions
+    const projExpenses = expenses.filter(e => 
+      e.project_id === selectedProjectId && 
+      ((e as any).journal_status === 'Posted' || (e as any).status === 'Paid' || (e as any).status === 'Approved')
+    );
+    const projAp = apInvoices.filter(i => 
+      i.project_id === selectedProjectId && 
+      ((i as any).journal_status === 'Posted' || i.status === 'Paid' || i.status === 'Approved')
+    );
+    const projAr = arInvoices.filter(i => 
+      i.project_id === selectedProjectId && 
+      ((i as any).journal_status === 'Posted' || i.status === 'Paid' || i.status === 'Sent' || i.status === 'Approved')
+    );
     
     // Create a set of expense account IDs (starts with 5 - COGS) to match P&L exactly
     const expenseAccountIds = new Set(coas.filter(c => 
@@ -2491,8 +2501,16 @@ export function ProjectFinancialReportsPage() {
                   <tbody className="divide-y divide-border">
                     {rabItems.map(rab => {
                       // Sum all expenses and AP invoices tagged to this RAB item
-                      const actualExp = expenses.filter(e => e.project_id === selectedProjectId && (e as any).project_rab_id === rab.id).reduce((s, e) => s + e.amount, 0);
-                      const actualAp = apInvoices.filter(i => i.project_id === selectedProjectId && (i as any).project_rab_id === rab.id).reduce((s, i) => s + i.total_amount, 0);
+                      const actualExp = expenses.filter(e => 
+                        e.project_id === selectedProjectId && 
+                        (e as any).project_rab_id === rab.id &&
+                        ((e as any).journal_status === 'Posted' || (e as any).status === 'Paid' || (e as any).status === 'Approved')
+                      ).reduce((s, e) => s + e.amount, 0);
+                      const actualAp = apInvoices.filter(i => 
+                        i.project_id === selectedProjectId && 
+                        (i as any).project_rab_id === rab.id &&
+                        ((i as any).journal_status === 'Posted' || i.status === 'Paid' || i.status === 'Approved')
+                      ).reduce((s, i) => s + i.total_amount, 0);
                       const actual = actualExp + actualAp;
                       const sisa = rab.total_cost_idr - actual;
                       const pct = rab.total_cost_idr > 0 ? Math.round((actual / rab.total_cost_idr) * 100) : 0;
