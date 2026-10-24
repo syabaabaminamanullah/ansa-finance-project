@@ -179,8 +179,8 @@ export function DashboardPage() {
         : projects.filter((p: any) => String(p.id) === projId);
 
       const computedBudgets = targetProjects.map((p: any) => {
-        const projExpenses = expenses.filter((e: any) => e.project_id === p.id).reduce((sum: number, e: any) => sum + e.amount, 0);
-        const projAp = apInvoices.filter((a: any) => a.project_id === p.id).reduce((sum: number, a: any) => sum + a.total_amount, 0);
+        const projExpenses = expenses.filter((e: any) => e.project_id === p.id && e.journal_status === 'Posted').reduce((sum: number, e: any) => sum + e.amount, 0);
+        const projAp = apInvoices.filter((a: any) => a.project_id === p.id && (a.journal_status === 'Posted' || a.status === 'Paid')).reduce((sum: number, a: any) => sum + a.total_amount, 0);
         const actualRaw = projExpenses + projAp;
         const budgetRaw = p.contract_value_idr || 0;
         const actualBillion = actualRaw / 1000000000;
@@ -217,11 +217,11 @@ export function DashboardPage() {
       computedBudgets.sort((a: any, b: any) => b.budget - a.budget);
       setBudgetData(computedBudgets);
 
-      // 2. Project Summaries Table (Always ALL projects for comparison)
+      // 2. Project Summaries Table (Always ALL projects for comparison - ONLY POSTED COSTS)
       const projSums = projects.map((p: any) => {
         const inc = arInvoices.filter((ar: any) => ar.project_id === p.id).reduce((sum: number, ar: any) => sum + ar.total_amount, 0);
-        const exp = expenses.filter((e: any) => e.project_id === p.id).reduce((sum: number, e: any) => sum + e.amount, 0);
-        const ap = apInvoices.filter((a: any) => a.project_id === p.id).reduce((sum: number, a: any) => sum + a.total_amount, 0);
+        const exp = expenses.filter((e: any) => e.project_id === p.id && e.journal_status === 'Posted').reduce((sum: number, e: any) => sum + e.amount, 0);
+        const ap = apInvoices.filter((a: any) => a.project_id === p.id && (a.journal_status === 'Posted' || a.status === 'Paid')).reduce((sum: number, a: any) => sum + a.total_amount, 0);
         const totalCost = exp + ap;
         const netMargin = inc - totalCost;
         
@@ -242,7 +242,7 @@ export function DashboardPage() {
       // 3. Filtered Recent Transactions
       const filteredAr = projId === 'ALL' ? arInvoices : arInvoices.filter((ar: any) => ar.project_id === projId);
       const filteredAp = projId === 'ALL' ? apInvoices : apInvoices.filter((ap: any) => ap.project_id === projId);
-      const filteredExp = projId === 'ALL' ? expenses : expenses.filter((e: any) => e.project_id === projId);
+      const filteredExp = (projId === 'ALL' ? expenses : expenses.filter((e: any) => e.project_id === projId)).filter((e: any) => e.journal_status === 'Posted');
 
       const allTransactions = [
         ...filteredAr.map((ar: any) => ({

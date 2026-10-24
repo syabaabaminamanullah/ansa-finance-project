@@ -489,10 +489,10 @@ export function ProjectFinancialReportsPage() {
 
     const customer = customers.find(c => c.id === project.customer_id);
 
-    // Strictly filter only POSTED or verified transactions
+    // Strictly filter only POSTED transactions (Draft journals strictly excluded)
     const projExpenses = expenses.filter(e => 
       e.project_id === selectedProjectId && 
-      ((e as any).journal_status === 'Posted' || (e as any).status === 'Paid' || (e as any).status === 'Approved')
+      (e as any).journal_status === 'Posted'
     );
     const projAp = apInvoices.filter(i => 
       i.project_id === selectedProjectId && 
@@ -2504,7 +2504,7 @@ export function ProjectFinancialReportsPage() {
                       const actualExp = expenses.filter(e => 
                         e.project_id === selectedProjectId && 
                         (e as any).project_rab_id === rab.id &&
-                        ((e as any).journal_status === 'Posted' || (e as any).status === 'Paid' || (e as any).status === 'Approved')
+                        (e as any).journal_status === 'Posted'
                       ).reduce((s, e) => s + e.amount, 0);
                       const actualAp = apInvoices.filter(i => 
                         i.project_id === selectedProjectId && 

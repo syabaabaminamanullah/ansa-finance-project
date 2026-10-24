@@ -39,9 +39,10 @@ def get_dashboard_summary(
         proj = db.query(Project).filter(Project.id == project_id).first()
         contract_val = (proj.contract_value_idr or 0.0) if proj else 0.0
 
+        posted_exp_subq = db.query(Journal.ref_id).filter(Journal.ref_type == "Expense", Journal.status == "Posted").scalar_subquery()
         ar_q = db.query(ArInvoice).filter(ArInvoice.project_id == project_id)
         ap_q = db.query(ApInvoice).filter(ApInvoice.project_id == project_id)
-        exp_q = db.query(Expense).filter(Expense.project_id == project_id)
+        exp_q = db.query(Expense).filter(Expense.project_id == project_id, Expense.id.in_(posted_exp_subq))
 
         if period == 'AUG':
             ar_q = ar_q.filter(ArInvoice.date.startswith(f"{current_year}-08"))
@@ -160,8 +161,9 @@ def get_dashboard_summary(
     outstanding_ar = sum((ar.total_amount or 0) - (ar.amount_paid or 0) for ar in ar_invoices if ar.status != "Paid")
     outstanding_ap = sum((ap.total_amount or 0) - (ap.amount_paid or 0) for ap in ap_invoices if ap.status != "Paid")
 
-    # Total Pengeluaran
-    all_expenses_ytd = db.query(Expense).filter(Expense.date.startswith(current_year)).all()
+    # Total Pengeluaran (Only Posted Expenses)
+    posted_exp_subq = db.query(Journal.ref_id).filter(Journal.ref_type == "Expense", Journal.status == "Posted").scalar_subquery()
+    all_expenses_ytd = db.query(Expense).filter(Expense.date.startswith(current_year), Expense.id.in_(posted_exp_subq)).all()
     total_pengeluaran = sum(e.amount or 0 for e in all_expenses_ytd) + sum((ap.total_amount or 0) for ap in ap_invoices)
 
     return {
@@ -291,7 +293,8 @@ def get_expense_breakdown_realtime(
     today = datetime.utcnow()
     current_year = str(today.year)
 
-    exp_q = db.query(Expense)
+    posted_exp_subq = db.query(Journal.ref_id).filter(Journal.ref_type == "Expense", Journal.status == "Posted").scalar_subquery()
+    exp_q = db.query(Expense).filter(Expense.id.in_(posted_exp_subq))
     ap_q = db.query(ApInvoice)
 
     if project_id and project_id != 'ALL':
